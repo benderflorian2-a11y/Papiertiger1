@@ -1,13 +1,15 @@
 /// Fristen, Termine und Erinnerungen. Reines Dart, damit es testbar ist.
 library;
 
+import '../data/geschaeft.dart';
 import '../data/models.dart';
 import 'brief_analyse.dart';
 import 'datum.dart';
 import 'ordnung.dart';
+import 'rechnungen.dart';
 import 'vertrag_logik.dart';
 
-enum FaelligArt { brief, vertrag, garantie, termin, nachfassen }
+enum FaelligArt { brief, vertrag, garantie, termin, nachfassen, rechnung }
 
 class Faelligkeit {
   Faelligkeit(this.art, this.datum, this.titel, this.text, this.refId, {this.unsicher = false});
@@ -42,6 +44,7 @@ List<Faelligkeit> faelligkeiten({
   required List<Vertrag> vertraege,
   required List<Beleg> belege,
   required List<Termin> termine,
+  List<Rechnung> rechnungen = const [],
   DateTime? heute,
 }) {
   final jetzt = nurTag(heute ?? DateTime.now());
@@ -82,6 +85,11 @@ List<Faelligkeit> faelligkeiten({
     liste.add(Faelligkeit(FaelligArt.termin, naechstesTermindatum(t, heute: jetzt), t.titel,
         t.notiz.isEmpty ? t.art : t.notiz, t.id));
   }
+  for (final r in rechnungen) {
+    if (!istOffen(r)) continue;
+    liste.add(Faelligkeit(FaelligArt.rechnung, faelligAm(r), 'Rechnung ${r.nummer}',
+        'Zahlung vom Kunden fällig – Eingang prüfen', r.id));
+  }
   liste.sort((a, b) => a.datum.compareTo(b.datum));
   return liste;
 }
@@ -117,7 +125,7 @@ List<Erinnerung> erinnerungenPlanen(List<Faelligkeit> f, ErinnerungsEinstellunge
   if (!e.aktiv) return [];
   final out = <Erinnerung>[];
   for (final x in f) {
-    final tage = x.art == FaelligArt.nachfassen ? [0] : e.tageVorher;
+    final tage = x.art == FaelligArt.nachfassen || x.art == FaelligArt.rechnung ? [0] : e.tageVorher;
     for (final t in tage) {
       final tag = nurTag(x.datum).subtract(Duration(days: t));
       final zeit = DateTime(tag.year, tag.month, tag.day, e.stunde);
@@ -129,6 +137,7 @@ List<Erinnerung> erinnerungenPlanen(List<Faelligkeit> f, ErinnerungsEinstellunge
         FaelligArt.garantie => '$wann endet die Garantie: ${x.titel}',
         FaelligArt.termin => '$wann Termin: ${x.titel}',
         FaelligArt.brief => '$wann fällig: ${x.titel}',
+        FaelligArt.rechnung => '$wann Zahlungseingang: ${x.titel}',
       };
       out.add(Erinnerung(stabileId('${x.art.name}:${x.refId}:$t'), zeit, titel,
           x.unsicher ? '${x.text} (Frist bitte im Brief prüfen)' : x.text, x.refId));

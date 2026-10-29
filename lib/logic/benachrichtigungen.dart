@@ -60,7 +60,11 @@ class Benachrichtigungen {
       if (!e.aktiv) return;
       final jetzt = DateTime.now();
       final f = faelligkeiten(
-          briefe: store.briefe, vertraege: store.vertraege, belege: store.belege, termine: store.termine);
+          briefe: store.briefe,
+          vertraege: store.vertraege,
+          belege: store.belege,
+          termine: store.termine,
+          rechnungen: store.bereichAktiv('selbststaendig') ? store.rechnungen : const []);
       for (final x in erinnerungenPlanen(f, e, jetzt: jetzt)) {
         await _plugin.zonedSchedule(
           id: x.id,

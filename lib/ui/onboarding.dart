@@ -17,6 +17,8 @@ class _OnboardingState extends State<Onboarding> {
   final _seiten = PageController();
   final _name = TextEditingController();
   int _index = 0;
+  bool _selbststaendig = false;
+  bool _haushalt = false;
 
   static const _inhalte = [
     (
@@ -51,7 +53,10 @@ class _OnboardingState extends State<Onboarding> {
       _seiten.nextPage(
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     } else {
-      StoreScope.of(context).onboardingAbschliessen(_name.text);
+      final store = StoreScope.of(context);
+      store.checklisten['bereich:selbststaendig'] = _selbststaendig;
+      store.checklisten['bereich:haushalt'] = _haushalt;
+      store.onboardingAbschliessen(_name.text);
       Benachrichtigungen.erlaubnisAnfragen();
     }
   }
@@ -76,7 +81,15 @@ class _OnboardingState extends State<Onboarding> {
                       titel: s.titel,
                       text: s.text,
                     ),
-                  _NameSeite(controller: _name),
+                  _NameSeite(
+                    controller: _name,
+                    selbststaendig: _selbststaendig,
+                    haushalt: _haushalt,
+                    setzen: (s, h) => setState(() {
+                      _selbststaendig = s;
+                      _haushalt = h;
+                    }),
+                  ),
                 ],
               ),
             ),
@@ -161,9 +174,17 @@ class _IconKreis extends StatelessWidget {
 }
 
 class _NameSeite extends StatelessWidget {
-  const _NameSeite({required this.controller});
+  const _NameSeite({
+    required this.controller,
+    required this.selbststaendig,
+    required this.haushalt,
+    required this.setzen,
+  });
 
   final TextEditingController controller;
+  final bool selbststaendig;
+  final bool haushalt;
+  final void Function(bool selbststaendig, bool haushalt) setzen;
 
   @override
   Widget build(BuildContext context) {
@@ -188,6 +209,27 @@ class _NameSeite extends StatelessWidget {
             textCapitalization: TextCapitalization.words,
             decoration: feld(hintText: 'Vor- und Nachname'),
           ),
+          const SizedBox(height: 24),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Was soll der Tiger noch können?',
+                style: TextStyle(fontWeight: FontWeight.w700, color: PT.tinte)),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Ich bin selbstständig'),
+            subtitle: const Text('Rechnungen, Kunden, Einnahmen, Marketing'),
+            value: selbststaendig,
+            onChanged: (v) => setzen(v, haushalt),
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Haushalt organisieren'),
+            subtitle: const Text('Zählerstände, Inventar, Notfallmappe'),
+            value: haushalt,
+            onChanged: (v) => setzen(selbststaendig, v),
+          ),
+          const Text('Lässt sich jederzeit unter „Mehr“ ändern.', style: TextStyle(color: PT.grau, fontSize: 12)),
         ],
       ),
     );

@@ -231,6 +231,7 @@ class _BelegFormularState extends State<BelegFormular> {
   late DateTime _datum = widget.beleg.datum;
   late int _garantie = widget.beleg.garantieMonate;
   late String? _steuer = widget.beleg.steuerKategorie;
+  late bool _geschaeftlich = widget.beleg.geschaeftlich;
 
   @override
   void dispose() {
@@ -248,6 +249,7 @@ class _BelegFormularState extends State<BelegFormular> {
       ..betrag = double.tryParse(_betrag.text.replaceAll('.', '').replaceAll(',', '.'))
       ..garantieMonate = _garantie
       ..steuerKategorie = _steuer
+      ..geschaeftlich = _geschaeftlich
       ..notiz = _notiz.text.trim();
     await store.belegSpeichern(b);
     if (mounted) Navigator.of(context).pop();
@@ -325,6 +327,14 @@ class _BelegFormularState extends State<BelegFormular> {
               ),
             ),
           ),
+          if (StoreScope.of(context).bereichAktiv('selbststaendig'))
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Geschäftliche Ausgabe', style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Zählt in Einnahmen & Ausgaben deines Gewerbes'),
+              value: _geschaeftlich,
+              onChanged: (v) => setState(() => _geschaeftlich = v),
+            ),
           const SizedBox(height: 12),
           TextField(
             controller: _notiz,

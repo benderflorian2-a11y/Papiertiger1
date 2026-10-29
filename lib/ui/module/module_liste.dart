@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../app.dart';
 import '../finanzen.dart';
+import '../geschaeft/geschaeft.dart';
+import '../haushalt/haushalt.dart';
 import '../theme.dart';
 import 'antraege.dart';
 import 'belege.dart';
@@ -40,6 +43,15 @@ class ModulRaster extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final liste = [
+      if (store.bereichAktiv('selbststaendig'))
+        ModulInfo('Mein Gewerbe', 'Rechnungen, Kunden, Marketing', Icons.storefront_outlined,
+            () => const GeschaeftScreen()),
+      if (store.bereichAktiv('haushalt'))
+        ModulInfo('Haushalt', 'Zähler, Inventar, Notfallmappe', Icons.home_outlined, () => const HaushaltScreen()),
+      ...module,
+    ];
     return GridView.count(
       crossAxisCount: 2,
       shrinkWrap: true,
@@ -48,7 +60,7 @@ class ModulRaster extends StatelessWidget {
       crossAxisSpacing: 12,
       childAspectRatio: 1.25,
       children: [
-        for (final m in module)
+        for (final m in liste)
           Material(
             key: ValueKey('modul-${m.titel}'),
             color: Colors.white,

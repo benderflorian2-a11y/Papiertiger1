@@ -6,6 +6,7 @@ import '../logic/zeitplan.dart';
 import 'abwesenheit.dart';
 import 'app.dart';
 import 'brief_detail.dart';
+import 'geschaeft/geschaeft.dart';
 import 'kalender.dart';
 import 'module/belege.dart';
 import 'module/vertraege.dart';
@@ -26,7 +27,11 @@ class FristEintrag {
 }
 
 List<Faelligkeit> faelligkeitenVon(AppStore s) => faelligkeiten(
-    briefe: s.briefe, vertraege: s.vertraege, belege: s.belege, termine: s.termine);
+    briefe: s.briefe,
+    vertraege: s.vertraege,
+    belege: s.belege,
+    termine: s.termine,
+    rechnungen: s.bereichAktiv('selbststaendig') ? s.rechnungen : const []);
 
 /// Alle offenen Fristen und Termine, nach Datum.
 List<FristEintrag> alleFristen(AppStore s) => [
@@ -40,6 +45,7 @@ List<FristEintrag> alleFristen(AppStore s) => [
           FaelligArt.garantie =>
             FristEintrag(f, Icons.receipt_long_outlined, () => BelegDetail(belegId: f.refId)),
           FaelligArt.termin => FristEintrag(f, Icons.event_outlined, () => TerminFormular(terminId: f.refId)),
+          FaelligArt.rechnung => FristEintrag(f, Icons.receipt_outlined, () => RechnungDetail(rechnungId: f.refId)),
         }
     ];
 

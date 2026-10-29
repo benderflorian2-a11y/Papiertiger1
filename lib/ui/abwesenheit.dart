@@ -36,6 +36,7 @@ class _AbwesenheitScreenState extends State<AbwesenheitScreen> {
         FaelligArt.garantie => 'Mängel vorher beim Händler melden.',
         FaelligArt.termin => 'Termin verschieben oder vorziehen.',
         FaelligArt.nachfassen => 'Vor der Abreise nachfragen.',
+        FaelligArt.rechnung => 'Zahlungseingang nach der Rückkehr prüfen.',
       };
 
   @override

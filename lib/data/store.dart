@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/ordnung.dart';
+import 'geschaeft.dart';
+import 'haushalt.dart';
 import 'models.dart';
 
 /// Hält alle Daten der App und speichert sie auf dem Handy.
@@ -25,6 +27,18 @@ class AppStore extends ChangeNotifier {
   Map<String, String> notizen = {};
   bool onboardingFertig = false;
   List<Termin> termine = [];
+
+  // Selbstständige
+  Firma firma = Firma();
+  List<Kunde> kunden = [];
+  List<Rechnung> rechnungen = [];
+
+  // Haushalt
+  List<Zaehler> zaehler = [];
+  List<Gegenstand> inventar = [];
+
+  /// Zuschaltbare Bereichsgruppen: 'selbststaendig', 'haushalt'.
+  bool bereichAktiv(String gruppe) => checklisten['bereich:$gruppe'] == true;
   ErinnerungsEinstellungen erinnerungen = ErinnerungsEinstellungen();
 
   static Future<AppStore> oeffnen() async {
@@ -47,6 +61,16 @@ class AppStore extends ChangeNotifier {
     vertraege = _liste('vertraege').map(Vertrag.fromJson).toList();
     belege = _liste('belege').map(Beleg.fromJson).toList();
     termine = _liste('termine').map(Termin.fromJson).toList();
+    kunden = _liste('kunden').map(Kunde.fromJson).toList();
+    rechnungen = _liste('rechnungen').map(Rechnung.fromJson).toList();
+    zaehler = _liste('zaehler').map(Zaehler.fromJson).toList();
+    inventar = _liste('inventar').map(Gegenstand.fromJson).toList();
+    final f = _prefs.getString('firma');
+    if (f != null) {
+      try {
+        firma = Firma.fromJson(jsonDecode(f) as Map<String, dynamic>);
+      } catch (_) {}
+    }
     final e = _prefs.getString('erinnerungen');
     if (e != null) {
       try {
@@ -92,6 +116,11 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('profil', jsonEncode(profil.toJson()));
     await _prefs.setString('checklisten', jsonEncode(checklisten));
     await _prefs.setString('notizen', jsonEncode(notizen));
+    await _prefs.setString('firma', jsonEncode(firma.toJson()));
+    await _prefs.setString('kunden', jsonEncode(kunden.map((k) => k.toJson()).toList()));
+    await _prefs.setString('rechnungen', jsonEncode(rechnungen.map((r) => r.toJson()).toList()));
+    await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
+    await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
     await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
     await _prefs.setString('erinnerungen', jsonEncode(erinnerungen.toJson()));
@@ -153,6 +182,49 @@ class AppStore extends ChangeNotifier {
     return _speichern();
   }
 
+  Future<void> kundeSpeichern(Kunde k) {
+    if (!kunden.any((x) => x.id == k.id)) kunden.add(k);
+    return _speichern();
+  }
+
+  Future<void> rechnungSpeichern(Rechnung r) {
+    if (!rechnungen.any((x) => x.id == r.id)) rechnungen.add(r);
+    return _speichern();
+  }
+
+  Future<void> rechnungLoeschen(Rechnung r) {
+    rechnungen.removeWhere((x) => x.id == r.id);
+    return _speichern();
+  }
+
+  Future<void> zaehlerSpeichern(Zaehler z) {
+    if (!zaehler.any((x) => x.id == z.id)) zaehler.add(z);
+    return _speichern();
+  }
+
+  Future<void> zaehlerLoeschen(Zaehler z) {
+    zaehler.removeWhere((x) => x.id == z.id);
+    return _speichern();
+  }
+
+  Future<void> gegenstandSpeichern(Gegenstand g) {
+    if (!inventar.any((x) => x.id == g.id)) inventar.add(g);
+    return _speichern();
+  }
+
+  Future<void> gegenstandLoeschen(Gegenstand g) {
+    inventar.removeWhere((x) => x.id == g.id);
+    if (g.bild != null) _dateienLoeschen([g.bild!]);
+    return _speichern();
+  }
+
+  Kunde? kundeMitId(String id) {
+    for (final k in kunden) {
+      if (k.id == id) return k;
+    }
+    return null;
+  }
+
   Future<void> checklistePunkt(String key, bool wert) {
     checklisten[key] = wert;
     return _speichern();
@@ -174,6 +246,14 @@ class AppStore extends ChangeNotifier {
     profil = Profil();
     checklisten = {};
     notizen = {};
+    firma = Firma();
+    kunden = [];
+    rechnungen = [];
+    for (final g in inventar) {
+      if (g.bild != null) _dateienLoeschen([g.bild!]);
+    }
+    zaehler = [];
+    inventar = [];
     onboardingFertig = false;
     await _prefs.clear();
     notifyListeners();

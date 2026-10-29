@@ -360,9 +360,13 @@ class Beleg {
     this.bild,
     this.steuerKategorie,
     this.notiz = '',
+    this.geschaeftlich = false,
   });
 
   final String id;
+
+  /// Betriebsausgabe (für Selbstständige).
+  bool geschaeftlich;
   String haendler;
   DateTime datum;
   double? betrag;
@@ -383,6 +387,7 @@ class Beleg {
         'bild': bild,
         'steuerKategorie': steuerKategorie,
         'notiz': notiz,
+        'geschaeftlich': geschaeftlich,
       };
 
   factory Beleg.fromJson(Map<String, dynamic> j) => Beleg(
@@ -394,6 +399,7 @@ class Beleg {
         bild: j['bild'] as String?,
         steuerKategorie: j['steuerKategorie'] as String?,
         notiz: j['notiz'] as String? ?? '',
+        geschaeftlich: j['geschaeftlich'] == true,
       );
 }
 

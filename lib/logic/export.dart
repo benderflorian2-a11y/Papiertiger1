@@ -5,8 +5,11 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
+import '../data/geschaeft.dart';
+import '../data/haushalt.dart';
 import '../data/models.dart';
 import 'kommunikation.dart';
+import 'rechnungen.dart';
 import 'ordnung.dart';
 import 'steuer.dart';
 
@@ -246,4 +249,181 @@ Future<File> textDatei(String name, String inhalt) async {
   final datei = File('${ordner.path}/${_dateiname(name.replaceAll(RegExp(r'\.[a-z]+$'), ''))}${RegExp(r'\.[a-z]+$').firstMatch(name)?.group(0) ?? ''}');
   await datei.writeAsString(inhalt);
   return datei;
+}
+
+String _menge(double m) => m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(2).replaceAll('.', ',');
+
+/// Rechnung oder Angebot als PDF mit Fenster-Anschrift, Positionen und Summen.
+Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k) async {
+  final s = summenVon(r, kleinunternehmer: f.kleinunternehmer);
+  final titel = r.istAngebot ? 'Angebot' : 'Rechnung';
+  final doc = pw.Document(title: '$titel ${r.nummer}', author: f.name);
+  final mm = PdfPageFormat.mm;
+  const klein = pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700);
+  const normal = pw.TextStyle(fontSize: 10);
+  final fett = pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold);
+  final fuss = [
+    f.name,
+    if (f.steuernummer.isNotEmpty) 'Steuernr. ${f.steuernummer}',
+    if (f.ustId.isNotEmpty) 'USt-IdNr. ${f.ustId}',
+    if (f.iban.isNotEmpty) 'IBAN ${f.iban}${f.bank.isNotEmpty ? ' (${f.bank})' : ''}',
+    if (f.email.isNotEmpty) f.email,
+    if (f.telefon.isNotEmpty) f.telefon,
+  ].join('  ·  ');
+  doc.addPage(pw.MultiPage(
+    pageTheme: pw.PageTheme(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.fromLTRB(25 * mm, 15 * mm, 20 * mm, 20 * mm),
+    ),
+    footer: (c) => pw.Column(children: [
+      pw.Divider(color: PdfColors.grey400, thickness: 0.5),
+      pw.Text(fuss, style: klein, textAlign: pw.TextAlign.center),
+      pw.Text('Seite ${c.pageNumber} von ${c.pagesCount}', style: klein),
+    ]),
+    build: (c) => [
+      pw.SizedBox(
+        height: 30 * mm,
+        child: pw.Align(
+          alignment: pw.Alignment.topRight,
+          child: pw.Text('${f.name}\n${f.adresse}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 9.5)),
+        ),
+      ),
+      pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.SizedBox(
+          width: 85 * mm,
+          height: 45 * mm,
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text([f.name, ...f.adresse.split('\n')].where((z) => z.trim().isNotEmpty).join(' · '), style: klein, maxLines: 1),
+            pw.SizedBox(height: 3 * mm),
+            pw.Text('${k?.name ?? ''}\n${k?.adresse ?? ''}', style: const pw.TextStyle(fontSize: 11)),
+          ]),
+        ),
+        pw.Expanded(
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+            pw.Text('$titel Nr. ${r.nummer}', style: fett),
+            pw.Text('Datum: ${_d(r.datum)}', style: normal),
+            if (r.leistungVon != null)
+              pw.Text(
+                  r.leistungBis == null || r.leistungBis == r.leistungVon
+                      ? 'Leistungsdatum: ${_d(r.leistungVon!)}'
+                      : 'Leistungszeitraum: ${_d(r.leistungVon!)} – ${_d(r.leistungBis!)}',
+                  style: normal),
+          ]),
+        ),
+      ]),
+      pw.SizedBox(height: 6 * mm),
+      pw.Text(titel, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 4 * mm),
+      pw.TableHelper.fromTextArray(
+        headers: ['Pos.', 'Beschreibung', 'Menge', 'Einzelpreis', if (!f.kleinunternehmer) 'USt', 'Gesamt'],
+        data: [
+          for (var i = 0; i < r.positionen.length; i++)
+            [
+              '${i + 1}',
+              r.positionen[i].text,
+              '${_menge(r.positionen[i].menge)} ${r.positionen[i].einheit}',
+              _euro(r.positionen[i].preis),
+              if (!f.kleinunternehmer) '${r.positionen[i].ustSatz} %',
+              _euro(r.positionen[i].netto),
+            ],
+        ],
+        headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+        cellStyle: const pw.TextStyle(fontSize: 9),
+        headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+        cellAlignments: {
+          0: pw.Alignment.centerLeft,
+          2: pw.Alignment.centerRight,
+          3: pw.Alignment.centerRight,
+          4: pw.Alignment.centerRight,
+          5: pw.Alignment.centerRight,
+        },
+        columnWidths: {1: const pw.FlexColumnWidth(3)},
+      ),
+      pw.SizedBox(height: 4 * mm),
+      pw.Align(
+        alignment: pw.Alignment.centerRight,
+        child: pw.SizedBox(
+          width: 75 * mm,
+          child: pw.Column(children: [
+            _summenZeile(f.kleinunternehmer ? 'Gesamtbetrag' : 'Summe netto', _euro(s.netto), normal),
+            if (!f.kleinunternehmer)
+              for (final e in s.ust.entries) _summenZeile('zzgl. ${e.key} % USt', _euro(e.value), normal),
+            if (!f.kleinunternehmer) _summenZeile('Gesamtbetrag', _euro(s.brutto), fett),
+          ]),
+        ),
+      ),
+      pw.SizedBox(height: 6 * mm),
+      if (f.kleinunternehmer) pw.Text(kleinunternehmerHinweis, style: normal),
+      if (r.istAngebot)
+        pw.Text('Dieses Angebot gilt 30 Tage ab dem ${_d(r.datum)}.', style: normal)
+      else
+        pw.Text(
+            'Bitte überweisen Sie den Betrag bis zum ${_d(faelligAm(r))}${f.iban.isEmpty ? '' : ' auf das Konto ${f.iban}'} '
+            'unter Angabe der Rechnungsnummer ${r.nummer}.',
+            style: normal),
+      if (r.notiz.isNotEmpty) ...[pw.SizedBox(height: 4 * mm), pw.Text(r.notiz, style: normal)],
+      pw.SizedBox(height: 6 * mm),
+      pw.Text('Vielen Dank für Ihren Auftrag!', style: normal),
+    ],
+  ));
+  return _speichern(doc, '$titel ${r.nummer} ${k?.name ?? ''}');
+}
+
+pw.Widget _summenZeile(String a, String b, pw.TextStyle st) => pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 1.5),
+      child: pw.Row(children: [pw.Expanded(child: pw.Text(a, style: st)), pw.Text(b, style: st)]),
+    );
+
+/// Inventarliste mit Fotos, z. B. für die Hausratversicherung.
+Future<File> inventarAlsPdf(List<Gegenstand> liste) async {
+  final doc = pw.Document(title: 'Inventar', author: 'Papiertiger');
+  final summe = liste.fold(0.0, (s, g) => s + (g.preis ?? 0));
+  final fotos = <(Gegenstand, pw.MemoryImage)>[];
+  for (final g in liste) {
+    if (g.bild == null) continue;
+    final f = File(g.bild!);
+    if (f.existsSync()) fotos.add((g, pw.MemoryImage(await f.readAsBytes())));
+  }
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    footer: (c) => pw.Text('Erstellt mit Papiertiger am ${_d(DateTime.now())}',
+        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+    build: (c) => [
+      pw.Header(level: 0, text: 'Inventarliste'),
+      pw.Text('${liste.length} Gegenstände · Gesamtwert ${_euro(summe)} (Kaufpreise)'),
+      pw.SizedBox(height: 8),
+      pw.TableHelper.fromTextArray(
+        headers: ['Gegenstand', 'Raum', 'Kaufdatum', 'Seriennummer', 'Preis'],
+        data: [
+          for (final g in liste)
+            [g.name, g.raum, g.kaufdatum == null ? '' : _d(g.kaufdatum!), g.seriennummer, g.preis == null ? '' : _euro(g.preis!)],
+        ],
+        cellStyle: const pw.TextStyle(fontSize: 9),
+        headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+        cellAlignments: {4: pw.Alignment.centerRight},
+      ),
+      if (fotos.isNotEmpty) ...[
+        pw.SizedBox(height: 12),
+        pw.Text('Fotos', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: _orange)),
+        for (var i = 0; i < fotos.length; i += 3)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(bottom: 8),
+            child: pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              for (final (g, bild) in fotos.skip(i).take(3))
+                pw.Padding(
+                  padding: const pw.EdgeInsets.only(right: 8),
+                  child: pw.SizedBox(
+                    width: 150,
+                    child: pw.Column(children: [
+                      pw.SizedBox(height: 110, child: pw.Image(bild, fit: pw.BoxFit.cover)),
+                      pw.Text(g.name, style: const pw.TextStyle(fontSize: 8)),
+                    ]),
+                  ),
+                ),
+            ]),
+          ),
+      ],
+    ],
+  ));
+  return _speichern(doc, 'Inventar ${_d(DateTime.now())}');
 }

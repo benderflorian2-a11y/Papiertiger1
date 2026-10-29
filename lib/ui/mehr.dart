@@ -69,6 +69,26 @@ class MehrScreen extends StatelessWidget {
                 ],
               ),
             ),
+          const Abschnitt('Bereiche'),
+          PTKarte(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.storefront_outlined, color: PT.orangeDunkel),
+                title: const Text('Selbstständig', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Rechnungen, Kunden, Einnahmen, Marketing'),
+                value: store.bereichAktiv('selbststaendig'),
+                onChanged: (v) => store.checklistePunkt('bereich:selbststaendig', v),
+              ),
+              SwitchListTile(
+                secondary: const Icon(Icons.home_outlined, color: PT.orangeDunkel),
+                title: const Text('Haushalt', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Zählerstände, Inventar, Notfallmappe'),
+                value: store.bereichAktiv('haushalt'),
+                onChanged: (v) => store.checklistePunkt('bereich:haushalt', v),
+              ),
+            ]),
+          ),
           const Abschnitt('Schriftverkehr'),
           PTKarte(
             padding: const EdgeInsets.all(12),
