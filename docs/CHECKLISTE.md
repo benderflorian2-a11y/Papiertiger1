@@ -4,7 +4,7 @@ Stand: 29.10.2026, Version test-19
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 179 Punkte – ✅ 98 fertig, 🟡 35 teilweise, ❌ 41 fehlen, 🔒 5 nur mit Server.**
+**Gesamt: 200 Punkte – ✅ 100 fertig, 🟡 41 teilweise, ❌ 54 fehlen, 🔒 5 nur mit Server.** (Bereich 11 und folgende noch nicht erfasst)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
 ✅ 21 · 🟡 3 · ❌ 0 · 🔒 0
@@ -217,10 +217,34 @@ Stand: 29.10.2026, Version test-19
 - ❌ Kampagnenberichte analysieren
 - ❌ Kundenbewertungen in Themen zusammenfassen – Antwort auf eine Bewertung ist fertig
 
-## 10. Privater Alltag und Haushalt (Liste fehlt im Screenshot)
-✅ 4 · 🟡 0 · ❌ 0 · 🔒 0
+## 10. Privater Alltag und Haushalt
+✅ 4 · 🟡 7 · ❌ 11 · 🔒 0
 
-- ✅ Zählerstände und Abschlag prüfen – von mir abgeleitet
-- ✅ Inventar für die Hausratversicherung – von mir abgeleitet
-- ✅ Notfallmappe – von mir abgeleitet
-- ✅ Wiederkehrende Haushaltsaufgaben – von mir abgeleitet
+- ❌ Einkaufslisten aus Rezepten, Nachrichten oder Notizen erstellen
+- ❌ Einkaufslisten nach Supermarkt oder Kategorie sortieren
+- ❌ Haushaltsbudget verwalten
+- ❌ Wiederkehrende Einkäufe planen
+- ❌ Vorräte erfassen, wenn der Nutzer sie dokumentiert
+- ❌ Haltbarkeitsdaten verwalten
+- ❌ Wochenpläne für Mahlzeiten erstellen
+- ❌ Rezepte anhand vorhandener Zutaten vorschlagen
+- 🟡 Familienkalender organisieren – Termine ja, ohne Personen/Familie
+- ❌ Aufgaben im Haushalt verteilen
+- 🟡 Geburtstage und wichtige Ereignisse verwalten – als jährlicher Termin möglich, keine eigene Liste
+- ❌ Geschenke und Anschaffungen planen
+- ✅ Umzüge organisieren – Lebens-Ereignis Umzug
+- ❌ Checklisten für Wohnungsübergaben erstellen
+- 🟡 Nebenkostenabrechnungen erklären und auf Auffälligkeiten prüfen – allgemeine Erklärung, keine gezielte Prüfung
+- 🟡 Handwerkerangebote vergleichen – Dokumentvergleich
+- ✅ Wartungs- und Reparaturtermine verwalten
+- 🟡 Bedienungsanleitungen durchsuchen – als PDF importieren und im Archiv suchen
+- ✅ Garantieunterlagen archivieren
+- ❌ Reiseunterlagen sammeln
+- ❌ Packlisten und Reisepläne erstellen
+- 🟡 Dokumente für Vermieter, Mieter oder Hausverwaltung vorbereiten – über Antwort-Briefe
+- ✅ Zählerstände und Abschlag prüfen (zusätzlich, nicht in deiner Liste)
+- ✅ Inventar für die Hausratversicherung (zusätzlich)
+- ✅ Notfallmappe (zusätzlich)
+
+## 11. Job, Karriere und Weiterbildung
+Liste fehlt noch (Screenshots nachreichen).
