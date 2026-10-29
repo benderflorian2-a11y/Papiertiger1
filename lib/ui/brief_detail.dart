@@ -8,6 +8,7 @@ import '../logic/brief_analyse.dart';
 import '../logic/export.dart';
 import '../logic/ki_anfragen.dart';
 import '../logic/ordnung.dart';
+import '../logic/steuer.dart';
 import '../logic/zeitplan.dart';
 import '../logic/vorlagen.dart';
 import 'akten.dart';
@@ -607,6 +608,18 @@ class BriefDetail extends StatelessWidget {
               ),
             ),
           ),
+          if (b.steuerKategorie == null && steuerVorschlag(b.text) != null)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ActionChip(
+                avatar: const Icon(Icons.lightbulb_outline, size: 18),
+                label: Text('Vorschlag: ${steuerVorschlag(b.text)}'),
+                onPressed: () {
+                  b.steuerKategorie = steuerVorschlag(b.text);
+                  store.geaendert();
+                },
+              ),
+            ),
 
           if (b.bilder.isNotEmpty) ...[
             const Abschnitt('Fotos'),

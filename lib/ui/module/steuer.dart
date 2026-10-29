@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
-import '../../logic/brief_analyse.dart';
+import '../../data/models.dart';
+import '../../logic/export.dart';
+import '../../logic/steuer.dart';
 import '../app.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-class _Posten {
-  _Posten(this.datum, this.titel, this.kategorie, this.betrag);
-
-  final DateTime datum;
-  final String titel;
-  final String kategorie;
-  final double? betrag;
+/// Werbungskosten aus gespeicherten Angaben und markierten Posten.
+Werbungskosten werbungskostenFuer(int jahr, Map<String, String> notizen, List<SteuerPosten> posten) {
+  int zahl(String k) => int.tryParse(notizen['steuer:$jahr:$k'] ?? '') ?? 0;
+  return Werbungskosten(
+    fahrt: entfernungspauschale(km: zahl('km'), tage: zahl('arbeitstage'), jahr: jahr),
+    homeoffice: homeofficePauschale(zahl('homeoffice')),
+    weitere: posten
+        .where((p) => p.kategorie == 'Arbeitsmittel' || p.kategorie == 'Fortbildung' || p.kategorie == 'Fahrtkosten')
+        .fold(0.0, (s, p) => s + (p.betrag ?? 0)),
+  );
 }
 
 class SteuerScreen extends StatefulWidget {
@@ -23,112 +27,295 @@ class SteuerScreen extends StatefulWidget {
 }
 
 class _SteuerScreenState extends State<SteuerScreen> {
-  int _jahr = DateTime.now().year;
+  int _jahr = DateTime.now().year - 1;
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final alle = <_Posten>[
-      for (final b in store.belege)
-        if (b.steuerKategorie != null)
-          _Posten(b.datum, b.haendler.isEmpty ? 'Beleg' : b.haendler, b.steuerKategorie!, b.betrag),
-      for (final b in store.briefe)
-        if (b.steuerKategorie != null)
-          _Posten(b.briefDatum ?? b.erstellt, b.absenderName ?? kategorieFuer(b.kategorie).name,
-              b.steuerKategorie!, b.guthaben ? null : b.betrag),
-    ];
-    final jahre = <int>{DateTime.now().year, for (final p in alle) p.datum.year}.toList()
-      ..sort((a, b) => b.compareTo(a));
-    final posten = alle.where((p) => p.datum.year == _jahr).toList()
-      ..sort((a, b) => a.datum.compareTo(b.datum));
-    final summen = <String, double>{};
-    for (final p in posten) {
-      summen[p.kategorie] = (summen[p.kategorie] ?? 0) + (p.betrag ?? 0);
-    }
+    final posten = steuerPosten(jahr: _jahr, briefe: store.briefe, belege: store.belege, vertraege: store.vertraege);
+    final summen = summenNachKategorie(posten);
     final gesamt = summen.values.fold<double>(0, (a, b) => a + b);
+    final werbung = werbungskostenFuer(_jahr, store.notizen, posten);
+    final jetzt = DateTime.now().year;
+    final jahre = [for (var j = jetzt; j >= jetzt - 4; j--) j];
+    final frist = abgabefrist(_jahr);
+    final checkErledigt = [
+      for (var i = 0; i < steuerCheckliste.length; i++)
+        if (store.checklisten['steuer:$_jahr:$i'] == true) i
+    ].length;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Steuer')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          const Text(
-              'Markiere Belege und Briefe als steuerlich relevant. Hier siehst du alles gesammelt für deine Steuererklärung.',
-              style: TextStyle(color: PT.grau)),
+          Wrap(spacing: 8, children: [
+            for (final j in jahre)
+              ChoiceChip(label: Text('$j'), selected: _jahr == j, onSelected: (_) => setState(() => _jahr = j)),
+          ]),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final j in jahre)
-                ChoiceChip(
-                  label: Text('$j'),
-                  selected: _jahr == j,
-                  onSelected: (_) => setState(() => _jahr = j),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          PTKarte(
-            farbe: PT.orangeHell,
-            child: Row(
-              children: [
-                const Icon(Icons.calculate_outlined, color: PT.orangeDunkel),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('${posten.length} Posten · ${euro(gesamt)}',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                ),
-              ],
-            ),
-          ),
-          if (posten.isEmpty)
-            const LeerHinweis(
-                icon: Icons.calculate_outlined,
-                text: 'Noch nichts für dieses Jahr markiert.')
-          else ...[
-            const Abschnitt('Nach Kategorie'),
+          if (_jahr < jetzt)
             PTKarte(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              farbe: PT.orangeHell,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final e in summen.entries)
-                    ListTile(title: Text(e.key), trailing: Text(euro(e.value))),
-                ],
-              ),
-            ),
-            const Abschnitt('Alle Posten'),
-            PTKarte(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                children: [
-                  for (final p in posten)
-                    ListTile(
-                      title: Text(p.titel, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text('${datumKurz(p.datum)} · ${p.kategorie}'),
-                      trailing: Text(p.betrag != null ? euro(p.betrag!) : '–'),
+                  Text('Steuererklärung $_jahr', style: const TextStyle(color: PT.grau)),
+                  Text('Abgabe bis ${datumLang(frist)}',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  Text(
+                      'Gilt, wenn du eine Erklärung abgeben musst (ohne Steuerberater). Freiwillig geht es bis '
+                      '${datumKurz(freiwilligBis(_jahr))} – oft gibt es Geld zurück.',
+                      style: const TextStyle(fontSize: 13, height: 1.4)),
+                  if (!frist.isBefore(DateTime.now()))
+                    TextButton.icon(
+                      onPressed: () async {
+                        final id = 'steuer-$_jahr';
+                        await store.terminSpeichern(Termin(
+                          id: id,
+                          titel: 'Steuererklärung $_jahr abgeben',
+                          datum: frist,
+                          art: 'Behörde',
+                          notiz: 'Abgabefrist ohne Steuerberater. Unterlagen findest du im Papiertiger unter Steuer.',
+                        ));
+                        if (context.mounted) zeigeHinweis(context, 'Der Tiger erinnert dich rechtzeitig.');
+                      },
+                      icon: const Icon(Icons.add_alarm_outlined, size: 18),
+                      label: Text(store.termine.any((t) => t.id == 'steuer-$_jahr')
+                          ? 'Erinnerung ist eingetragen'
+                          : 'Erinnerung anlegen'),
                     ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: () {
-                final csv = StringBuffer('Datum;Beschreibung;Kategorie;Betrag\n');
-                for (final p in posten) {
-                  final betrag = p.betrag?.toStringAsFixed(2).replaceAll('.', ',') ?? '';
-                  final titel = p.titel.replaceAll(';', ',');
-                  csv.writeln('${datumKurz(p.datum)};$titel;${p.kategorie};$betrag');
-                }
-                Clipboard.setData(ClipboardData(text: csv.toString()));
-                zeigeHinweis(context, 'Liste kopiert – z. B. in eine E-Mail oder Tabelle einfügen.');
-              },
-              icon: const Icon(Icons.copy),
-              label: const Text('Liste kopieren (für Tabelle)'),
+          PTKarte(
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => WerbungskostenScreen(jahr: _jahr))),
+            child: Row(
+              children: [
+                const IconKachel(Icons.work_outline),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Werbungskosten-Rechner', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text(
+                        werbung.summe == 0
+                            ? 'Fahrten, Homeoffice, Arbeitsmittel'
+                            : '${euro(werbung.summe)} · ${werbung.ueberPauschale ? '${euro(werbung.mehrAlsPauschale)} über der Pauschale' : 'unter der Pauschale von ${euro(arbeitnehmerPauschbetrag)}'}',
+                        style: const TextStyle(color: PT.grau, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ],
             ),
+          ),
+          PTKarte(
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => SteuerCheckliste(jahr: _jahr))),
+            child: Row(
+              children: [
+                const IconKachel(Icons.checklist),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Text('Unterlagen-Checkliste', style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                Text('$checkErledigt/${steuerCheckliste.length}', style: const TextStyle(fontWeight: FontWeight.w700)),
+              ],
+            ),
+          ),
+          const Abschnitt('Gesammelt'),
+          PTKarte(
+            farbe: PT.orangeHell,
+            child: Text('${posten.length} Posten · ${euro(gesamt)}',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          ),
+          if (posten.isEmpty)
+            const LeerHinweis(
+                icon: Icons.calculate_outlined,
+                text: 'Noch nichts für dieses Jahr. Markiere Belege und Briefe unter „Für die Steuer“ – '
+                    'der Tiger macht oft einen Vorschlag.')
+          else ...[
+            PTKarte(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(children: [
+                for (final e in summen.entries) ListTile(dense: true, title: Text(e.key), trailing: Text(euro(e.value))),
+              ]),
+            ),
+            PTKarte(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(children: [
+                for (final p in posten)
+                  ListTile(
+                    dense: true,
+                    title: Text(p.titel, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    subtitle: Text('${datumKurz(p.datum)} · ${p.kategorie}${p.vorschlag ? ' · Vorschlag aus ${p.quelle}' : ''}'),
+                    trailing: Text(p.betrag != null ? euro(p.betrag!) : '–'),
+                  ),
+              ]),
+            ),
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final f = await textDatei('Papiertiger Steuer $_jahr.csv', steuerCsv(posten));
+                    await dateiTeilen(f.path, mimeType: 'text/csv');
+                  },
+                  icon: const Icon(Icons.table_chart_outlined, size: 18),
+                  label: const Text('Tabelle'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () async {
+                    final f = await steuerAlsPdf(_jahr, posten, werbung: werbung.summe > 0 ? werbung : null);
+                    await dateiTeilen(f.path, mimeType: 'application/pdf');
+                  },
+                  icon: const Icon(Icons.picture_as_pdf_outlined, size: 18),
+                  label: const Text('PDF'),
+                ),
+              ),
+            ]),
           ],
           const SizedBox(height: 12),
-          const Text('Keine Steuerberatung. Ob etwas absetzbar ist, hängt von deiner Situation ab.',
+          const Text(
+              'Keine Steuerberatung. Pauschalen Stand 2026, ohne Gewähr. Ob etwas absetzbar ist, hängt von deiner Situation ab – '
+              'Hilfe gibt es z. B. bei Lohnsteuerhilfevereinen.',
               style: TextStyle(color: PT.grau, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+}
+
+class WerbungskostenScreen extends StatefulWidget {
+  const WerbungskostenScreen({super.key, required this.jahr});
+
+  final int jahr;
+
+  @override
+  State<WerbungskostenScreen> createState() => _WerbungskostenScreenState();
+}
+
+class _WerbungskostenScreenState extends State<WerbungskostenScreen> {
+  final _c = <String, TextEditingController>{};
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final n = StoreScope.of(context).notizen;
+    for (final k in const ['km', 'arbeitstage', 'homeoffice']) {
+      _c.putIfAbsent(k, () => TextEditingController(text: n['steuer:${widget.jahr}:$k'] ?? (k == 'arbeitstage' ? '220' : '')));
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final c in _c.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _setze(String k) {
+    final store = StoreScope.of(context);
+    store.notizen['steuer:${widget.jahr}:$k'] = _c[k]!.text.trim();
+    store.geaendert();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final posten = steuerPosten(jahr: widget.jahr, briefe: store.briefe, belege: store.belege, vertraege: store.vertraege);
+    final w = werbungskostenFuer(widget.jahr, store.notizen, posten);
+    Widget eingabe(String k, String label, {String? suffix, String? hint}) => Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: TextField(
+            controller: _c[k],
+            keyboardType: TextInputType.number,
+            decoration: feld(labelText: label, suffixText: suffix, hintText: hint),
+            onChanged: (_) => _setze(k),
+          ),
+        );
+    return Scaffold(
+      appBar: AppBar(title: Text('Werbungskosten ${widget.jahr}')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          eingabe('km', 'Einfache Entfernung zur Arbeit', suffix: 'km'),
+          eingabe('arbeitstage', 'Tage im Büro', suffix: 'Tage', hint: 'meist 200–230'),
+          eingabe('homeoffice', 'Tage im Homeoffice', suffix: 'Tage'),
+          PTKarte(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(children: [
+              ListTile(title: const Text('Fahrten zur Arbeit'), trailing: Text(euro(w.fahrt))),
+              ListTile(title: const Text('Homeoffice-Pauschale'), trailing: Text(euro(w.homeoffice))),
+              ListTile(
+                  title: const Text('Arbeitsmittel, Fortbildung, Fahrtkosten'),
+                  subtitle: const Text('aus deinen markierten Belegen und Briefen'),
+                  trailing: Text(euro(w.weitere))),
+              const Divider(height: 1),
+              ListTile(
+                title: const Text('Zusammen', style: TextStyle(fontWeight: FontWeight.w800)),
+                trailing: Text(euro(w.summe), style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ]),
+          ),
+          PTKarte(
+            farbe: w.ueberPauschale ? PT.gruenHell : PT.orangeHell,
+            child: Text(
+              w.ueberPauschale
+                  ? 'Du liegst ${euro(w.mehrAlsPauschale)} über dem Arbeitnehmer-Pauschbetrag von ${euro(arbeitnehmerPauschbetrag)}. '
+                      'Es kann sich lohnen, die Werbungskosten einzeln anzugeben.'
+                  : 'Unter ${euro(arbeitnehmerPauschbetrag)} zieht das Finanzamt automatisch den Pauschbetrag ab. '
+                      'Einzelne Angaben bringen dann meist nichts extra.',
+            ),
+          ),
+          Text(
+            widget.jahr >= 2026
+                ? 'Gerechnet mit 38 Cent pro Kilometer ab dem ersten Kilometer und 6 € pro Homeoffice-Tag (höchstens 1.260 €).'
+                : 'Gerechnet mit 30 Cent für die ersten 20 km, danach 38 Cent, und 6 € pro Homeoffice-Tag (höchstens 1.260 €). '
+                    'An einem Tag zählt entweder Fahrt oder Homeoffice.',
+            style: const TextStyle(color: PT.grau, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class SteuerCheckliste extends StatelessWidget {
+  const SteuerCheckliste({super.key, required this.jahr});
+
+  final int jahr;
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text('Unterlagen $jahr')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Was du für die Steuererklärung meist brauchst. Nicht alles betrifft jeden.',
+              style: TextStyle(color: PT.grau)),
+          const SizedBox(height: 12),
+          PTKarte(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(children: [
+              for (var i = 0; i < steuerCheckliste.length; i++)
+                CheckboxListTile(
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: store.checklisten['steuer:$jahr:$i'] == true,
+                  title: Text(steuerCheckliste[i]),
+                  onChanged: (v) => store.checklistePunkt('steuer:$jahr:$i', v ?? false),
+                ),
+            ]),
+          ),
         ],
       ),
     );

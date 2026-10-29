@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../data/models.dart';
 import 'kommunikation.dart';
 import 'ordnung.dart';
+import 'steuer.dart';
 
 String _d(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
@@ -191,5 +192,58 @@ Future<File> archivAlsTabelle(List<Brief> briefe) async {
   final ordner = await getTemporaryDirectory();
   final datei = File('${ordner.path}/Papiertiger_Archiv_${_d(DateTime.now()).replaceAll('.', '-')}.csv');
   await datei.writeAsString(z.toString());
+  return datei;
+}
+
+String _euro(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+
+/// Jahresübersicht für die Steuererklärung als PDF.
+Future<File> steuerAlsPdf(int jahr, List<SteuerPosten> posten, {Werbungskosten? werbung}) async {
+  final doc = pw.Document(title: 'Steuer $jahr', author: 'Papiertiger');
+  final summen = summenNachKategorie(posten);
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    footer: (c) => pw.Text('Erstellt mit Papiertiger. Keine Steuerberatung, ohne Gewähr.',
+        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+    build: (c) => [
+      pw.Header(level: 0, text: 'Steuer-Unterlagen $jahr'),
+      pw.Text('Stand ${_d(DateTime.now())} · ${posten.length} Posten'),
+      pw.SizedBox(height: 10),
+      pw.Text('Summen nach Kategorie', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: _orange)),
+      pw.TableHelper.fromTextArray(
+        headers: ['Kategorie', 'Summe'],
+        data: [for (final e in summen.entries) [e.key, _euro(e.value)]],
+        cellAlignments: {1: pw.Alignment.centerRight},
+      ),
+      if (werbung != null) ...[
+        pw.SizedBox(height: 10),
+        pw.Text('Werbungskosten (geschätzt)', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: _orange)),
+        pw.Bullet(text: 'Fahrten zur Arbeit: ${_euro(werbung.fahrt)}'),
+        pw.Bullet(text: 'Homeoffice-Pauschale: ${_euro(werbung.homeoffice)}'),
+        pw.Bullet(text: 'Arbeitsmittel und Fortbildung: ${_euro(werbung.weitere)}'),
+        pw.Bullet(text: 'Zusammen: ${_euro(werbung.summe)} (Pauschbetrag: ${_euro(arbeitnehmerPauschbetrag)})'),
+      ],
+      pw.SizedBox(height: 10),
+      pw.Text('Alle Posten', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: _orange)),
+      pw.TableHelper.fromTextArray(
+        headers: ['Datum', 'Beschreibung', 'Kategorie', 'Betrag'],
+        data: [
+          for (final p in posten)
+            [_d(p.datum), p.vorschlag ? '${p.titel} (Vorschlag)' : p.titel, p.kategorie, p.betrag == null ? '–' : _euro(p.betrag!)],
+        ],
+        cellAlignments: {3: pw.Alignment.centerRight},
+        cellStyle: const pw.TextStyle(fontSize: 9),
+        headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+      ),
+    ],
+  ));
+  return _speichern(doc, 'Papiertiger Steuer $jahr');
+}
+
+/// Speichert Text als Datei (z. B. CSV) zum Teilen.
+Future<File> textDatei(String name, String inhalt) async {
+  final ordner = await getTemporaryDirectory();
+  final datei = File('${ordner.path}/${_dateiname(name.replaceAll(RegExp(r'\.[a-z]+$'), ''))}${RegExp(r'\.[a-z]+$').firstMatch(name)?.group(0) ?? ''}');
+  await datei.writeAsString(inhalt);
   return datei;
 }
