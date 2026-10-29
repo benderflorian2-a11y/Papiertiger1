@@ -56,4 +56,16 @@ PRÜFEN:
     final ok = kiAntwortLesen('KURZFASSUNG: Alles in Ordnung, das ist nur eine Information.\nPRÜFEN:\n- Nichts');
     expect(ok.pruefen, isEmpty);
   });
+
+  test('Passende KI-Prüfungen je Brief', () {
+    Brief b(String kat, String typ, String text) =>
+        Brief(id: 'x', erstellt: DateTime(2026), kategorie: kat, typ: typ, text: text, erklaerung: '');
+    expect(pruefungenFuer(b('versicherung', 'schreiben', 'Ihr Versicherungsschein')).map((p) => p.key), contains('versicherung'));
+    expect(pruefungenFuer(b('vermieter', 'abrechnung', 'Betriebskostenabrechnung 2025')).map((p) => p.key), ['nebenkosten']);
+    expect(pruefungenFuer(b('inkasso', 'mahnung', 'Forderung zzgl. Mahngebühr')).map((p) => p.key), contains('mahnung'));
+    expect(pruefungenFuer(b('sonstiges', 'schreiben', 'Hallo')), isEmpty);
+    final a = pruefAnfrage(pruefungen.first, b('versicherung', 'schreiben', 'Deckungssumme 50 Mio.'));
+    expect(a, contains('Deckungssumme 50 Mio.'));
+    expect(a, contains('VERSICHERT:'));
+  });
 }

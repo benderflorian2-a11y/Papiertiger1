@@ -256,7 +256,7 @@ String _menge(double m) => m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toS
 /// Rechnung oder Angebot als PDF mit Fenster-Anschrift, Positionen und Summen.
 Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k) async {
   final s = summenVon(r, kleinunternehmer: f.kleinunternehmer);
-  final titel = r.istAngebot ? 'Angebot' : 'Rechnung';
+  final titel = r.artName;
   final doc = pw.Document(title: '$titel ${r.nummer}', author: f.name);
   final mm = PdfPageFormat.mm;
   const klein = pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700);
@@ -354,7 +354,9 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k) async {
       ),
       pw.SizedBox(height: 6 * mm),
       if (f.kleinunternehmer) pw.Text(kleinunternehmerHinweis, style: normal),
-      if (r.istAngebot)
+      if (r.art == 'kostenvoranschlag')
+        pw.Text('Unverbindlicher Kostenvoranschlag. Abweichungen von mehr als 15 % teile ich Ihnen vorher mit.', style: normal)
+      else if (r.istAngebot)
         pw.Text('Dieses Angebot gilt 30 Tage ab dem ${_d(r.datum)}.', style: normal)
       else
         pw.Text(

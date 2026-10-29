@@ -114,3 +114,67 @@ Schreiben:
 ${_kuerzen(b.text, 5000)}
 """
 ''';
+
+/// Gezielte KI-Prüfungen je nach Art des Schreibens.
+class Pruefung {
+  const Pruefung(this.key, this.titel, this.beschreibung, this.auftrag);
+
+  final String key;
+  final String titel;
+  final String beschreibung;
+  final String auftrag;
+}
+
+const pruefungen = [
+  Pruefung('versicherung', 'Versicherungsschutz erklären', 'Was ist versichert, was nicht?',
+      'Erkläre, was laut diesem Schreiben versichert ist und was nicht. Antworte im Format:\n'
+          'VERSICHERT:\n- <Leistungen mit Summen>\nNICHT VERSICHERT ODER EINGESCHRÄNKT:\n- <Ausschlüsse, Selbstbeteiligung, Wartezeiten>\n'
+          'WORAUF ACHTEN:\n- <Pflichten, Fristen bei Schäden>\nWenn etwas im Text nicht steht, schreibe „steht nicht im Schreiben“.'),
+  Pruefung('nebenkosten', 'Nebenkostenabrechnung prüfen', 'Auffälligkeiten finden',
+      'Prüfe diese Nebenkosten- oder Betriebskostenabrechnung auf Auffälligkeiten. Antworte im Format:\n'
+          'ERGEBNIS: <Nachzahlung oder Guthaben mit Betrag>\nAUFFÄLLIG:\n- <z. B. Abrechnungszeitraum über 12 Monate, Abrechnung später als 12 Monate nach Ende des Zeitraums, '
+          'Kosten wie Verwaltung oder Reparaturen, die meist nicht umlagefähig sind, stark gestiegene Posten, fehlender Verteilerschlüssel>\n'
+          'NACHFRAGEN:\n- <was du beim Vermieter erfragen oder per Belegeinsicht prüfen kannst>\n'
+          'Nenne nur, was im Text belegt ist. Keine Rechtsberatung.'),
+  Pruefung('bescheid', 'Bescheid nachrechnen', 'Rechnung plausibel?',
+      'Prüfe die Berechnung in diesem Bescheid auf Plausibilität. Rechne Summen und Differenzen nach, die im Text stehen. Antworte im Format:\n'
+          'ERGEBNIS: <Betrag laut Bescheid>\nNACHGERECHNET:\n- <jede geprüfte Rechnung mit Zahlen, „stimmt“ oder „weicht ab um …“>\n'
+          'BITTE PRÜFEN:\n- <Angaben, die du mit deinen Unterlagen vergleichen solltest, z. B. Einkommen, Zeiträume, Personenzahl>\n'
+          'Das ist eine Plausibilitätsprüfung, keine verbindliche Berechnung.'),
+  Pruefung('mahnung', 'Mahnung und Gebühren prüfen', 'Sind die Kosten üblich?',
+      'Erkläre die Forderung in dieser Mahnung. Antworte im Format:\n'
+          'HAUPTFORDERUNG: <Betrag und wofür>\nGEBÜHREN UND ZINSEN:\n- <jeder Posten mit Betrag>\nAUFFÄLLIG:\n- <z. B. sehr hohe Mahn- oder Inkassogebühren, unklarer Ursprung, fehlende Rechnungsnummer>\n'
+          'WAS DU TUN KANNST:\n- <bezahlen, nachfragen, bestreiten, Beratung>\nKeine Rechtsberatung.'),
+  Pruefung('vertrag', 'Vertrag verständlich zusammenfassen', 'Kosten, Laufzeit, Haken',
+      'Fasse diesen Vertrag verständlich zusammen. Antworte im Format:\nKOSTEN:\n- <alle Kosten>\nLAUFZEIT UND KÜNDIGUNG:\n- <Mindestlaufzeit, Frist, Verlängerung>\n'
+          'WICHTIGE BEDINGUNGEN:\n- <Pflichten, Preisanpassungen, Sonderregeln>\nWORAUF ACHTEN:\n- <mögliche Haken>'),
+  Pruefung('termin', 'Termin bei der Behörde vorbereiten', 'Was mitnehmen, was fragen?',
+      'Hilf bei der Vorbereitung auf den Termin, um den es in diesem Schreiben geht. Antworte im Format:\n'
+          'TERMIN: <wann, wo, bei wem – nur wenn im Text>\nMITBRINGEN:\n- <Dokumente und Nachweise>\nFRAGEN, DIE DU STELLEN KANNST:\n- <3 bis 5 Fragen>\n'
+          'WENN DU NICHT KOMMEN KANNST:\n- <was das Schreiben dazu sagt, sonst: rechtzeitig absagen und neuen Termin erbitten>'),
+];
+
+/// Welche Prüfungen zu einem Brief passen (die passendste zuerst).
+List<Pruefung> pruefungenFuer(Brief b) {
+  final t = b.text.toLowerCase();
+  final keys = <String>[
+    if (b.kategorie == 'versicherung' || t.contains('versicherungsschein') || t.contains('versicherungsbedingungen')) 'versicherung',
+    if (t.contains('nebenkosten') || t.contains('betriebskosten')) 'nebenkosten',
+    if (b.typ == 'bescheid' || b.typ.startsWith('renten') || t.contains('bescheid')) 'bescheid',
+    if (b.typ == 'mahnung' || b.kategorie == 'inkasso' || t.contains('mahngebühr')) 'mahnung',
+    if (t.contains('vertragsbedingungen') || t.contains('mindestlaufzeit') || t.contains('vertragsbestätigung')) 'vertrag',
+    if (t.contains('termin') && (t.contains('vorsprache') || t.contains('einladung') || t.contains('eingeladen') || t.contains('erscheinen'))) 'termin',
+  ];
+  return [for (final k in keys) pruefungen.firstWhere((p) => p.key == k)];
+}
+
+String pruefAnfrage(Pruefung p, Brief b) => '''
+${p.auftrag}
+
+Schreibe einfach und kurz auf Deutsch, sprich den Leser mit „du“ an. Übernimm Zahlen und Daten genau, erfinde nichts.
+
+Schreiben:
+"""
+${_kuerzen(b.text, 5000)}
+"""
+''';

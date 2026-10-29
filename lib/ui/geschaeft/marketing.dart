@@ -106,7 +106,7 @@ class _MarketingTextState extends State<MarketingText> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final antwort = widget.art.key == 'antwort';
+    final a = widget.art;
     return Scaffold(
       appBar: AppBar(title: Text(widget.art.titel)),
       body: ListView(
@@ -115,16 +115,11 @@ class _MarketingTextState extends State<MarketingText> {
           TextField(
             controller: _thema,
             minLines: 3,
-            maxLines: 8,
-            decoration: feld(
-              labelText: antwort ? 'Die Bewertung des Kunden' : 'Worum geht es?',
-              hintText: antwort
-                  ? 'Bewertung hier einfügen'
-                  : 'z. B. Neue Öffnungszeiten ab Dezember, Termine für Fenster-Reinigung frei',
-            ),
+            maxLines: 12,
+            decoration: feld(labelText: a.eingabe, hintText: a.beispiel),
           ),
           const SizedBox(height: 12),
-          if (!antwort)
+          if (a.zielgruppe)
             TextField(
               controller: _zielgruppe,
               decoration: feld(labelText: 'Für wen? (optional)', hintText: 'z. B. Familien im Stadtteil'),

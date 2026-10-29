@@ -83,6 +83,10 @@ class GeschaeftScreen extends StatelessWidget {
                 label: const Text('Angebot'),
                 onPressed: () => oeffne(const RechnungFormular(art: 'angebot'))),
             ActionChip(
+                avatar: const Icon(Icons.calculate_outlined, size: 18),
+                label: const Text('Kostenvoranschlag'),
+                onPressed: () => oeffne(const RechnungFormular(art: 'kostenvoranschlag'))),
+            ActionChip(
                 avatar: const Icon(Icons.people_outline, size: 18),
                 label: const Text('Kunden'),
                 onPressed: () => oeffne(const KundenScreen())),
@@ -139,7 +143,7 @@ class RechnungZeile extends StatelessWidget {
     final (text, farbe, grund) = r.storniert
         ? ('storniert', PT.grau, PT.sand)
         : r.istAngebot
-            ? ('Angebot', PT.orangeDunkel, PT.orangeHell)
+            ? (r.artName, PT.orangeDunkel, PT.orangeHell)
             : r.bezahltAm != null
                 ? ('bezahlt', PT.gruen, PT.gruenHell)
                 : ueberfaellig(r)
@@ -178,7 +182,7 @@ class RechnungDetail extends StatelessWidget {
     final k = store.kundeMitId(r.kundeId);
     final s = summenVon(r, kleinunternehmer: f.kleinunternehmer);
     final fehlt = fehlendeAngaben(r, f, k);
-    final titel = r.istAngebot ? 'Angebot' : 'Rechnung';
+    final titel = r.artName;
 
     Future<void> pdfTeilen() async {
       final datei = await rechnungAlsPdf(r, f, k);
@@ -328,7 +332,7 @@ class RechnungDetail extends StatelessWidget {
                 }
               },
               icon: const Icon(Icons.transform),
-              label: const Text('Angebot angenommen – Rechnung erstellen'),
+              label: Text('${r.artName} angenommen – Rechnung erstellen'),
             ),
           if (k != null && istOffen(r) && ueberfaellig(r))
             OutlinedButton.icon(
@@ -463,10 +467,10 @@ class _RechnungFormularState extends State<RechnungFormular> {
         datum: _datum,
         positionen: [for (final p in _pos) p.position]);
     final s = summenVon(vorschau, kleinunternehmer: ku);
-    final titel = widget.art == 'angebot' ? 'Angebot' : 'Rechnung';
+    final titel = switch (widget.art) { 'angebot' => 'Angebot', 'kostenvoranschlag' => 'Kostenvoranschlag', _ => 'Rechnung' };
     return Scaffold(
       appBar: AppBar(title: Text(widget.rechnung == null
-              ? (widget.art == 'angebot' ? 'Neues Angebot' : 'Neue Rechnung')
+              ? switch (widget.art) { 'angebot' => 'Neues Angebot', 'kostenvoranschlag' => 'Neuer Kostenvoranschlag', _ => 'Neue Rechnung' }
               : '$titel ${widget.rechnung!.nummer}')),
       body: ListView(
         padding: const EdgeInsets.all(16),

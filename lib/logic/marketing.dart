@@ -5,7 +5,8 @@ library;
 import '../data/geschaeft.dart';
 
 class MarketingArt {
-  const MarketingArt(this.key, this.titel, this.beschreibung, this.auftrag);
+  const MarketingArt(this.key, this.titel, this.beschreibung, this.auftrag,
+      {this.eingabe = 'Worum geht es?', this.beispiel = 'z. B. Neue Öffnungszeiten ab Dezember', this.zielgruppe = true});
 
   final String key;
   final String titel;
@@ -13,6 +14,11 @@ class MarketingArt {
 
   /// Was die KI schreiben soll.
   final String auftrag;
+
+  /// Beschriftung und Beispiel für das Eingabefeld.
+  final String eingabe;
+  final String beispiel;
+  final bool zielgruppe;
 }
 
 const marketingArten = [
@@ -27,7 +33,35 @@ const marketingArten = [
   MarketingArt('bewertung', 'Bitte um Bewertung', 'Nach einem Auftrag',
       'Schreibe eine kurze, persönliche Nachricht an einen zufriedenen Kunden mit der Bitte um eine Online-Bewertung. Höchstens 60 Wörter. Kein Druck, keine Gegenleistung anbieten.'),
   MarketingArt('antwort', 'Antwort auf Bewertung', 'Lob oder Kritik',
-      'Schreibe eine höfliche, sachliche öffentliche Antwort auf die Kundenbewertung unten. Bedanke dich, geh auf Kritik ein, nenne keine privaten Details. Höchstens 80 Wörter.'),
+      'Schreibe eine höfliche, sachliche öffentliche Antwort auf die Kundenbewertung unten. Bedanke dich, geh auf Kritik ein, nenne keine privaten Details. Höchstens 80 Wörter.',
+      eingabe: 'Die Bewertung des Kunden', beispiel: 'Bewertung hier einfügen', zielgruppe: false),
+  MarketingArt('anfrage', 'Kundenanfrage beantworten', 'Schnell und freundlich',
+      'Beantworte die Kundenanfrage unten freundlich und konkret. Wenn Angaben fehlen (Preis, Termin), setze [eckige Klammern]. Höchstens 120 Wörter.',
+      eingabe: 'Die Anfrage des Kunden', beispiel: 'Nachricht hier einfügen', zielgruppe: false),
+  MarketingArt('optimieren', 'Angebots- oder Verkaufstext verbessern', 'Klarer und überzeugender',
+      'Überarbeite den Text unten: klarer, kürzer, Nutzen für den Kunden zuerst, eine Handlungsaufforderung am Ende. Gib danach drei kurze Begründungen, was du geändert hast.',
+      eingabe: 'Dein bisheriger Text', beispiel: 'Text hier einfügen', zielgruppe: true),
+  MarketingArt('plattformen', 'Für andere Plattformen umschreiben', 'Instagram, LinkedIn, Website, Newsletter',
+      'Schreibe den Text unten in vier Fassungen um: INSTAGRAM (locker, mit Hashtags), LINKEDIN (sachlich), WEBSITE (2 bis 3 Sätze), NEWSLETTER (mit Betreffzeile). Jede Fassung mit Überschrift.',
+      eingabe: 'Ausgangstext', beispiel: 'Text hier einfügen', zielgruppe: false),
+  MarketingArt('redaktion', 'Redaktionsplan', '4 Wochen Beiträge planen',
+      'Erstelle einen Redaktionsplan für 4 Wochen mit 2 Beiträgen pro Woche. Für jeden Beitrag: Woche, Kanal, Thema, ein Satz Idee, passendes Format (Foto, Video, Text).',
+      eingabe: 'Worum geht es in deinem Betrieb?', beispiel: 'z. B. Fensterreinigung, Schwerpunkt Herbst und Weihnachten'),
+  MarketingArt('video', 'Ideen für Videos und Reels', 'Kurz, einfach, mit dem Handy',
+      'Liefere 5 Ideen für kurze Videos oder Reels (15 bis 45 Sekunden), die man allein mit dem Handy drehen kann. Je Idee: Titel, Ablauf in 3 Schritten, Text für den ersten Satz.',
+      eingabe: 'Worum geht es?', beispiel: 'z. B. Vorher-nachher bei der Fensterreinigung'),
+  MarketingArt('website', 'Website-Text', 'Startseite oder „Über uns“',
+      'Schreibe einen Website-Text mit Überschrift, kurzem Einleitungssatz, drei Abschnitten mit Zwischenüberschrift (Leistungen, Ablauf, Warum wir) und einer Handlungsaufforderung. Höchstens 250 Wörter.',
+      eingabe: 'Was bietest du an?', beispiel: 'z. B. Fensterreinigung für Privathaushalte in Köln'),
+  MarketingArt('feedback', 'Feedback und Bewertungen zusammenfassen', 'Themen erkennen',
+      'Fasse die Kundenstimmen unten zusammen. Antworte im Format:\nGESAMTEINDRUCK: <ein Satz>\nLOB:\n- <Themen mit Häufigkeit>\nKRITIK:\n- <Themen mit Häufigkeit>\nVERBESSERUNGEN:\n- <2 bis 3 konkrete Vorschläge>',
+      eingabe: 'Bewertungen, Umfrage-Antworten oder Feedback', beispiel: 'Mehrere Texte untereinander einfügen', zielgruppe: false),
+  MarketingArt('kampagne', 'Kampagne auswerten', 'Zahlen verständlich machen',
+      'Werte die Zahlen der Kampagne unten aus: Was lief gut, was schlecht, was sollte man beim nächsten Mal ändern? Rechne Kennzahlen wie Kosten pro Klick oder pro Anfrage nach, wenn die Zahlen dafür da sind.',
+      eingabe: 'Zahlen der Kampagne', beispiel: 'z. B. 500 € Budget, 12.000 Aufrufe, 340 Klicks, 9 Anfragen', zielgruppe: false),
+  MarketingArt('praesentation', 'Präsentation gliedern', 'Folien für Kunden oder Pitch',
+      'Erstelle die Gliederung einer kurzen Präsentation mit 6 bis 8 Folien. Je Folie: Überschrift und 2 bis 3 Stichpunkte.',
+      eingabe: 'Worum geht die Präsentation?', beispiel: 'z. B. Angebot für eine Hausverwaltung'),
   MarketingArt('flyer', 'Flyer- oder Anzeigentext', 'Überschrift und kurzer Text',
       'Schreibe einen Flyer- oder Anzeigentext: eine starke Überschrift, drei kurze Vorteile als Stichpunkte und eine Handlungsaufforderung mit Kontakt.'),
 ];

@@ -62,4 +62,16 @@ void main() {
       if (l.antrag != null) expect(antragMitKey(l.antrag!), isNotNull, reason: l.titel);
     }
   });
+
+  test('Antrag auf Vollständigkeit prüfen', () {
+    final p = Profil(name: 'Florian Bender', adresse: 'Lindenweg 5\n50667 Köln');
+    final kg = antragMitKey('kindergeld')!;
+    final leer = antragPruefen(kg, {}, p, {});
+    expect(leer.offeneFragen, isNot(contains('Dein Name')));
+    expect(leer.offeneFragen, contains('Vor- und Nachname des Kindes'));
+    expect(leer.fehlendeUnterlagen.length, kg.unterlagen.length);
+    final notizen = {for (var i = 0; i < kg.fragen.length; i++) 'antrag:kindergeld:$i': 'x'};
+    final haken = {for (var i = 0; i < kg.unterlagen.length; i++) 'antrag:kindergeld:$i': true};
+    expect(antragPruefen(kg, notizen, p, haken).vollstaendig, isTrue);
+  });
 }

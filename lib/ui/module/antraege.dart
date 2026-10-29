@@ -204,7 +204,28 @@ class _AntragScreenState extends State<AntragScreen> {
                 ),
               ),
             ]),
-            const Abschnitt('3. Antrag stellen'),
+            const Abschnitt('3. Vollständig?'),
+            Builder(builder: (context) {
+              final st = antragPruefen(a, store.notizen, store.profil, store.checklisten);
+              return PTKarte(
+                farbe: st.vollstaendig ? PT.gruenHell : PT.gelbHell,
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(
+                    st.vollstaendig
+                        ? 'Alles beisammen. Du kannst den Antrag stellen.'
+                        : '${st.offeneFragen.length} ${st.offeneFragen.length == 1 ? 'Frage' : 'Fragen'} offen, '
+                            '${st.fehlendeUnterlagen.length} ${st.fehlendeUnterlagen.length == 1 ? 'Unterlage fehlt' : 'Unterlagen fehlen'}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  for (final f in st.offeneFragen) Text('• $f', style: const TextStyle(fontSize: 13)),
+                  for (final u in st.fehlendeUnterlagen) Text('• $u', style: const TextStyle(fontSize: 13)),
+                  if (!st.vollstaendig)
+                    const Text('Antworten werden beim Verlassen der Seite gespeichert.',
+                        style: TextStyle(fontSize: 12, color: PT.grau)),
+                ]),
+              );
+            }),
+            const Abschnitt('4. Antrag stellen'),
             if (gestellt == null)
               FilledButton.icon(
                 onPressed: () async {

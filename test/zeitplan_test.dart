@@ -80,4 +80,11 @@ void main() {
   test('Wochenüberblick-Text', () {
     expect(wochenText(const [], heute: heute), startsWith('Diese Woche ist nichts fällig'));
   });
+
+  test('Termin mit Person wird gespeichert', () {
+    final t = Termin(id: 'g', titel: 'Geburtstag Mia', datum: DateTime(2020, 3, 4), wiederholungMonate: 12, art: 'Geburtstag', person: 'Mia');
+    final k = Termin.fromJson(t.toJson());
+    expect(k.person, 'Mia');
+    expect(naechstesTermindatum(k, heute: DateTime(2026, 10, 28)), DateTime(2027, 3, 4));
+  });
 }

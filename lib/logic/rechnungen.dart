@@ -29,9 +29,9 @@ Summen summenVon(Rechnung r, {required bool kleinunternehmer}) {
   return Summen(_rund(netto), {for (final e in proSatz.entries) e.key: _rund(e.value * e.key / 100)});
 }
 
-/// Fortlaufende Nummer je Jahr und Art: 2026-001 (Rechnung), A-2026-001 (Angebot).
+/// Fortlaufende Nummer je Jahr und Art: 2026-001 (Rechnung), A-2026-001 (Angebot), KV-2026-001.
 String naechsteNummer(List<Rechnung> alle, {required String art, required int jahr}) {
-  final praefix = art == 'angebot' ? 'A-$jahr-' : '$jahr-';
+  final praefix = switch (art) { 'angebot' => 'A-$jahr-', 'kostenvoranschlag' => 'KV-$jahr-', _ => '$jahr-' };
   var max = 0;
   for (final r in alle) {
     if (r.art != art || !r.nummer.startsWith(praefix)) continue;

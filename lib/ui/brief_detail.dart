@@ -498,6 +498,32 @@ class BriefDetail extends StatelessWidget {
             },
           ),
 
+          if (pruefungenFuer(b).isNotEmpty) ...[
+            const Abschnitt('Genauer prüfen'),
+            for (final pr in pruefungenFuer(b))
+              PTKarte(
+                padding: const EdgeInsets.all(12),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => KiTextScreen(
+                    titel: pr.titel,
+                    anfrage: pruefAnfrage(pr, b),
+                    hinweis: 'Prüfung durch die KI, keine Rechts- oder Steuerberatung. Maßgeblich ist das Original.',
+                  ),
+                )),
+                child: Row(children: [
+                  const IconKachel(Icons.fact_check_outlined),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(pr.titel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(pr.beschreibung, style: const TextStyle(color: PT.grau, fontSize: 13)),
+                    ]),
+                  ),
+                  const Icon(Icons.chevron_right, color: PT.grau),
+                ]),
+              ),
+          ],
+
           const Abschnitt('Antwort schreiben'),
           KontaktKarte(brief: b),
           FilledButton.icon(

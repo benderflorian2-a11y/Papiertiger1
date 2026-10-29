@@ -36,3 +36,19 @@ Termin antragNachfragen(AntragsHelfer a, DateTime gestellt) => Termin(
       notiz: 'Antrag gestellt am ${gestellt.day}.${gestellt.month}.${gestellt.year}. '
           'Noch kein Bescheid? Dann bei der ${a.stelle} nach dem Stand fragen.',
     );
+
+class AntragsStand {
+  AntragsStand(this.offeneFragen, this.fehlendeUnterlagen);
+
+  final List<String> offeneFragen;
+  final List<String> fehlendeUnterlagen;
+
+  bool get vollstaendig => offeneFragen.isEmpty && fehlendeUnterlagen.isEmpty;
+}
+
+/// Prüft, ob alle Fragen beantwortet und alle Unterlagen abgehakt sind.
+AntragsStand antragPruefen(AntragsHelfer a, Map<String, String> notizen, Profil p, Map<String, bool> checklisten) =>
+    AntragsStand(
+      [for (var i = 0; i < a.fragen.length; i++) if (antragAntwort(a, i, notizen, p).trim().isEmpty) a.fragen[i]],
+      [for (var i = 0; i < a.unterlagen.length; i++) if (checklisten['antrag:${a.key}:$i'] != true) a.unterlagen[i]],
+    );

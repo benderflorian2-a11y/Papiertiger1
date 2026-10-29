@@ -127,7 +127,7 @@ class Rechnung {
 
   final String id;
 
-  /// 'rechnung' oder 'angebot'
+  /// 'rechnung', 'angebot' oder 'kostenvoranschlag'
   String art;
   String nummer;
   String kundeId;
@@ -141,7 +141,10 @@ class Rechnung {
   DateTime? gemahntAm;
   bool storniert;
 
-  bool get istAngebot => art == 'angebot';
+  /// Angebot oder Kostenvoranschlag (noch keine Rechnung).
+  bool get istAngebot => art == 'angebot' || art == 'kostenvoranschlag';
+
+  String get artName => switch (art) { 'angebot' => 'Angebot', 'kostenvoranschlag' => 'Kostenvoranschlag', _ => 'Rechnung' };
 
   Map<String, dynamic> toJson() => {
         'id': id,

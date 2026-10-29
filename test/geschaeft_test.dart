@@ -117,4 +117,12 @@ void main() {
     expect(w.map((x) => x.$1.name), ['Meier']);
     expect(angeboteNachfassen(rs, heute: heute).map((r) => r.nummer), ['A-2026-001']);
   });
+
+  test('Kostenvoranschlag hat eigenen Nummernkreis und zählt nicht als Rechnung', () {
+    final kv = _r('k', 'KV-2026-001', art: 'kostenvoranschlag');
+    expect(kv.istAngebot, isTrue);
+    expect(kv.artName, 'Kostenvoranschlag');
+    expect(naechsteNummer([kv], art: 'kostenvoranschlag', jahr: 2026), 'KV-2026-002');
+    expect(istOffen(kv), isFalse);
+  });
 }

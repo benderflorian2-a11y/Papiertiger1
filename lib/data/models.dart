@@ -414,11 +414,15 @@ class Termin {
     this.art = 'Sonstiges',
     this.erledigt = false,
     this.briefId,
+    this.person,
   });
 
   final String id;
   String titel;
   DateTime datum;
+
+  /// Für wen der Termin ist (Familienkalender).
+  String? person;
 
   /// 0 = einmalig, sonst Abstand in Monaten (1, 3, 6, 12, 24).
   int wiederholungMonate;
@@ -438,6 +442,7 @@ class Termin {
         'art': art,
         'erledigt': erledigt,
         'briefId': briefId,
+        'person': person,
       };
 
   factory Termin.fromJson(Map<String, dynamic> j) => Termin(
@@ -449,10 +454,11 @@ class Termin {
         art: j['art'] as String? ?? 'Sonstiges',
         erledigt: j['erledigt'] == true,
         briefId: j['briefId'] as String?,
+        person: j['person'] as String?,
       );
 }
 
-const terminArten = ['TÜV / Auto', 'Wartung', 'Versicherung', 'Arzt', 'Behörde', 'Zahlung', 'Sonstiges'];
+const terminArten = ['Geburtstag', 'TÜV / Auto', 'Wartung', 'Versicherung', 'Arzt', 'Behörde', 'Zahlung', 'Schule / Kita', 'Sonstiges'];
 
 /// Einstellungen für Push-Erinnerungen.
 class ErinnerungsEinstellungen {

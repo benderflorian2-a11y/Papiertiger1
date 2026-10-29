@@ -25,6 +25,7 @@ class _TerminFormularState extends State<TerminFormular> {
   Termin? _termin;
   final _titel = TextEditingController();
   final _notiz = TextEditingController();
+  final _person = TextEditingController();
   DateTime _datum = DateTime.now().add(const Duration(days: 7));
   int _wiederholung = 0;
   String _art = terminArten.last;
@@ -42,6 +43,7 @@ class _TerminFormularState extends State<TerminFormular> {
     _termin = t;
     _titel.text = t.titel;
     _notiz.text = t.notiz;
+    _person.text = t.person ?? '';
     _datum = t.datum;
     _wiederholung = t.wiederholungMonate;
     _art = terminArten.contains(t.art) ? t.art : terminArten.last;
@@ -52,6 +54,7 @@ class _TerminFormularState extends State<TerminFormular> {
   void dispose() {
     _titel.dispose();
     _notiz.dispose();
+    _person.dispose();
     super.dispose();
   }
 
@@ -67,7 +70,8 @@ class _TerminFormularState extends State<TerminFormular> {
       ..notiz = _notiz.text.trim()
       ..datum = _datum
       ..wiederholungMonate = _wiederholung
-      ..art = _art;
+      ..art = _art
+      ..person = _person.text.trim().isEmpty ? null : _person.text.trim();
     await StoreScope.of(context).terminSpeichern(t);
     if (mounted) Navigator.of(context).pop();
   }
@@ -103,6 +107,7 @@ class _TerminFormularState extends State<TerminFormular> {
               ChoiceChip(label: Text(a), selected: _art == a, onSelected: (_) => setState(() {
                     _art = a;
                     if (a == 'TÜV / Auto' && _wiederholung == 0) _wiederholung = 24;
+                    if (a == 'Geburtstag') _wiederholung = 12;
                     if ((a == 'Wartung' || a == 'Versicherung') && _wiederholung == 0) _wiederholung = 12;
                   })),
           ]),
@@ -166,7 +171,13 @@ class _TerminFormularState extends State<TerminFormular> {
                   onSelected: (_) => setState(() => _wiederholung = m)),
           ]),
           const SizedBox(height: 16),
-          TextField(controller: _notiz, minLines: 2, maxLines: 4, decoration: feld(labelText: 'Notiz (optional)')),
+          TextField(
+            controller: _person,
+            textCapitalization: TextCapitalization.words,
+            decoration: feld(labelText: 'Für wen? (optional)', hintText: 'z. B. Mia, Opa, ich'),
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: _notiz, minLines: 2, maxLines: 4, decoration: feld(labelText: _art == 'Geburtstag' ? 'Geschenkidee (optional)' : 'Notiz (optional)')),
           const SizedBox(height: 12),
           OutlinedButton.icon(
             onPressed: () => inKalender(context, _titel.text.isEmpty ? 'Termin' : _titel.text,
@@ -215,12 +226,21 @@ class _TerminFormularState extends State<TerminFormular> {
 }
 
 /// Liste aller eigenen Termine.
-class TermineListe extends StatelessWidget {
+class TermineListe extends StatefulWidget {
   const TermineListe({super.key});
 
   @override
+  State<TermineListe> createState() => _TermineListeState();
+}
+
+class _TermineListeState extends State<TermineListe> {
+  String? _person;
+
+  @override
   Widget build(BuildContext context) {
-    final termine = [...StoreScope.of(context).termine.where((t) => !t.erledigt)]
+    final alle = StoreScope.of(context).termine.where((t) => !t.erledigt).toList();
+    final personen = {for (final t in alle) if (t.person != null) t.person!}.toList()..sort();
+    final termine = [...alle.where((t) => _person == null || t.person == _person)]
       ..sort((a, b) => naechstesTermindatum(a).compareTo(naechstesTermindatum(b)));
     return Scaffold(
       appBar: AppBar(title: const Text('Meine Termine')),
@@ -236,6 +256,15 @@ class TermineListe extends StatelessWidget {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
               children: [
+                if (personen.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Wrap(spacing: 8, children: [
+                      ChoiceChip(label: const Text('Alle'), selected: _person == null, onSelected: (_) => setState(() => _person = null)),
+                      for (final p in personen)
+                        ChoiceChip(label: Text(p), selected: _person == p, onSelected: (_) => setState(() => _person = p)),
+                    ]),
+                  ),
                 for (final t in termine)
                   PTKarte(
                     padding: const EdgeInsets.all(14),
@@ -243,7 +272,7 @@ class TermineListe extends StatelessWidget {
                         .push(MaterialPageRoute(builder: (_) => TerminFormular(terminId: t.id))),
                     child: Row(
                       children: [
-                        const IconKachel(Icons.event_repeat_outlined),
+                        IconKachel(t.art == 'Geburtstag' ? Icons.cake_outlined : Icons.event_repeat_outlined),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
@@ -251,7 +280,7 @@ class TermineListe extends StatelessWidget {
                             children: [
                               Text(t.titel, style: const TextStyle(fontWeight: FontWeight.w700)),
                               Text(
-                                  '${t.art} · ${datumKurz(naechstesTermindatum(t))}'
+                                  '${t.person != null ? '${t.person} · ' : ''}${t.art} · ${datumKurz(naechstesTermindatum(t))}'
                                   '${t.wiederholungMonate > 0 ? ' · alle ${t.wiederholungMonate} Monate' : ''}',
                                   style: const TextStyle(color: PT.grau, fontSize: 13)),
                             ],
