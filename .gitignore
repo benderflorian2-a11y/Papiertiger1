@@ -33,3 +33,6 @@ google-services.json
 
 # Android Profiling
 *.hprof
+
+# Test-Schluessel fuer die APK bewusst einchecken
+!android-signing/debug.keystore

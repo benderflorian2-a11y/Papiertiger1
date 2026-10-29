@@ -4,6 +4,9 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -33,7 +36,7 @@ jobs:
 
       - name: Android- und iPhone-Dateien erzeugen
         run: |
-          flutter create --project-name papiertiger --org de.papiertiger --platforms android,ios .
+          flutter create --project-name papiertiger --org de.papiertiger.app --platforms android,ios .
           sed -i 's/android:label="papiertiger"/android:label="Papiertiger"/' android/app/src/main/AndroidManifest.xml
           printf '%s\n' \
             '-dontwarn com.google.mlkit.vision.text.chinese.**' \
@@ -41,6 +44,11 @@ jobs:
             '-dontwarn com.google.mlkit.vision.text.japanese.**' \
             '-dontwarn com.google.mlkit.vision.text.korean.**' \
             >> android/app/proguard-rules.pro
+
+      - name: Festen Test-Schluessel verwenden
+        run: |
+          mkdir -p ~/.android
+          cp android-signing/debug.keystore ~/.android/debug.keystore
 
       - run: flutter pub get
 
@@ -59,7 +67,23 @@ jobs:
             flutter build apk --debug
           }
 
+      - name: APK benennen
+        run: |
+          apk=$(ls build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-debug.apk 2>/dev/null | head -1)
+          cp "$apk" papiertiger.apk
+          ls -la papiertiger.apk
+
       - uses: actions/upload-artifact@v4
         with:
           name: papiertiger-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: papiertiger.apk
+
+      - name: Zum Download bereitstellen
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: test-${{ github.run_number }}
+          name: Papiertiger Test ${{ github.run_number }}
+          prerelease: false
+          make_latest: true
+          files: papiertiger.apk
