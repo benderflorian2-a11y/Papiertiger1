@@ -96,8 +96,8 @@ Future<File> akteAlsPdf(Akte a) async {
   return _speichern(doc, 'Vorgang ${a.titel}');
 }
 
-Future<void> dateiTeilen(String pfad, {String? text}) =>
-    SharePlus.instance.share(ShareParams(files: [XFile(pfad)], text: text));
+Future<void> dateiTeilen(String pfad, {String? text, String? mimeType}) =>
+    SharePlus.instance.share(ShareParams(files: [XFile(pfad, mimeType: mimeType)], text: text));
 
 Future<void> textTeilen(String text) => SharePlus.instance.share(ShareParams(text: text));
 

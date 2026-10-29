@@ -51,6 +51,8 @@ class Brief {
     this.person,
     List<Aufgabe>? unterlagen,
     List<String>? hinweise,
+    this.antwortGesendet,
+    this.nachfassenAm,
   })  : unterlagen = unterlagen ?? [],
         hinweise = hinweise ?? [],
         aufgaben = aufgaben ?? [],
@@ -108,6 +110,12 @@ class Brief {
   /// „Bitte prüfen“: Widersprüche oder fehlende Angaben laut KI.
   List<String> hinweise;
 
+  /// Wann der Nutzer geantwortet bzw. Unterlagen geschickt hat.
+  DateTime? antwortGesendet;
+
+  /// Ab wann nachgefasst werden soll, wenn keine Antwort kommt.
+  DateTime? nachfassenAm;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -137,6 +145,8 @@ class Brief {
         'person': person,
         'unterlagen': unterlagen.map((a) => a.toJson()).toList(),
         'hinweise': hinweise,
+        'antwortGesendet': antwortGesendet?.toIso8601String(),
+        'nachfassenAm': nachfassenAm?.toIso8601String(),
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -180,6 +190,8 @@ class Brief {
                 .toList() ??
             [],
         hinweise: (j['hinweise'] as List?)?.whereType<String>().toList() ?? [],
+        antwortGesendet: _datum(j['antwortGesendet']),
+        nachfassenAm: _datum(j['nachfassenAm']),
       );
 }
 
@@ -275,6 +287,82 @@ class Beleg {
         bild: j['bild'] as String?,
         steuerKategorie: j['steuerKategorie'] as String?,
         notiz: j['notiz'] as String? ?? '',
+      );
+}
+
+/// Ein eigener, ggf. wiederkehrender Termin (TÜV, Wartung, Versicherung …).
+class Termin {
+  Termin({
+    required this.id,
+    required this.titel,
+    required this.datum,
+    this.wiederholungMonate = 0,
+    this.notiz = '',
+    this.art = 'Sonstiges',
+    this.erledigt = false,
+    this.briefId,
+  });
+
+  final String id;
+  String titel;
+  DateTime datum;
+
+  /// 0 = einmalig, sonst Abstand in Monaten (1, 3, 6, 12, 24).
+  int wiederholungMonate;
+  String notiz;
+  String art;
+  bool erledigt;
+
+  /// Aus welchem Brief der Termin stammt.
+  String? briefId;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'titel': titel,
+        'datum': datum.toIso8601String(),
+        'wiederholungMonate': wiederholungMonate,
+        'notiz': notiz,
+        'art': art,
+        'erledigt': erledigt,
+        'briefId': briefId,
+      };
+
+  factory Termin.fromJson(Map<String, dynamic> j) => Termin(
+        id: j['id'] as String,
+        titel: j['titel'] as String? ?? '',
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        wiederholungMonate: (j['wiederholungMonate'] as num?)?.toInt() ?? 0,
+        notiz: j['notiz'] as String? ?? '',
+        art: j['art'] as String? ?? 'Sonstiges',
+        erledigt: j['erledigt'] == true,
+        briefId: j['briefId'] as String?,
+      );
+}
+
+const terminArten = ['TÜV / Auto', 'Wartung', 'Versicherung', 'Arzt', 'Behörde', 'Zahlung', 'Sonstiges'];
+
+/// Einstellungen für Push-Erinnerungen.
+class ErinnerungsEinstellungen {
+  ErinnerungsEinstellungen({
+    this.aktiv = true,
+    List<int>? tageVorher,
+    this.stunde = 9,
+    this.wochenueberblick = true,
+  }) : tageVorher = tageVorher ?? [7, 3, 1, 0];
+
+  bool aktiv;
+  List<int> tageVorher;
+  int stunde;
+  bool wochenueberblick;
+
+  Map<String, dynamic> toJson() =>
+      {'aktiv': aktiv, 'tageVorher': tageVorher, 'stunde': stunde, 'wochenueberblick': wochenueberblick};
+
+  factory ErinnerungsEinstellungen.fromJson(Map<String, dynamic> j) => ErinnerungsEinstellungen(
+        aktiv: j['aktiv'] != false,
+        tageVorher: (j['tageVorher'] as List?)?.whereType<num>().map((n) => n.toInt()).toList(),
+        stunde: (j['stunde'] as num?)?.toInt() ?? 9,
+        wochenueberblick: j['wochenueberblick'] != false,
       );
 }
 

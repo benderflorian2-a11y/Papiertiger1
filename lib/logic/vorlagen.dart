@@ -65,6 +65,14 @@ String vorlageText(String key, Brief b, Profil p) {
           'Ich bitte Sie um eine kurze Erläuterung. '
           'Bis zur Klärung bitte ich Sie, keine weiteren Schritte einzuleiten.'
           '${_fuss(p)}';
+    case 'nachfrage':
+      final gesendet = b.antwortGesendet != null ? ' am ${_datum(b.antwortGesendet!)}' : '';
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Nachfrage zum Bearbeitungsstand')}'
+          'bezugnehmend auf Ihr Schreiben$vom habe ich Ihnen$gesendet geantwortet. '
+          'Leider habe ich bisher keine Rückmeldung erhalten.\n\n'
+          'Ich bitte Sie, mir den aktuellen Stand kurz mitzuteilen. '
+          'Sollten noch Unterlagen fehlen, geben Sie mir bitte Bescheid.'
+          '${_fuss(p)}';
     case 'raten':
       final betrag = b.betrag != null
           ? 'den Betrag von ${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €'

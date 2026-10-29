@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../logic/benachrichtigungen.dart';
 import 'app.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -51,6 +52,7 @@ class _OnboardingState extends State<Onboarding> {
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     } else {
       StoreScope.of(context).onboardingAbschliessen(_name.text);
+      Benachrichtigungen.erlaubnisAnfragen();
     }
   }
 

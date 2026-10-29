@@ -8,10 +8,13 @@ import '../logic/brief_analyse.dart';
 import '../logic/export.dart';
 import '../logic/ki_anfragen.dart';
 import '../logic/ordnung.dart';
+import '../logic/zeitplan.dart';
 import '../logic/vorlagen.dart';
 import 'akten.dart';
 import 'app.dart';
 import 'formular_screen.dart';
+import 'kalender.dart';
+import 'termine.dart';
 import 'ki_text.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
@@ -370,6 +373,21 @@ class BriefDetail extends StatelessWidget {
                       onChanged: (v) {
                         u.erledigt = v ?? false;
                         store.geaendert();
+                        if (b.unterlagen.every((x) => x.erledigt) && b.antwortGesendet == null) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 8),
+                            content: const Text('Alles beisammen. Unterlagen verschickt?'),
+                            action: SnackBarAction(
+                              label: 'Ja, erinnern',
+                              onPressed: () {
+                                b.antwortGesendet = DateTime.now();
+                                b.nachfassenAm = DateTime.now().add(const Duration(days: 28));
+                                store.geaendert();
+                              },
+                            ),
+                          ));
+                        }
                       },
                     ),
                 ],
@@ -410,6 +428,93 @@ class BriefDetail extends StatelessWidget {
               ],
             ),
           ),
+          if (b.antwortGesendet == null)
+            OutlinedButton.icon(
+              onPressed: () {
+                b.antwortGesendet = DateTime.now();
+                b.nachfassenAm = DateTime.now().add(const Duration(days: 28));
+                store.geaendert();
+                zeigeHinweis(context, 'Der Tiger erinnert dich in 4 Wochen, falls keine Antwort kommt.');
+              },
+              icon: const Icon(Icons.outgoing_mail),
+              label: const Text('Ich habe geantwortet – an Nachfassen erinnern'),
+            )
+          else
+            PTKarte(
+              farbe: PT.orangeHell,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Geantwortet am ${datumKurz(b.antwortGesendet!)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  if (b.nachfassenAm != null)
+                    Text('Erinnerung zum Nachfassen am ${datumKurz(b.nachfassenAm!)}, falls keine Antwort kommt.'),
+                  Wrap(spacing: 8, children: [
+                    TextButton(
+                      onPressed: () {
+                        b.nachfassenAm = null;
+                        store.geaendert();
+                      },
+                      child: const Text('Antwort ist da'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => VorlageScreen(
+                          titel: 'Nachfrage',
+                          text: vorlageText('nachfrage', b, store.profil),
+
+                        ),
+                      )),
+                      child: const Text('Nachfrage schreiben'),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          for (final t in termineFinden(b.text))
+            PTKarte(
+              child: Row(
+                children: [
+                  const Icon(Icons.event_available_outlined, color: PT.orangeDunkel),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                        'Termin erkannt: ${datumKurz(t.zeit)}, ${t.zeit.hour.toString().padLeft(2, '0')}:${t.zeit.minute.toString().padLeft(2, '0')} Uhr',
+                        style: const TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  IconButton(
+                    tooltip: 'In Kalender',
+                    icon: const Icon(Icons.edit_calendar_outlined),
+                    onPressed: () => inKalender(context, titelVon(b), t.zeit,
+                        beschreibung: t.ausschnitt, mitUhrzeit: true),
+                  ),
+                  IconButton(
+                    tooltip: 'Als Termin speichern',
+                    icon: const Icon(Icons.add_alarm_outlined),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => TerminFormular(
+                          vorlage: Termin(
+                              id: neueId(),
+                              titel: titelVon(b),
+                              datum: t.zeit,
+                              art: 'Behörde',
+                              notiz: t.ausschnitt,
+                              briefId: b.id)),
+                    )),
+                  ),
+                ],
+              ),
+            ),
+          if (b.frist != null && !b.erledigt)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => inKalender(context, 'Frist: ${titelVon(b)}', b.frist!,
+                    beschreibung: b.erklaerung),
+                icon: const Icon(Icons.edit_calendar_outlined, size: 18),
+                label: const Text('Frist in Kalender eintragen'),
+              ),
+            ),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 4),
             title: const Text('Brief ist erledigt',

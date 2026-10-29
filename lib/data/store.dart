@@ -21,6 +21,8 @@ class AppStore extends ChangeNotifier {
   Profil profil = Profil();
   Map<String, bool> checklisten = {};
   bool onboardingFertig = false;
+  List<Termin> termine = [];
+  ErinnerungsEinstellungen erinnerungen = ErinnerungsEinstellungen();
 
   static Future<AppStore> oeffnen() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,6 +43,13 @@ class AppStore extends ChangeNotifier {
     briefe = _liste('briefe').map(Brief.fromJson).toList();
     vertraege = _liste('vertraege').map(Vertrag.fromJson).toList();
     belege = _liste('belege').map(Beleg.fromJson).toList();
+    termine = _liste('termine').map(Termin.fromJson).toList();
+    final e = _prefs.getString('erinnerungen');
+    if (e != null) {
+      try {
+        erinnerungen = ErinnerungsEinstellungen.fromJson(jsonDecode(e) as Map<String, dynamic>);
+      } catch (_) {}
+    }
     final p = _prefs.getString('profil');
     if (p != null) {
       try {
@@ -74,7 +83,19 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('profil', jsonEncode(profil.toJson()));
     await _prefs.setString('checklisten', jsonEncode(checklisten));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
+    await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
+    await _prefs.setString('erinnerungen', jsonEncode(erinnerungen.toJson()));
     notifyListeners();
+  }
+
+  Future<void> terminSpeichern(Termin t) {
+    if (!termine.any((x) => x.id == t.id)) termine.add(t);
+    return _speichern();
+  }
+
+  Future<void> terminLoeschen(Termin t) {
+    termine.removeWhere((x) => x.id == t.id);
+    return _speichern();
   }
 
   /// Nach jeder Änderung an einem Objekt aufrufen.
@@ -138,6 +159,8 @@ class AppStore extends ChangeNotifier {
     briefe = [];
     vertraege = [];
     belege = [];
+    termine = [];
+    erinnerungen = ErinnerungsEinstellungen();
     profil = Profil();
     checklisten = {};
     onboardingFertig = false;

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'module/module_liste.dart';
+import 'erinnerungen_einstellungen.dart';
 import 'ki_einstellungen.dart';
+import 'termine.dart';
 import 'module/profil.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -66,6 +68,47 @@ class MehrScreen extends StatelessWidget {
                 ],
               ),
             ),
+          const Abschnitt('Fristen & Termine'),
+          PTKarte(
+            padding: const EdgeInsets.all(12),
+            onTap: () => oeffne(const ErinnerungenEinstellungen()),
+            child: const Row(
+              children: [
+                IconKachel(Icons.notifications_active_outlined),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Erinnerungen', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text('Wann und wie oft der Tiger erinnert', style: TextStyle(color: PT.grau, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
+          PTKarte(
+            padding: const EdgeInsets.all(12),
+            onTap: () => oeffne(const TermineListe()),
+            child: const Row(
+              children: [
+                IconKachel(Icons.event_repeat_outlined),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Meine Termine', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text('TÜV, Wartung, Versicherung und mehr', style: TextStyle(color: PT.grau, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
           const Abschnitt('KI auf dem Handy'),
           PTKarte(
             onTap: () => oeffne(const KiEinstellungenScreen()),
