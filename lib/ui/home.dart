@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../logic/finanzen.dart';
+import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
 import 'app.dart';
 import 'brief_detail.dart';
+import 'finanzen.dart';
 import 'fristen.dart';
+import 'kommunikation.dart';
 import 'module/module_liste.dart';
 import 'scan.dart';
 import 'theme.dart';
@@ -24,6 +28,8 @@ class HomeScreen extends StatelessWidget {
     final dringend =
         store.briefe.where((b) => dringlichkeit(b) == Dringlichkeit.hoch).toList();
     final name = store.profil.name.split(' ').first;
+    final zahlungen = offeneZahlungen(store.briefe);
+    final warten = wartetAufAntwort(store.briefe);
 
     void oeffne(Widget seite) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => seite));
@@ -135,6 +141,38 @@ class HomeScreen extends StatelessWidget {
                 onTap: () => oeffne(BriefDetail(briefId: b.id)),
               ),
           ],
+
+          if (zahlungen.isNotEmpty || warten.isNotEmpty) const SizedBox(height: 8),
+          if (zahlungen.isNotEmpty)
+            PTKarte(
+              padding: const EdgeInsets.all(12),
+              onTap: () => oeffne(const FinanzenScreen()),
+              child: Row(children: [
+                const IconKachel(Icons.euro),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                      '${zahlungen.length} offene ${zahlungen.length == 1 ? 'Zahlung' : 'Zahlungen'}: ${euro(summe(zahlungen))}',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ]),
+            ),
+          if (warten.isNotEmpty)
+            PTKarte(
+              padding: const EdgeInsets.all(12),
+              onTap: () => oeffne(const KommunikationScreen()),
+              child: Row(children: [
+                const IconKachel(Icons.hourglass_top_outlined),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                      'Du wartest auf ${warten.length} ${warten.length == 1 ? 'Antwort' : 'Antworten'}',
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ]),
+            ),
 
           Row(
             children: [

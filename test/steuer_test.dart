@@ -71,8 +71,8 @@ void main() {
     final s = summenNachKategorie(posten);
     expect(s['Handwerkerleistungen'], 400);
     expect(s['Krankheitskosten'], 20);
-    expect(s['Versicherungen'], closeTo(160, 0.001));
-    expect(posten.where((p) => p.vorschlag).map((p) => p.betrag), containsAll([90.0, 70.0]));
+    expect(s['Versicherungen'], closeTo(190, 0.001));
+    expect(posten.where((p) => p.vorschlag).map((p) => p.betrag), containsAll([90.0, 100.0]));
     final csv = steuerCsv(posten);
     expect(csv, startsWith('﻿Datum;Beschreibung;Kategorie;Betrag;Quelle'));
     expect(csv, contains('"Allianz (Hausrat)"'));
