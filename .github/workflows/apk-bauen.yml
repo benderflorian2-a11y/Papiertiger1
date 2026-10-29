@@ -49,6 +49,12 @@ jobs:
             '-keep class com.google_mlkit_text_recognition.** { *; }' \
             '-keep class com.google_mlkit_commons.** { *; }' \
             >> android/app/proguard-rules.pro
+          # KI auf dem Handy braucht Android 11+ und Internet fuer den Modell-Download
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 30/' android/app/build.gradle.kts
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || \
+            sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+          grep -n "minSdk" android/app/build.gradle.kts
+          grep -n "INTERNET" android/app/src/main/AndroidManifest.xml
 
       - name: Festen Test-Schluessel verwenden
         run: |
@@ -73,32 +79,51 @@ jobs:
           PY
           grep -n "papiertiger\|signingConfig" android/app/build.gradle.kts
 
-      - run: flutter pub get
+      - name: Pakete laden
+        run: |
+          set -o pipefail
+          flutter pub get 2>&1 | tee pub.txt
 
       - name: App-Icon erzeugen
         continue-on-error: true
         run: dart run flutter_launcher_icons
 
       - name: Pruefung (Tests)
-        continue-on-error: true
-        run: flutter test
+        run: |
+          set -o pipefail
+          if flutter test 2>&1 | tee tests.txt; then echo "TESTS OK" > tests_status.txt; else echo "TESTS FEHLGESCHLAGEN" > tests_status.txt; fi
+          cat tests_status.txt
 
       - name: APK bauen
         run: |
-          flutter build apk --release || {
-            echo "Release-Bau fehlgeschlagen, baue Test-Version"
-            flutter build apk --debug
-          }
+          set -o pipefail
+          flutter build apk --release --target-platform android-arm64 2>&1 | tee build.txt
 
       - name: APK benennen und Schluessel pruefen
         run: |
-          apk=$(ls build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/app-debug.apk 2>/dev/null | head -1)
-          cp "$apk" papiertiger.apk
+          cp build/app/outputs/flutter-apk/app-release.apk papiertiger.apk
           ls -la papiertiger.apk
           signer=$(ls -d $ANDROID_HOME/build-tools/*/ | sort -V | tail -1)apksigner
           $signer verify --print-certs papiertiger.apk | tee certs.txt
           grep -qi "76730f6c8b9e443702d1d639e78729a39623012adda7e7d9201db667963c2754" certs.txt || {
             echo "FEHLER: APK ist nicht mit dem festen Papiertiger-Schluessel signiert"; exit 1; }
+
+      - name: Bericht schreiben
+        if: always()
+        run: |
+          {
+            echo "## Tests"
+            cat tests_status.txt 2>/dev/null || echo "nicht gelaufen"
+            echo '```'
+            tail -n 60 tests.txt 2>/dev/null | grep -v '^\s*$' | tail -n 40
+            echo '```'
+            echo "## Bau"
+            echo '```'
+            grep -iE "error|fehler|exception|failed|warning: \[" build.txt pub.txt 2>/dev/null | head -n 60
+            tail -n 40 build.txt 2>/dev/null
+            echo '```'
+          } > bericht.md
+          cut -c1-60000 bericht.md > bericht_kurz.md
 
       - uses: actions/upload-artifact@v4
         with:
@@ -113,4 +138,15 @@ jobs:
           name: Papiertiger Test ${{ github.run_number }}
           prerelease: false
           make_latest: true
+          body_path: bericht_kurz.md
           files: papiertiger.apk
+
+      - name: Fehlerbericht veroeffentlichen
+        if: failure() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: fehler-${{ github.run_number }}
+          name: Fehlerbericht ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          body_path: bericht_kurz.md

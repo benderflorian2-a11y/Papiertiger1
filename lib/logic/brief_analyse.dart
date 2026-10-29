@@ -4,9 +4,13 @@
 library;
 
 import 'datum.dart';
+import 'rente.dart';
+
+export 'rente.dart' show Fakt;
 
 class Kategorie {
-  const Kategorie(this.key, this.name, this.vonText, this.stichworte, {this.hinweis});
+  const Kategorie(this.key, this.name, this.vonText, this.stichworte,
+      {this.hinweis, this.stark = const []});
 
   final String key;
   final String name;
@@ -15,6 +19,9 @@ class Kategorie {
   final String vonText;
   final List<String> stichworte;
   final String? hinweis;
+
+  /// Eindeutige Erkennungszeichen, zählen fünffach (z. B. „Deutsche Rentenversicherung“).
+  final List<String> stark;
 }
 
 class BriefTyp {
@@ -30,31 +37,39 @@ class BriefTyp {
 const kategorien = <Kategorie>[
   Kategorie('finanzamt', 'Finanzamt', 'vom Finanzamt',
       ['finanzamt', 'steuerbescheid', 'einkommensteuer', 'steuernummer', 'umsatzsteuer'],
+      stark: ['finanzamt'],
       hinweis:
           'Gegen einen Steuerbescheid kannst du innerhalb eines Monats Einspruch einlegen, wenn er dir falsch vorkommt.'),
   Kategorie('familienkasse', 'Familienkasse', 'von der Familienkasse',
-      ['familienkasse', 'kindergeld', 'kinderzuschlag']),
+      ['familienkasse', 'kindergeld', 'kinderzuschlag'],
+      stark: ['familienkasse']),
   Kategorie('jobcenter', 'Jobcenter', 'vom Jobcenter',
       ['jobcenter', 'bürgergeld', 'grundsicherung für arbeitsuchende'],
+      stark: ['jobcenter'],
       hinweis:
           'Bei Fragen zu Leistungen vom Jobcenter helfen dir kostenlose Sozialberatungsstellen, z. B. von Caritas oder Diakonie.'),
   Kategorie('arbeitsagentur', 'Agentur für Arbeit', 'von der Agentur für Arbeit',
       ['agentur für arbeit', 'arbeitsagentur', 'arbeitslosengeld']),
   Kategorie('rente', 'Rentenversicherung', 'von der Rentenversicherung',
-      ['rentenversicherung', 'rentenbescheid', 'renteninformation', 'versicherungsverlauf']),
+      ['rentenversicherung', 'rentenbescheid', 'renteninformation', 'rentenauskunft',
+       'rentenanpassung', 'versicherungsverlauf', 'regelaltersrente', 'rentenanwartschaft'],
+      stark: ['deutsche rentenversicherung', 'renteninformation', 'rentenauskunft', 'rentenbescheid']),
   Kategorie('krankenkasse', 'Krankenkasse', 'von deiner Krankenkasse',
       ['krankenkasse', 'krankenversicherung', 'pflegekasse', 'aok', 'barmer', 'techniker', 'dak-gesundheit', 'ikk', 'bkk']),
   Kategorie('inkasso', 'Inkasso', 'von einem Inkassobüro',
       ['inkasso', 'forderungsmanagement', 'hauptforderung'],
+      stark: ['inkasso'],
       hinweis:
           'Prüfe zuerst, ob die Forderung berechtigt ist und ob du den ursprünglichen Gläubiger kennst. Bei Zweifeln hilft die Verbraucherzentrale.'),
   Kategorie('gericht', 'Gericht', 'von einem Gericht',
       ['amtsgericht', 'landgericht', 'mahnbescheid', 'gerichtsvollzieher', 'mahngericht'],
+      stark: ['amtsgericht', 'mahngericht'],
       hinweis: 'Post vom Gericht solltest du nie liegen lassen. Hol dir im Zweifel schnell Hilfe.'),
   Kategorie('bussgeld', 'Bußgeldstelle', 'von der Bußgeldstelle',
       ['bußgeld', 'bussgeld', 'verwarnungsgeld', 'ordnungswidrigkeit', 'anhörungsbogen', 'zentrale bußgeldstelle']),
   Kategorie('rundfunk', 'Rundfunkbeitrag', 'vom Beitragsservice (Rundfunkbeitrag)',
-      ['rundfunkbeitrag', 'beitragsservice', 'beitragsnummer']),
+      ['rundfunkbeitrag', 'beitragsservice', 'beitragsnummer'],
+      stark: ['beitragsservice']),
   Kategorie('vermieter', 'Vermieter', 'von deinem Vermieter oder der Hausverwaltung',
       ['hausverwaltung', 'vermieter', 'mietvertrag', 'nebenkostenabrechnung', 'betriebskostenabrechnung', 'mieterhöhung'],
       hinweis:
@@ -64,7 +79,8 @@ const kategorien = <Kategorie>[
   Kategorie('telefon', 'Telefon & Internet', 'von deinem Telefon- oder Internetanbieter',
       ['telekom', 'vodafone', 'telefónica', 'telefonica', 'o2', '1&1', 'mobilfunk', 'dsl']),
   Kategorie('versicherung', 'Versicherung', 'von einer Versicherung',
-      ['versicherung', 'versicherungsschein', 'police', 'haftpflicht', 'hausrat']),
+      ['versicherung', 'versicherungsschein', 'police', 'haftpflicht', 'hausrat',
+       'kfz-versicherung', 'lebensversicherung', 'unfallversicherung', 'versicherungsnehmer']),
   Kategorie('stadt', 'Stadt / Gemeinde', 'von deiner Stadt oder Gemeinde',
       ['stadtverwaltung', 'bürgeramt', 'einwohnermeldeamt', 'gemeinde', 'landratsamt', 'wohngeldstelle', 'grundsteuer', 'ordnungsamt', 'stadt ']),
   // Bewusst ohne „Bank“ oder „Sparkasse“: Die stehen in fast jeder Fußzeile.
@@ -80,6 +96,16 @@ Kategorie kategorieFuer(String key) => kategorien.firstWhere((k) => k.key == key
 
 /// Reihenfolge = Vorrang.
 const briefTypen = <BriefTyp>[
+  BriefTyp('renteninformation', 'Renteninformation',
+      'eine Renteninformation: eine jährliche Übersicht über deine spätere Rente.',
+      ['renteninformation']),
+  BriefTyp('rentenauskunft', 'Rentenauskunft',
+      'eine Rentenauskunft: eine ausführliche Übersicht über deine spätere Rente.',
+      ['rentenauskunft']),
+  BriefTyp('rentenbescheid', 'Rentenbescheid',
+      'ein Rentenbescheid: Deine Rente wurde festgesetzt.', ['rentenbescheid']),
+  BriefTyp('rentenanpassung', 'Rentenanpassung',
+      'eine Mitteilung über die Rentenanpassung.', ['rentenanpassung']),
   BriefTyp('mahnbescheid', 'Mahnbescheid',
       'ein gerichtlicher Mahnbescheid. Dagegen kannst du innerhalb von zwei Wochen Widerspruch einlegen. Hol dir dafür unbedingt schnell Hilfe.',
       ['mahnbescheid']),
@@ -126,6 +152,8 @@ class Analyse {
     this.istGuthaben = false,
     this.aktenzeichen,
     this.briefDatum,
+    this.fakten = const [],
+    this.bedeutung = const [],
   });
 
   final Kategorie kategorie;
@@ -139,6 +167,8 @@ class Analyse {
   final bool istGuthaben;
   final String? aktenzeichen;
   final DateTime? briefDatum;
+  final List<Fakt> fakten;
+  final List<String> bedeutung;
 }
 
 class _Fund<T> {
@@ -203,6 +233,21 @@ List<_Fund<double>> betragsFunde(String text) {
   return funde;
 }
 
+bool _istBuchstabe(String c) =>
+    RegExp(r'[a-zäöüß]').hasMatch(c);
+
+/// Zählt Treffer, die am Wortanfang stehen. So zählt „versicherung“
+/// nicht in „Rentenversicherung“ oder „Krankenversicherung“.
+int wortanfangTreffer(String lower, String wort) {
+  var n = 0;
+  var i = lower.indexOf(wort);
+  while (i >= 0) {
+    if (i == 0 || !_istBuchstabe(lower[i - 1])) n++;
+    i = lower.indexOf(wort, i + 1);
+  }
+  return n;
+}
+
 String _davor(String lower, int start, int laenge) {
   final von = start - laenge < 0 ? 0 : start - laenge;
   return lower.substring(von, start);
@@ -229,7 +274,10 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
   for (final k in kategorien) {
     var punkte = 0;
     for (final w in k.stichworte) {
-      punkte += w.allMatches(lower).length;
+      punkte += wortanfangTreffer(lower, w);
+    }
+    for (final w in k.stark) {
+      punkte += 5 * wortanfangTreffer(lower, w);
     }
     if (punkte > bester) {
       bester = punkte;
@@ -348,6 +396,25 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
       absenderName = z;
       break;
     }
+  }
+
+  final spezial = renteErklaeren(text);
+  if (spezial != null) {
+    return Analyse(
+      kategorie: kategorieFuer('rente'),
+      typ: typFuer(spezial.typKey),
+      erklaerung: spezial.erklaerung,
+      aufgaben: spezial.aufgaben,
+      absenderName: 'Deutsche Rentenversicherung',
+      frist: spezial.keineFrist ? null : frist,
+      fristUnsicher: spezial.keineFrist ? false : fristUnsicher,
+      betrag: spezial.betrag,
+      istGuthaben: spezial.istGuthaben,
+      aktenzeichen: spezial.aktenzeichen ?? aktenzeichen,
+      briefDatum: briefDatum,
+      fakten: spezial.fakten,
+      bedeutung: spezial.bedeutung,
+    );
   }
 
   final erklaerung = _erklaerung(kategorie, typ, betrag, istGuthaben, frist, fristUnsicher);

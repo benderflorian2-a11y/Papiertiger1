@@ -4,6 +4,7 @@ import 'package:papiertiger/logic/brief_analyse.dart';
 import 'package:papiertiger/logic/vertrag_logik.dart';
 
 void main() {
+  renteTests();
   final heute = DateTime(2026, 10, 28);
 
   test('Steuerbescheid: Absender, Typ, Betrag, Frist, Steuernummer', () {
@@ -108,5 +109,74 @@ Ihr Guthaben: 42,10 €
     final info = kuendigungsInfo(v, heute: heute);
     expect(info.endetAm, DateTime(2027, 3, 1));
     expect(info.kuendigenBis, DateTime(2026, 12, 1));
+  });
+}
+
+// Ein typischer Text einer Renteninformation (gekürzt, Werte erfunden).
+const renteninformation = '''
+Deutsche Rentenversicherung Bund
+10704 Berlin
+Herrn Max Mustermann
+Musterweg 1
+12345 Musterstadt
+Versicherungsnummer 12 150385 M 123
+Datum 14.10.2026
+Renteninformation 2026
+Sehr geehrter Herr Mustermann,
+mit dieser Renteninformation erhalten Sie einen Überblick über Ihre bisher erworbenen Anwartschaften.
+Rente wegen voller Erwerbsminderung
+Wären Sie heute wegen gesundheitlicher Einschränkungen voll erwerbsgemindert, bekämen Sie von uns eine monatliche Rente von: 1.150,23 EUR
+Höhe Ihrer künftigen Regelaltersrente
+Ihre Regelaltersrente beginnt am 01.04.2052.
+Ihre bereits erreichte Rentenanwartschaft entspräche einer monatlichen Rente von: 612,40 EUR
+Sollten bis zum Beginn der Regelaltersrente Beiträge wie im Durchschnitt der letzten fünf Kalenderjahre gezahlt werden, bekämen Sie ohne Berücksichtigung künftiger Rentenanpassungen von uns eine monatliche Rente von: 1.587,90 EUR
+Rentenanpassung
+Beträgt der jährliche Anpassungssatz 1 Prozent, so ergäbe sich eine monatliche Rente von etwa 2.150 EUR. Bei einem jährlichen Anpassungssatz von 2 Prozent ergäbe sich eine monatliche Rente von etwa 2.900 EUR.
+Die Kranken- und Pflegeversicherung ist bei den genannten Beträgen nicht berücksichtigt.
+''';
+
+void renteTests() {
+  final heute = DateTime(2026, 10, 28);
+
+  test('Renteninformation: kein Versicherungsbrief, nichts zu zahlen', () {
+    final a = analysiereBrief(renteninformation, heute: heute);
+    expect(a.kategorie.key, 'rente');
+    expect(a.typ.key, 'renteninformation');
+    expect(a.betrag, isNull);
+    expect(a.frist, isNull);
+    expect(a.aufgaben.any((t) => t.contains('überweisen')), isFalse);
+    expect(a.erklaerung, contains('1.587,90 €'));
+    expect(a.aktenzeichen, 'Versicherungsnummer: 12 150385 M 123');
+    final werte = {for (final f in a.fakten) f.label: f.wert};
+    expect(werte['Voraussichtliche Rente'], '1.587,90 € im Monat');
+    expect(werte['Bisher erreichte Rente'], '612,40 € im Monat');
+    expect(werte['Bei voller Erwerbsminderung'], '1.150,23 € im Monat');
+    expect(werte['Mit Rentenerhöhungen'], 'ca. 2.150 € bis 2.900 €');
+    expect(werte['Regulärer Rentenbeginn'], '01.04.2052');
+    expect(a.bedeutung.first, contains('nichts bezahlen'));
+  });
+
+  test('Rentenbescheid: Zahlbetrag wird als Geld erkannt, das man bekommt', () {
+    const text = '''
+Deutsche Rentenversicherung Westfalen
+Rentenbescheid
+Bescheid über Regelaltersrente
+Die Rente beginnt am 01.07.2026.
+Die monatliche Rente beträgt 1.412,55 EUR.
+Abzüglich Beitragsanteil zur Kranken- und Pflegeversicherung ergibt sich ein Zahlbetrag von 1.255,10 EUR.
+Gegen diesen Bescheid kann innerhalb eines Monats nach Bekanntgabe Widerspruch erhoben werden.
+''';
+    final a = analysiereBrief(text, heute: heute);
+    expect(a.typ.key, 'rentenbescheid');
+    expect(a.istGuthaben, isTrue);
+    expect(a.betrag, 1255.10);
+    final werte = {for (final f in a.fakten) f.label: f.wert};
+    expect(werte['Art der Rente'], 'Regelaltersrente');
+    expect(werte['Rentenbeginn'], '01.07.2026');
+    expect(werte['Auszahlung'], '1.255,10 € im Monat');
+  });
+
+  test('Wort „Versicherung“ in „Krankenversicherung“ macht keinen Versicherungsbrief', () {
+    expect(wortanfangTreffer('die krankenversicherung und die versicherung', 'versicherung'), 1);
   });
 }

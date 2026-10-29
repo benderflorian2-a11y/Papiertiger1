@@ -31,6 +31,8 @@ Future<void> briefAnlegen(BuildContext context, String text, List<String> bilder
     aktenzeichen: a.aktenzeichen,
     briefDatum: a.briefDatum,
     aufgaben: a.aufgaben.map(Aufgabe.new).toList(),
+    fakten: a.fakten,
+    bedeutung: a.bedeutung,
   );
   await store.briefHinzufuegen(brief);
   if (!context.mounted) return;

@@ -11,6 +11,7 @@ import 'theme.dart';
 import 'vorlage_screen.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
+import 'widgets/ki_karte.dart';
 import 'widgets/tiger.dart';
 
 Brief? _finde(List<Brief> liste, String id) {
@@ -107,7 +108,7 @@ class BriefDetail extends StatelessWidget {
                               fontSize: 17, fontWeight: FontWeight.w800, color: PT.tinte)),
                       const SizedBox(height: 6),
                       Wrap(spacing: 6, runSpacing: 6, children: [
-                        Etikett(t.name, farbe: PT.orangeDunkel, hintergrund: PT.orangeHell),
+                        Etikett(b.kiArt ?? t.name, farbe: PT.orangeDunkel, hintergrund: PT.orangeHell),
                         if (b.erledigt)
                           const Etikett('Erledigt', farbe: PT.gruen, hintergrund: PT.gruenHell)
                         else if (b.frist != null)
@@ -122,9 +123,81 @@ class BriefDetail extends StatelessWidget {
 
           const Abschnitt('Einfach erklärt'),
           PTKarte(
-            child: Text(b.erklaerung,
-                style: const TextStyle(fontSize: 16, height: 1.5, color: PT.tinte)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(b.erklaerung,
+                    style: const TextStyle(fontSize: 16, height: 1.5, color: PT.tinte)),
+                if (b.kiFertig) ...[
+                  const SizedBox(height: 10),
+                  const Row(
+                    children: [
+                      Icon(Icons.auto_awesome, size: 14, color: PT.grau),
+                      SizedBox(width: 6),
+                      Text('Vom Tiger komplett gelesen',
+                          style: TextStyle(color: PT.grau, fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ),
+          KiKarte(brief: b),
+
+          if (b.fakten.isNotEmpty) ...[
+            const Abschnitt('Das steht drin'),
+            PTKarte(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  for (final f in b.fakten)
+                    ListTile(
+                      title: Text(f.label, style: const TextStyle(color: PT.grau, fontSize: 13)),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(f.wert,
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.w800, color: PT.tinte)),
+                          if (f.hinweis.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(f.hinweis,
+                                  style: const TextStyle(fontSize: 13, height: 1.35, color: PT.grau)),
+                            ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+
+          if (b.bedeutung.isNotEmpty) ...[
+            const Abschnitt('Was heißt das für dich?'),
+            PTKarte(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final z in b.bedeutung)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 3),
+                            child: Icon(Icons.lightbulb_outline, size: 18, color: PT.orangeDunkel),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(z, style: const TextStyle(height: 1.45))),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
 
           const Abschnitt('Das Wichtigste'),
           PTKarte(

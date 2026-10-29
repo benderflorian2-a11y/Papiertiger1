@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'app.dart';
 import 'module/module_liste.dart';
+import 'ki_einstellungen.dart';
 import 'module/profil.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -65,6 +66,27 @@ class MehrScreen extends StatelessWidget {
                 ],
               ),
             ),
+          const Abschnitt('KI auf dem Handy'),
+          PTKarte(
+            onTap: () => oeffne(const KiEinstellungenScreen()),
+            child: const Row(
+              children: [
+                IconKachel(Icons.auto_awesome),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('KI-Tiger', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text('Liest jeden Brief komplett – offline',
+                          style: TextStyle(color: PT.grau, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
           const Abschnitt('Papiertiger Plus'),
           const PTKarte(
             farbe: PT.orangeHell,
@@ -84,7 +106,7 @@ class MehrScreen extends StatelessWidget {
           const Abschnitt('Datenschutz'),
           const PTKarte(
             child: Text(
-              'Texterkennung und Speicherung laufen nur auf deinem Handy. '
+              'Texterkennung, KI und Speicherung laufen nur auf deinem Handy. '
               'Briefe, Fotos und Angaben werden nicht ins Internet geschickt. '
               'Wenn du die App löschst, sind auch alle Daten weg.',
               style: TextStyle(height: 1.45),

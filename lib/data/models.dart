@@ -1,6 +1,10 @@
 /// Datenmodelle der App. Alles wird als JSON auf dem Handy gespeichert.
 library;
 
+import '../logic/rente.dart' show Fakt;
+
+export '../logic/rente.dart' show Fakt;
+
 DateTime? _datum(Object? v) => v is String ? DateTime.tryParse(v) : null;
 double? _zahl(Object? v) => v is num ? v.toDouble() : null;
 String neueId() => DateTime.now().microsecondsSinceEpoch.toString();
@@ -36,7 +40,13 @@ class Brief {
     List<Aufgabe>? aufgaben,
     this.erledigt = false,
     this.steuerKategorie,
-  }) : aufgaben = aufgaben ?? [];
+    List<Fakt>? fakten,
+    List<String>? bedeutung,
+    this.kiFertig = false,
+    this.kiArt,
+  })  : aufgaben = aufgaben ?? [],
+        fakten = fakten ?? [],
+        bedeutung = bedeutung ?? [];
 
   final String id;
   final DateTime erstellt;
@@ -56,6 +66,18 @@ class Brief {
   bool erledigt;
   String? steuerKategorie;
 
+  /// „Das steht drin“: wichtige Angaben aus dem Brief.
+  List<Fakt> fakten;
+
+  /// „Was heißt das für dich?“
+  List<String> bedeutung;
+
+  /// Hat die KI den ganzen Brief schon gelesen?
+  bool kiFertig;
+
+  /// Art des Briefs laut KI, z. B. „Renteninformation“.
+  String? kiArt;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -74,6 +96,10 @@ class Brief {
         'aufgaben': aufgaben.map((a) => a.toJson()).toList(),
         'erledigt': erledigt,
         'steuerKategorie': steuerKategorie,
+        'fakten': fakten.map((f) => f.toJson()).toList(),
+        'bedeutung': bedeutung,
+        'kiFertig': kiFertig,
+        'kiArt': kiArt,
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -98,6 +124,14 @@ class Brief {
             [],
         erledigt: j['erledigt'] == true,
         steuerKategorie: j['steuerKategorie'] as String?,
+        fakten: (j['fakten'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(Fakt.fromJson)
+                .toList() ??
+            [],
+        bedeutung: (j['bedeutung'] as List?)?.whereType<String>().toList() ?? [],
+        kiFertig: j['kiFertig'] == true,
+        kiArt: j['kiArt'] as String?,
       );
 }
 
