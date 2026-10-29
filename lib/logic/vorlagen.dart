@@ -20,6 +20,7 @@ const briefVorlagen = [
   Vorlage('raten', 'Ratenzahlung', 'Betrag in Raten zahlen'),
   Vorlage('bezahlt', 'Schon bezahlt', 'Mahnung, obwohl bezahlt'),
   Vorlage('bestreiten', 'Forderung bestreiten', 'Betrag stimmt nicht'),
+  Vorlage('erstattung', 'Erstattung beantragen', 'Geld zurück von Kasse, Versicherung oder Händler'),
 ];
 
 String _heute() {
@@ -67,6 +68,16 @@ String vorlageText(String key, Brief b, Profil p) {
           '[Deine Frage]\n\n'
           'Ich bitte Sie um eine kurze Erläuterung. '
           'Bis zur Klärung bitte ich Sie, keine weiteren Schritte einzuleiten.'
+          '${_fuss(p)}';
+    case 'erstattung':
+      final betrag = b.betrag != null ? '${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €' : '[Betrag] €';
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Antrag auf Erstattung')}'
+          'hiermit beantrage ich die Erstattung von $betrag für [Leistung oder Kauf, z. B. Brille, Behandlung, Rücksendung] '
+          'vom [Datum].\n\n'
+          'Begründung: [z. B. Leistung laut Tarif versichert / Ware zurückgeschickt / doppelt abgebucht].\n\n'
+          'Als Nachweis lege ich bei:\n- [Rechnung oder Quittung]\n- [Zahlungsnachweis]\n\n'
+          'Bitte überweisen Sie den Betrag auf mein Konto:\nIBAN: [deine IBAN]\nKontoinhaber: [Name]\n\n'
+          'Sollten Sie die Erstattung ganz oder teilweise ablehnen, bitte ich um eine schriftliche Begründung.'
           '${_fuss(p)}';
     case 'nachfrage':
       final gesendet = b.antwortGesendet != null ? ' am ${_datum(b.antwortGesendet!)}' : '';

@@ -309,3 +309,21 @@ String anlagenVermerk(String text, String anlage) {
   zeilen.insert(ende, '- $anlage');
   return zeilen.join('\n');
 }
+
+/// Folgeaufgabe, wenn eine Aufgabe erledigt ist: z. B. nach dem Einreichen auf Antwort warten.
+/// Liefert den Text und, falls sinnvoll, nach wie vielen Tagen nachgefasst werden sollte.
+(String, int?)? folgeaufgabe(String erledigt) {
+  final t = erledigt.toLowerCase();
+  if (RegExp(r'kündig').hasMatch(t)) return ('Kündigungsbestätigung abwarten und Enddatum prüfen', 14);
+  if (RegExp(r'unterschreib|unterzeichn').hasMatch(t)) return ('Unterschriebenes Dokument zurückschicken', null);
+  if (RegExp(r'(unterlagen|nachweis|belege?|kopie).*(besorg|sammel|kopier|heraussuch|zusammenstell)').hasMatch(t)) {
+    return ('Unterlagen einreichen', null);
+  }
+  if (RegExp(r'termin.*(vereinbar|buch|ausmach|anfrag)').hasMatch(t)) return ('Termin im Kalender eintragen', null);
+  if (RegExp(r'anruf|anrufen|telefon').hasMatch(t)) return ('Ergebnis des Telefonats notieren', null);
+  if (RegExp(r'einreich|abschick|schicken|senden|abgeben|beantrag|antrag stellen|widerspruch|einlegen|melden')
+      .hasMatch(t)) {
+    return ('Auf Antwort warten – nachfassen, falls nichts kommt', 28);
+  }
+  return null;
+}

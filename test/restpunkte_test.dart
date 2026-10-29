@@ -111,4 +111,12 @@ RE 2026-007 Bad
     expect(t[1].$1.id, 'b'); // 50 + 19 % = 59,50
     expect(t[1].$2.von, contains('Huber'));
   });
+
+  test('Folgeaufgaben nach erledigten Aufgaben', () {
+    expect(folgeaufgabe('Antrag beim Jobcenter einreichen'), ('Auf Antwort warten – nachfassen, falls nichts kommt', 28));
+    expect(folgeaufgabe('Vertrag unterschreiben')?.$1, 'Unterschriebenes Dokument zurückschicken');
+    expect(folgeaufgabe('Gehaltsnachweise heraussuchen')?.$1, 'Unterlagen einreichen');
+    expect(folgeaufgabe('Kündigung abschicken')?.$2, 14);
+    expect(folgeaufgabe('Betrag überweisen'), isNull);
+  });
 }

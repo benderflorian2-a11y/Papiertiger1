@@ -421,6 +421,14 @@ class BriefDetail extends StatelessWidget {
                             decoration: a.erledigt ? TextDecoration.lineThrough : null)),
                     onChanged: (v) {
                       a.erledigt = v ?? false;
+                      final f = a.erledigt ? folgeaufgabe(a.text) : null;
+                      if (f != null && !b.aufgaben.any((x) => x.text == f.$1)) {
+                        b.aufgaben.add(Aufgabe(f.$1));
+                        if (f.$2 != null && b.nachfassenAm == null) {
+                          b.nachfassenAm = DateTime.now().add(Duration(days: f.$2!));
+                        }
+                        zeigeHinweis(context, 'Nächster Schritt: ${f.$1}');
+                      }
                       if (b.aufgaben.every((x) => x.erledigt)) b.erledigt = true;
                       store.geaendert();
                     },

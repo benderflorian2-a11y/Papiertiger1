@@ -4,7 +4,7 @@ Stand: 29.10.2026, Version 1.19 (test-30)
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 200 Punkte – ✅ 179 fertig, 🟡 16 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11 und folgende noch nicht erfasst)
+**Gesamt: 200 Punkte – ✅ 181 fertig, 🟡 14 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11 und folgende noch nicht erfasst)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
 ✅ 23 · 🟡 1 · ❌ 0 · 🔒 0
@@ -57,13 +57,13 @@ Stand: 29.10.2026, Version 1.19 (test-30)
 - ✅ Übersetzungen für Behörden- und Geschäftskommunikation
 
 ## 3. Fristen, Termine und Erinnerungen
-✅ 12 · 🟡 1 · ❌ 0 · 🔒 0
+✅ 13 · 🟡 0 · ❌ 0 · 🔒 0
 
 - ✅ Fristen aus Briefen und Verträgen erkennen
 - ✅ Wichtige Termine in den Kalender eintragen
 - ✅ Vor Fristablauf mehrfach erinnern
 - ✅ Dringende Fristen priorisieren
-- 🟡 Folgeaufgaben automatisch erstellen – Nachfassen und Nachfrage ja, allgemein noch nicht
+- ✅ Folgeaufgaben automatisch erstellen
 - ✅ Fehlende Antworten erkennen und nachfassen
 - ✅ Vertragsverlängerungen und Kündigungsfristen überwachen
 - ✅ Rechnungsfälligkeiten und Zahlungstermine überwachen
@@ -99,7 +99,7 @@ Stand: 29.10.2026, Version 1.19 (test-30)
 - ✅ Finanzunterlagen für Steuerberater oder Bank – CSV und PDF
 
 ## 5. Verträge, Versicherungen und Abonnements
-✅ 16 · 🟡 2 · ❌ 0 · 🔒 0
+✅ 17 · 🟡 1 · ❌ 0 · 🔒 0
 
 - ✅ Verträge auslesen und verständlich zusammenfassen
 - ✅ Laufzeiten, Kosten und Kündigungsfristen herausarbeiten
@@ -110,7 +110,7 @@ Stand: 29.10.2026, Version 1.19 (test-30)
 - ✅ Versicherungsleistungen und Ausschlüsse erklären
 - ✅ Fehlende Unterlagen für Schadensmeldungen erkennen
 - ✅ Schadensmeldungen vorbereiten
-- 🟡 Erstattungen beantragen helfen – über KI-Antwort
+- ✅ Erstattungen beantragen helfen
 - ✅ Garantie- und Gewährleistungsfristen überwachen
 - ✅ Reparatur-, Rückgabe- und Widerrufsfristen erkennen
 - ✅ Anbieterwechsel vorbereiten
