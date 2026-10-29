@@ -16,6 +16,7 @@ import 'formular_screen.dart';
 import 'kalender.dart';
 import 'kommunikation.dart';
 import 'module/vertraege.dart';
+import 'rechtsbehelf_karte.dart';
 import 'termine.dart';
 import 'ki_text.dart';
 import 'theme.dart';
@@ -358,6 +359,7 @@ class BriefDetail extends StatelessWidget {
             ),
           ),
 
+          RechtsbehelfKarte(brief: b),
           if (b.unterlagen.isNotEmpty) ...[
             Abschnitt('Diese Unterlagen werden verlangt '
                 '(${b.unterlagen.where((u) => u.erledigt).length}/${b.unterlagen.length})'),

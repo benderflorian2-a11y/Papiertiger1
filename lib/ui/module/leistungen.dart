@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 
+import '../../logic/android_kanal.dart';
 import '../../logic/inhalte.dart';
+import '../app.dart';
+import 'antraege.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/tiger.dart';
 
-class LeistungenScreen extends StatefulWidget {
+class LeistungenScreen extends StatelessWidget {
   const LeistungenScreen({super.key});
 
   @override
-  State<LeistungenScreen> createState() => _LeistungenScreenState();
-}
-
-class _LeistungenScreenState extends State<LeistungenScreen> {
-  final Map<String, bool> _antworten = {};
-
-  @override
   Widget build(BuildContext context) {
-    final treffer = leistungen.where((l) => l.bedingung(_antworten)).toList();
+    final store = StoreScope.of(context);
+    // Antworten bleiben gespeichert, damit du nicht jedes Mal neu anfangen musst.
+    final antworten = {for (final f in leistungsFragen) f.key: store.checklisten['leistung:${f.key}'] == true};
+    final treffer = leistungen.where((l) => l.bedingung(antworten)).toList();
     return Scaffold(
       appBar: AppBar(title: const Text('Was steht mir zu?')),
       body: ListView(
@@ -45,8 +44,8 @@ class _LeistungenScreenState extends State<LeistungenScreen> {
                 for (final f in leistungsFragen)
                   SwitchListTile(
                     title: Text(f.text, style: const TextStyle(fontSize: 15)),
-                    value: _antworten[f.key] == true,
-                    onChanged: (v) => setState(() => _antworten[f.key] = v),
+                    value: antworten[f.key] == true,
+                    onChanged: (v) => store.checklistePunkt('leistung:${f.key}', v),
                   ),
               ],
             ),
@@ -80,6 +79,21 @@ class _LeistungenScreenState extends State<LeistungenScreen> {
                         ),
                       ],
                     ),
+                    Wrap(spacing: 4, children: [
+                      if (l.antrag != null && antragMitKey(l.antrag!) != null)
+                        TextButton.icon(
+                          onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => AntragScreen(antrag: antragMitKey(l.antrag!)!))),
+                          icon: const Icon(Icons.assignment_outlined, size: 18),
+                          label: const Text('Antrag vorbereiten'),
+                        ),
+                      if (l.link != null)
+                        TextButton.icon(
+                          onPressed: () => AndroidKanal.oeffnen(Uri.parse(l.link!)),
+                          icon: const Icon(Icons.open_in_new, size: 18),
+                          label: const Text('Offizielle Infos'),
+                        ),
+                    ]),
                   ],
                 ),
               ),

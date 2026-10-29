@@ -119,3 +119,15 @@ String widerrufText(Vertrag v, Profil p) =>
     'hiermit widerrufe ich den von mir abgeschlossenen Vertrag (${_vertragArt(v)}, abgeschlossen am [Datum]).\n\n'
     'Bitte bestätigen Sie mir den Widerruf schriftlich und erstatten Sie bereits gezahlte Beträge.'
     '${_fuss(p)}';
+
+/// Fristwahrender Widerspruch oder Einspruch; die Begründung kann nachgereicht werden.
+String rechtsbehelfText(Brief b, Profil p, String art) {
+  final empfaenger = kontaktVon(b, p).adresse ?? b.absenderName ?? kategorieFuer(b.kategorie).name;
+  final az = b.aktenzeichen ?? 'Aktenzeichen: [bitte eintragen]';
+  final vom = b.briefDatum != null ? ' vom ${_datum(b.briefDatum!)}' : ' vom [Datum des Bescheids]';
+  return '${_kopf(p, empfaenger, 'Betreff: $az – $art gegen Ihren Bescheid$vom')}'
+      'hiermit lege ich gegen Ihren Bescheid$vom fristgerecht $art ein.\n\n'
+      'Die Begründung reiche ich nach. [Oder hier kurz begründen, z. B. was aus deiner Sicht falsch ist.]\n\n'
+      'Bitte bestätigen Sie mir den Eingang dieses Schreibens.'
+      '${_fuss(p)}';
+}

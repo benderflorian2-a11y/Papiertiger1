@@ -20,6 +20,9 @@ class AppStore extends ChangeNotifier {
   List<Beleg> belege = [];
   Profil profil = Profil();
   Map<String, bool> checklisten = {};
+
+  /// Freie Texte, z. B. vorbereitete Antrags-Angaben ('antrag:<key>:<nr>').
+  Map<String, String> notizen = {};
   bool onboardingFertig = false;
   List<Termin> termine = [];
   ErinnerungsEinstellungen erinnerungen = ErinnerungsEinstellungen();
@@ -63,6 +66,12 @@ class AppStore extends ChangeNotifier {
             .map((k, v) => MapEntry(k, v == true));
       } catch (_) {}
     }
+    final n = _prefs.getString('notizen');
+    if (n != null) {
+      try {
+        notizen = (jsonDecode(n) as Map<String, dynamic>).map((k, v) => MapEntry(k, '$v'));
+      } catch (_) {}
+    }
     onboardingFertig = _prefs.getBool('onboardingFertig') ?? false;
     _sortieren();
   }
@@ -82,6 +91,7 @@ class AppStore extends ChangeNotifier {
         'belege', jsonEncode(belege.map((b) => b.toJson()).toList()));
     await _prefs.setString('profil', jsonEncode(profil.toJson()));
     await _prefs.setString('checklisten', jsonEncode(checklisten));
+    await _prefs.setString('notizen', jsonEncode(notizen));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
     await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
     await _prefs.setString('erinnerungen', jsonEncode(erinnerungen.toJson()));
@@ -163,6 +173,7 @@ class AppStore extends ChangeNotifier {
     erinnerungen = ErinnerungsEinstellungen();
     profil = Profil();
     checklisten = {};
+    notizen = {};
     onboardingFertig = false;
     await _prefs.clear();
     notifyListeners();
