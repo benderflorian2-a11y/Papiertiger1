@@ -36,7 +36,7 @@ jobs:
 
       - name: Android- und iPhone-Dateien erzeugen
         run: |
-          flutter create --project-name papiertiger --org de.papiertiger.app --platforms android,ios .
+          flutter create --project-name papiertiger --org de.papiertiger.tiger --platforms android,ios .
           sed -i 's/android:label="papiertiger"/android:label="Papiertiger"/' android/app/src/main/AndroidManifest.xml
           printf '%s\n' \
             '-dontwarn com.google.mlkit.vision.text.chinese.**' \
