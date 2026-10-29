@@ -278,17 +278,45 @@ class Beleg {
       );
 }
 
+/// Zusätzliche Profilangaben für die Formular-Ausfüllhilfe.
+const profilFelder = <(String, String)>[
+  ('geburtsdatum', 'Geburtsdatum'),
+  ('geburtsort', 'Geburtsort'),
+  ('familienstand', 'Familienstand'),
+  ('staatsangehoerigkeit', 'Staatsangehörigkeit'),
+  ('telefon', 'Telefon'),
+  ('email', 'E-Mail'),
+  ('iban', 'IBAN'),
+  ('bank', 'Bank'),
+  ('steuerid', 'Steuer-ID'),
+  ('krankenkasse', 'Krankenkasse'),
+  ('versichertennummer', 'Krankenversichertennummer'),
+  ('rentenversicherungsnummer', 'Rentenversicherungsnummer'),
+  ('arbeitgeber', 'Arbeitgeber'),
+  ('beruf', 'Beruf'),
+];
+
 class Profil {
-  Profil({this.name = '', this.adresse = ''});
+  Profil({this.name = '', this.adresse = '', Map<String, String>? extra}) : extra = extra ?? {};
 
   String name;
   String adresse;
 
-  Map<String, dynamic> toJson() => {'name': name, 'adresse': adresse};
+  /// Weitere Angaben, Schlüssel aus [profilFelder].
+  Map<String, String> extra;
+
+  String get vorname => name.trim().split(RegExp(r'\s+')).first;
+  String get nachname {
+    final t = name.trim().split(RegExp(r'\s+'));
+    return t.length > 1 ? t.sublist(1).join(' ') : '';
+  }
+
+  Map<String, dynamic> toJson() => {'name': name, 'adresse': adresse, 'extra': extra};
 
   factory Profil.fromJson(Map<String, dynamic> j) => Profil(
         name: j['name'] as String? ?? '',
         adresse: j['adresse'] as String? ?? '',
+        extra: (j['extra'] as Map?)?.map((k, v) => MapEntry('$k', '$v')) ?? {},
       );
 }
 

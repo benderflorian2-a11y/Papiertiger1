@@ -11,6 +11,7 @@ import '../logic/ordnung.dart';
 import '../logic/vorlagen.dart';
 import 'akten.dart';
 import 'app.dart';
+import 'formular_screen.dart';
 import 'ki_text.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
@@ -464,6 +465,13 @@ class BriefDetail extends StatelessWidget {
             ],
           ),
 
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => FormularScreen(brief: b))),
+            icon: const Icon(Icons.edit_document),
+            label: const Text('Ist das ein Formular? Ausfüllhilfe'),
+          ),
           if (store.briefe.length > 1) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/export.dart';
 import '../logic/ordnung.dart';
 import 'akten.dart';
 import 'app.dart';
@@ -42,7 +43,24 @@ class _ArchivScreenState extends State<ArchivScreen> {
     final ansicht = q.isNotEmpty ? _Ansicht.alle : _ansicht;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Archiv')),
+      appBar: AppBar(
+        title: const Text('Archiv'),
+        actions: [
+          if (store.briefe.isNotEmpty)
+            IconButton(
+              tooltip: 'Als Tabelle exportieren',
+              icon: const Icon(Icons.table_view_outlined),
+              onPressed: () async {
+                try {
+                  final datei = await archivAlsTabelle(store.briefe);
+                  await dateiTeilen(datei.path);
+                } catch (e) {
+                  if (context.mounted) zeigeHinweis(context, 'Export fehlgeschlagen: $e');
+                }
+              },
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [

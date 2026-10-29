@@ -100,3 +100,27 @@ Future<void> dateiTeilen(String pfad, {String? text}) =>
     SharePlus.instance.share(ShareParams(files: [XFile(pfad)], text: text));
 
 Future<void> textTeilen(String text) => SharePlus.instance.share(ShareParams(text: text));
+
+String _csv(String s) => '"${s.replaceAll('"', '""')}"';
+
+/// Alle Dokumente als Tabelle (CSV, öffnet in Excel, Numbers, Google Tabellen).
+Future<File> archivAlsTabelle(List<Brief> briefe) async {
+  final z = StringBuffer('\uFEFFDatum;Titel;Ordner;Absender;Aktenzeichen;Betrag;Geld;Frist;Status\n');
+  for (final b in briefe) {
+    z.writeln([
+      _d(b.briefDatum ?? b.erstellt),
+      _csv(titelVon(b)),
+      _csv(ordnerFuer(b).name),
+      _csv(b.absenderName ?? ''),
+      _csv(b.aktenzeichen?.split(': ').last ?? ''),
+      b.betrag?.toStringAsFixed(2).replaceAll('.', ',') ?? '',
+      b.betrag == null ? '' : (b.guthaben ? 'bekommen' : 'zahlen'),
+      b.frist != null ? _d(b.frist!) : '',
+      b.erledigt ? 'erledigt' : 'offen',
+    ].join(';'));
+  }
+  final ordner = await getTemporaryDirectory();
+  final datei = File('${ordner.path}/Papiertiger_Archiv_${_d(DateTime.now()).replaceAll('.', '-')}.csv');
+  await datei.writeAsString(z.toString());
+  return datei;
+}
