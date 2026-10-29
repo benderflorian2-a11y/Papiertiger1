@@ -69,13 +69,25 @@ class Ki {
     return da;
   }
 
-  static Future<void> herunterladen(void Function(int prozent) fortschritt, CancelToken abbruch) async {
+  /// Lädt das Modell. Mit [vordergrund] läuft der Download als Android-Dienst mit
+  /// Benachrichtigung weiter, auch wenn der Bildschirm ausgeht. Ist die App bei einem
+  /// solchen Download schon einmal abgestürzt, wird ohne Dienst geladen.
+  static Future<void> herunterladen(void Function(int prozent) fortschritt, CancelToken abbruch,
+      {bool vordergrund = true}) async {
     await starten();
-    await FlutterEdgeAi.installModel(modelType: ModelType.gemma4, fileType: ModelFileType.litertlm)
-        .fromNetwork(modellUrl, foreground: true)
-        .withCancelToken(abbruch)
-        .withProgress(fortschritt)
-        .install();
+    final p = await _prefs;
+    final vorherAbgestuerzt = p.getBool('kiDownloadLaeuft') == true;
+    final dienst = vordergrund && !vorherAbgestuerzt;
+    await p.setBool('kiDownloadLaeuft', dienst);
+    try {
+      await FlutterEdgeAi.installModel(modelType: ModelType.gemma4, fileType: ModelFileType.litertlm)
+          .fromNetwork(modellUrl, foreground: dienst)
+          .withCancelToken(abbruch)
+          .withProgress(fortschritt)
+          .install();
+    } finally {
+      await p.setBool('kiDownloadLaeuft', false);
+    }
   }
 
   static Future<void> loeschen() async {

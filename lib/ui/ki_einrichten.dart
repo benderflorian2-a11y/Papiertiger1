@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart' show CancelToken;
 
+import '../logic/benachrichtigungen.dart';
 import '../logic/ki.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -38,9 +39,11 @@ class _KiEinrichtenScreenState extends State<KiEinrichtenScreen> {
       _prozent = 0;
     });
     try {
+      // Der Download im Hintergrund braucht eine Benachrichtigung (Android 13+).
+      final erlaubt = await Benachrichtigungen.erlaubnisAnfragen().catchError((Object _) => false);
       await Ki.herunterladen((p) {
         if (mounted) setState(() => _prozent = p);
-      }, abbruch);
+      }, abbruch, vordergrund: erlaubt);
       if (mounted) setState(() => _stand = _Stand.fertig);
     } catch (e) {
       if (!mounted) return;
@@ -107,7 +110,7 @@ class _KiEinrichtenScreenState extends State<KiEinrichtenScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text('Du kannst die App dabei offen lassen. Der Download läuft auch weiter, wenn der Bildschirm ausgeht.',
+                  const Text('Lass die App dabei bitte offen und das Handy im WLAN. Mit erlaubten Benachrichtigungen läuft der Download auch weiter, wenn der Bildschirm ausgeht.',
                       style: TextStyle(color: PT.grau, fontSize: 13)),
                   const SizedBox(height: 8),
                   OutlinedButton(
