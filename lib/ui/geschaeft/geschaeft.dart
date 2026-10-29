@@ -12,6 +12,7 @@ import '../theme.dart';
 import '../vorlage_screen.dart';
 import '../widgets/common.dart';
 import 'marketing.dart';
+import 'projekte.dart';
 
 Rechnung? _rechnung(List<Rechnung> l, String id) {
   for (final r in l) {
@@ -113,6 +114,10 @@ class GeschaeftScreen extends StatelessWidget {
                 avatar: const Icon(Icons.calculate_outlined, size: 18),
                 label: const Text('Kostenvoranschlag'),
                 onPressed: () => oeffne(const RechnungFormular(art: 'kostenvoranschlag'))),
+            ActionChip(
+                avatar: const Icon(Icons.work_outline, size: 18),
+                label: const Text('Projekte'),
+                onPressed: () => oeffne(const ProjekteScreen())),
             ActionChip(
                 avatar: const Icon(Icons.people_outline, size: 18),
                 label: const Text('Kunden'),

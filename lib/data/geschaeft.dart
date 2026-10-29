@@ -194,3 +194,152 @@ class Rechnung {
         projektId: j['projektId'] as String?,
       );
 }
+
+// ---------------------------------------------------------------- Projekte
+
+const projektStatus = ['Anfrage', 'Angebot', 'Auftrag', 'In Arbeit', 'Fertig', 'Abgerechnet'];
+
+class Zeiteintrag {
+  Zeiteintrag({required this.datum, required this.stunden, this.person = '', this.text = ''});
+
+  final DateTime datum;
+  final double stunden;
+  final String person;
+  final String text;
+
+  Map<String, dynamic> toJson() => {'datum': datum.toIso8601String(), 'stunden': stunden, 'person': person, 'text': text};
+
+  factory Zeiteintrag.fromJson(Map<String, dynamic> j) => Zeiteintrag(
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        stunden: _zahl(j['stunden']),
+        person: j['person'] as String? ?? '',
+        text: j['text'] as String? ?? '',
+      );
+}
+
+class Materialposten {
+  Materialposten({required this.text, this.menge = 1, this.einheit = 'Stück', this.preis = 0, this.bestellt = false});
+
+  String text;
+  double menge;
+  String einheit;
+
+  /// Einkaufspreis netto pro Einheit.
+  double preis;
+  bool bestellt;
+
+  double get summe => (menge * preis * 100).round() / 100;
+
+  Map<String, dynamic> toJson() => {'text': text, 'menge': menge, 'einheit': einheit, 'preis': preis, 'bestellt': bestellt};
+
+  factory Materialposten.fromJson(Map<String, dynamic> j) => Materialposten(
+        text: j['text'] as String? ?? '',
+        menge: _zahl(j['menge']),
+        einheit: j['einheit'] as String? ?? 'Stück',
+        preis: _zahl(j['preis']),
+        bestellt: j['bestellt'] == true,
+      );
+}
+
+class ProjektAufgabe {
+  ProjektAufgabe({required this.text, this.person = '', this.erledigt = false, this.bis});
+
+  String text;
+  String person;
+  bool erledigt;
+  DateTime? bis;
+
+  Map<String, dynamic> toJson() => {'text': text, 'person': person, 'erledigt': erledigt, 'bis': bis?.toIso8601String()};
+
+  factory ProjektAufgabe.fromJson(Map<String, dynamic> j) => ProjektAufgabe(
+        text: j['text'] as String? ?? '',
+        person: j['person'] as String? ?? '',
+        erledigt: j['erledigt'] == true,
+        bis: _datum(j['bis']),
+      );
+}
+
+class Protokoll {
+  Protokoll({required this.datum, required this.text, this.teilnehmer = ''});
+
+  final DateTime datum;
+  final String text;
+  final String teilnehmer;
+
+  Map<String, dynamic> toJson() => {'datum': datum.toIso8601String(), 'text': text, 'teilnehmer': teilnehmer};
+
+  factory Protokoll.fromJson(Map<String, dynamic> j) => Protokoll(
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        text: j['text'] as String? ?? '',
+        teilnehmer: j['teilnehmer'] as String? ?? '',
+      );
+}
+
+List<T> _liste<T>(Object? v, T Function(Map<String, dynamic>) f) =>
+    (v as List?)?.whereType<Map<String, dynamic>>().map(f).toList() ?? <T>[];
+
+class Projekt {
+  Projekt({
+    required this.id,
+    required this.name,
+    this.kundeId = '',
+    this.status = 'Anfrage',
+    this.stundensatz = 0,
+    this.angebotId,
+    this.notiz = '',
+    DateTime? erstellt,
+    List<Zeiteintrag>? zeiten,
+    List<Materialposten>? material,
+    List<ProjektAufgabe>? aufgaben,
+    List<Protokoll>? protokolle,
+  })  : erstellt = erstellt ?? DateTime.now(),
+        zeiten = zeiten ?? [],
+        material = material ?? [],
+        aufgaben = aufgaben ?? [],
+        protokolle = protokolle ?? [];
+
+  final String id;
+  String name;
+  String kundeId;
+  String status;
+
+  /// Stundensatz netto für die Nachkalkulation und die Rechnung.
+  double stundensatz;
+  String? angebotId;
+  String notiz;
+  final DateTime erstellt;
+  List<Zeiteintrag> zeiten;
+  List<Materialposten> material;
+  List<ProjektAufgabe> aufgaben;
+  List<Protokoll> protokolle;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'kundeId': kundeId,
+        'status': status,
+        'stundensatz': stundensatz,
+        'angebotId': angebotId,
+        'notiz': notiz,
+        'erstellt': erstellt.toIso8601String(),
+        'zeiten': zeiten.map((z) => z.toJson()).toList(),
+        'material': material.map((m) => m.toJson()).toList(),
+        'aufgaben': aufgaben.map((a) => a.toJson()).toList(),
+        'protokolle': protokolle.map((p) => p.toJson()).toList(),
+      };
+
+  factory Projekt.fromJson(Map<String, dynamic> j) => Projekt(
+        id: j['id'] as String,
+        name: j['name'] as String? ?? '',
+        kundeId: j['kundeId'] as String? ?? '',
+        status: j['status'] as String? ?? 'Anfrage',
+        stundensatz: _zahl(j['stundensatz']),
+        angebotId: j['angebotId'] as String?,
+        notiz: j['notiz'] as String? ?? '',
+        erstellt: _datum(j['erstellt']),
+        zeiten: _liste(j['zeiten'], Zeiteintrag.fromJson),
+        material: _liste(j['material'], Materialposten.fromJson),
+        aufgaben: _liste(j['aufgaben'], ProjektAufgabe.fromJson),
+        protokolle: _liste(j['protokolle'], Protokoll.fromJson),
+      );
+}

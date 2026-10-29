@@ -32,6 +32,7 @@ class AppStore extends ChangeNotifier {
   Firma firma = Firma();
   List<Kunde> kunden = [];
   List<Rechnung> rechnungen = [];
+  List<Projekt> projekte = [];
 
   List<Sparziel> sparziele = [];
 
@@ -65,6 +66,7 @@ class AppStore extends ChangeNotifier {
     termine = _liste('termine').map(Termin.fromJson).toList();
     kunden = _liste('kunden').map(Kunde.fromJson).toList();
     rechnungen = _liste('rechnungen').map(Rechnung.fromJson).toList();
+    projekte = _liste('projekte').map(Projekt.fromJson).toList();
     zaehler = _liste('zaehler').map(Zaehler.fromJson).toList();
     sparziele = _liste('sparziele').map(Sparziel.fromJson).toList();
     inventar = _liste('inventar').map(Gegenstand.fromJson).toList();
@@ -122,6 +124,7 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('firma', jsonEncode(firma.toJson()));
     await _prefs.setString('kunden', jsonEncode(kunden.map((k) => k.toJson()).toList()));
     await _prefs.setString('rechnungen', jsonEncode(rechnungen.map((r) => r.toJson()).toList()));
+    await _prefs.setString('projekte', jsonEncode(projekte.map((p) => p.toJson()).toList()));
     await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
     await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
     await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
@@ -222,6 +225,16 @@ class AppStore extends ChangeNotifier {
     return _speichern();
   }
 
+  Future<void> projektSpeichern(Projekt p) {
+    if (!projekte.any((x) => x.id == p.id)) projekte.add(p);
+    return _speichern();
+  }
+
+  Future<void> projektLoeschen(Projekt p) {
+    projekte.removeWhere((x) => x.id == p.id);
+    return _speichern();
+  }
+
   Kunde? kundeMitId(String id) {
     for (final k in kunden) {
       if (k.id == id) return k;
@@ -253,6 +266,7 @@ class AppStore extends ChangeNotifier {
     firma = Firma();
     kunden = [];
     rechnungen = [];
+    projekte = [];
     for (final g in inventar) {
       if (g.bild != null) _dateienLoeschen([g.bild!]);
     }
