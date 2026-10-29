@@ -115,7 +115,9 @@ jobs:
             echo "## Tests"
             cat tests_status.txt 2>/dev/null || echo "nicht gelaufen"
             echo '```'
-            tail -n 60 tests.txt 2>/dev/null | grep -v '^\s*$' | tail -n 40
+            grep -n -A 25 -E "❌|\[E\]|Some tests failed|Error:|error:" tests.txt 2>/dev/null | head -n 80
+            echo '---'
+            tail -n 60 tests.txt 2>/dev/null | grep -v '^\s*$' | tail -n 20
             echo '```'
             echo "## Bau"
             echo '```'
