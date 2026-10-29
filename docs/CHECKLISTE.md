@@ -218,7 +218,7 @@ Stand: 29.10.2026, Version test-19
 - ❌ Kundenbewertungen in Themen zusammenfassen – Antwort auf eine Bewertung ist fertig
 
 ## 10. Privater Alltag und Haushalt
-✅ 4 · 🟡 7 · ❌ 11 · 🔒 0
+✅ 3 · 🟡 6 · ❌ 13 · 🔒 0 (plus 3 zusätzliche Funktionen)
 
 - ❌ Einkaufslisten aus Rezepten, Nachrichten oder Notizen erstellen
 - ❌ Einkaufslisten nach Supermarkt oder Kategorie sortieren
