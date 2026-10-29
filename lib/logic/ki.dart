@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
@@ -23,6 +24,7 @@ class Ki {
   static Future<void>? _start;
   static InferenceModel? _modell;
   static bool? _cpuGeladen;
+  static bool _bildGeladen = false;
 
   static Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -86,6 +88,7 @@ class Ki {
     final m = _modell;
     _modell = null;
     _cpuGeladen = null;
+    _bildGeladen = false;
     if (m != null) {
       try {
         await m.close();
@@ -93,10 +96,12 @@ class Ki {
     }
   }
 
-  static Future<InferenceModel> _laden() async {
+  static Future<InferenceModel> _laden({bool bild = false}) async {
     await starten();
     final cpu = await nutztProzessor();
-    if (_modell != null && _cpuGeladen == cpu && !_modell!.isClosed) return _modell!;
+    if (_modell != null && _cpuGeladen == cpu && !_modell!.isClosed && (_bildGeladen || !bild)) {
+      return _modell!;
+    }
     if (!FlutterEdgeAi.hasActiveModel()) {
       // Schon installiert: aktiviert die Datei ohne neuen Download.
       await FlutterEdgeAi.installModel(modelType: ModelType.gemma4, fileType: ModelFileType.litertlm)
@@ -108,24 +113,57 @@ class Ki {
       preferredBackend: cpu ? PreferredBackend.cpu : PreferredBackend.gpu,
       // Volle Genauigkeit, damit Zahlen und Daten nicht verfälscht werden.
       activationDataType: ActivationDataType.float32,
+      supportImage: bild ? true : null,
     );
     _cpuGeladen = cpu;
+    _bildGeladen = bild;
     return _modell!;
   }
 
-  /// Lässt die KI den Brief lesen. Liefert den Antworttext Stück für Stück.
-  static Stream<String> lesen(String brieftext) async* {
+  /// Schickt eine beliebige Anfrage an die KI und liefert die Antwort Stück für Stück.
+  static Stream<String> text(String anfrage, {int maxAusgabe = 900, double temperatur = 0.2}) async* {
     final p = await _prefs;
     await p.setBool('kiLaeuft', true);
     try {
       final modell = await _laden();
-      final sitzung = await modell.createSession(temperature: 0.2, maxOutputTokens: 700);
+      final sitzung = await modell.createSession(temperature: temperatur, maxOutputTokens: maxAusgabe);
       try {
-        await sitzung.addQueryChunk(Message(text: kiAnfrage(brieftext), isUser: true));
+        await sitzung.addQueryChunk(Message(text: anfrage, isUser: true));
         yield* sitzung.getResponseAsync();
       } finally {
         await sitzung.close();
       }
+    } finally {
+      await p.setBool('kiLaeuft', false);
+    }
+  }
+
+  /// Lässt die KI den Brief lesen. Liefert den Antworttext Stück für Stück.
+  static Stream<String> lesen(String brieftext) => text(kiAnfrage(brieftext), maxAusgabe: 900);
+
+  /// Liest Text aus einem Foto, auch Handschrift (Bilderkennung der KI).
+  static Future<String> bildLesen(List<String> pfade) async {
+    final p = await _prefs;
+    await p.setBool('kiLaeuft', true);
+    try {
+      final modell = await _laden(bild: true);
+      final teile = <String>[];
+      for (final pfad in pfade) {
+        final sitzung = await modell.createSession(
+            temperature: 0.1, maxOutputTokens: 1500, enableVisionModality: true);
+        try {
+          await sitzung.addQueryChunk(Message(
+            text: 'Lies den gesamten Text auf diesem Bild ab, auch Handschrift. '
+                'Gib nur den Text wieder, Zeile für Zeile, ohne Kommentar und ohne Erklärung.',
+            isUser: true,
+            imageBytes: await File(pfad).readAsBytes(),
+          ));
+          teile.add(await sitzung.getResponse());
+        } finally {
+          await sitzung.close();
+        }
+      }
+      return teile.join('\n\n');
     } finally {
       await p.setBool('kiLaeuft', false);
     }

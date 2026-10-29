@@ -5,10 +5,13 @@ import 'package:flutter/services.dart';
 
 import '../data/models.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/export.dart';
+import '../logic/ki_anfragen.dart';
 import '../logic/ordnung.dart';
 import '../logic/vorlagen.dart';
 import 'akten.dart';
 import 'app.dart';
+import 'ki_text.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
 import 'widgets/brief_teile.dart';
@@ -48,6 +51,11 @@ class BriefDetail extends StatelessWidget {
       appBar: AppBar(
         title: Text(ordnerFuer(b).name),
         actions: [
+          IconButton(
+            tooltip: 'Teilen',
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => _teilenMenue(context, b),
+          ),
           IconButton(
             tooltip: 'Umbenennen',
             icon: const Icon(Icons.drive_file_rename_outline),
@@ -239,6 +247,36 @@ class BriefDetail extends StatelessWidget {
             ),
           ],
 
+          if (b.hinweise.isNotEmpty) ...[
+            const Abschnitt('Bitte prüfen'),
+            PTKarte(
+              farbe: PT.gelbHell,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (final h in b.hinweise)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 2),
+                            child: Icon(Icons.report_problem_outlined, size: 18, color: PT.gelb),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(h, style: const TextStyle(height: 1.4))),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  const Text('Hinweise der KI – sie kann sich irren.',
+                      style: TextStyle(color: PT.grau, fontSize: 12)),
+                ],
+              ),
+            ),
+          ],
+
           if (b.bedeutung.isNotEmpty) ...[
             const Abschnitt('Was heißt das für dich?'),
             PTKarte(
@@ -383,6 +421,15 @@ class BriefDetail extends StatelessWidget {
           ),
 
           const Abschnitt('Antwort schreiben'),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => KiAntwortScreen(brief: b))),
+            icon: const Icon(Icons.auto_awesome),
+            label: const Text('Antwort mit KI schreiben'),
+          ),
+          const SizedBox(height: 12),
+          const Text('Oder eine feste Vorlage:', style: TextStyle(color: PT.grau)),
+          const SizedBox(height: 8),
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
@@ -416,6 +463,15 @@ class BriefDetail extends StatelessWidget {
                 ),
             ],
           ),
+
+          if (store.briefe.length > 1) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _vergleichen(context, b, store.briefe),
+              icon: const Icon(Icons.compare_arrows),
+              label: const Text('Mit anderem Dokument vergleichen'),
+            ),
+          ],
 
           const Abschnitt('Ablage'),
           PTKarte(
@@ -520,6 +576,103 @@ class BriefDetail extends StatelessWidget {
       ),
     );
   }
+}
+
+void _teilenMenue(BuildContext context, Brief b) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (s) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: const Text('Als PDF mit Erklärung teilen'),
+            onTap: () async {
+              Navigator.pop(s);
+              try {
+                final datei = await briefAlsPdf(b);
+                await dateiTeilen(datei.path);
+              } catch (e) {
+                if (context.mounted) zeigeHinweis(context, 'PDF konnte nicht erstellt werden: $e');
+              }
+            },
+          ),
+          if (b.pdfPfad != null)
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Original-PDF teilen'),
+              onTap: () {
+                Navigator.pop(s);
+                dateiTeilen(b.pdfPfad!);
+              },
+            ),
+          ListTile(
+            leading: const Icon(Icons.notes),
+            title: const Text('Zusammenfassung als Text teilen'),
+            onTap: () {
+              Navigator.pop(s);
+              final teile = [
+                titelVon(b),
+                b.erklaerung,
+                if (b.frist != null) 'Frist: ${datumKurz(b.frist!)}',
+                if (b.aufgaben.isNotEmpty) 'Zu tun:\n${b.aufgaben.map((a) => '- ${a.text}').join('\n')}',
+              ];
+              textTeilen(teile.join('\n\n'));
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+void _vergleichen(BuildContext context, Brief b, List<Brief> alle) {
+  final akteKey = akteSchluessel(b);
+  final andere = alle.where((x) => x.id != b.id).toList()
+    ..sort((x, y) {
+      int rang(Brief z) => akteSchluessel(z) == akteKey ? 0 : (ordnerFuer(z).key == ordnerFuer(b).key ? 1 : 2);
+      final r = rang(x).compareTo(rang(y));
+      return r != 0 ? r : (y.briefDatum ?? y.erstellt).compareTo(x.briefDatum ?? x.erstellt);
+    });
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (s) => SafeArea(
+      child: SizedBox(
+        height: MediaQuery.of(s).size.height * 0.7,
+        child: ListView(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text('Womit vergleichen?', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ),
+            for (final x in andere)
+              ListTile(
+                title: Text(titelVon(x), maxLines: 2, overflow: TextOverflow.ellipsis),
+                subtitle: Text(datumKurz(x.briefDatum ?? x.erstellt)),
+                trailing: akteSchluessel(x) == akteKey ? const Icon(Icons.layers_outlined, size: 18) : null,
+                onTap: () {
+                  Navigator.pop(s);
+                  final xa = x.briefDatum ?? x.erstellt, ba = b.briefDatum ?? b.erstellt;
+                  final alt = xa.isBefore(ba) ? x : b;
+                  final neu = identical(alt, x) ? b : x;
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => KiTextScreen(
+                      titel: 'Vergleich',
+                      anfrage: vergleichAnfrage(alt, neu),
+                      hinweis: 'Vergleich durch die KI. Prüfe wichtige Werte im Original.',
+                    ),
+                  ));
+                },
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 Future<String?> _textAbfragen(BuildContext context, String titel,

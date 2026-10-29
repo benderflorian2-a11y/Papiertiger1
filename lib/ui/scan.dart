@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/ki.dart';
 import '../logic/ordnung.dart';
 import '../logic/pdf_import.dart';
 import '../logic/texterkennung.dart';
@@ -57,10 +58,14 @@ class ScanScreen extends StatefulWidget {
 class _ScanScreenState extends State<ScanScreen> {
   final List<String> _seiten = [];
   bool _liest = false;
+  bool _kiDa = false;
 
   @override
   void initState() {
     super.initState();
+    Ki.istInstalliert().then((ok) {
+      if (mounted) setState(() => _kiDa = ok);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _seiteHolen(widget.mitKamera));
   }
 
@@ -108,11 +113,16 @@ class _ScanScreenState extends State<ScanScreen> {
     );
   }
 
-  Future<void> _auswerten() async {
+  Future<void> _auswerten({bool mitKi = false}) async {
     setState(() => _liest = true);
     try {
-      final text = await Texterkennung.textErkennen(_seiten);
+      var text = mitKi ? await Ki.bildLesen(_seiten) : await Texterkennung.textErkennen(_seiten);
       if (!mounted) return;
+      if (text.trim().length < 20 && !mitKi && await Ki.istInstalliert()) {
+        // Wenig Text: vermutlich Handschrift. Die KI kann Bilder lesen.
+        text = await Ki.bildLesen(_seiten);
+        if (!mounted) return;
+      }
       if (text.trim().length < 20) {
         setState(() => _liest = false);
         zeigeHinweis(context,
@@ -205,6 +215,14 @@ class _ScanScreenState extends State<ScanScreen> {
             icon: const Icon(Icons.photo_library_outlined),
             label: const Text('Aus Galerie hinzufügen'),
           ),
+          if (_seiten.isNotEmpty && _kiDa) ...[
+            const SizedBox(height: 10),
+            TextButton.icon(
+              onPressed: () => _auswerten(mitKi: true),
+              icon: const Icon(Icons.draw_outlined),
+              label: const Text('Handschrift? Mit KI lesen lassen'),
+            ),
+          ],
         ],
       ),
       bottomNavigationBar: _seiten.isEmpty

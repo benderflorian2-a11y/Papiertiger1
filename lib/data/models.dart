@@ -50,7 +50,9 @@ class Brief {
     this.kiDringlichkeit,
     this.person,
     List<Aufgabe>? unterlagen,
+    List<String>? hinweise,
   })  : unterlagen = unterlagen ?? [],
+        hinweise = hinweise ?? [],
         aufgaben = aufgaben ?? [],
         fakten = fakten ?? [],
         bedeutung = bedeutung ?? [];
@@ -103,6 +105,9 @@ class Brief {
   /// Unterlagen, die der Absender verlangt (abhakbar).
   List<Aufgabe> unterlagen;
 
+  /// „Bitte prüfen“: Widersprüche oder fehlende Angaben laut KI.
+  List<String> hinweise;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -131,6 +136,7 @@ class Brief {
         'kiDringlichkeit': kiDringlichkeit,
         'person': person,
         'unterlagen': unterlagen.map((a) => a.toJson()).toList(),
+        'hinweise': hinweise,
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -173,6 +179,7 @@ class Brief {
                 .map(Aufgabe.fromJson)
                 .toList() ??
             [],
+        hinweise: (j['hinweise'] as List?)?.whereType<String>().toList() ?? [],
       );
 }
 

@@ -6,7 +6,7 @@ import '../data/models.dart';
 import 'brief_analyse.dart';
 
 /// Höchstens so viele Zeichen Brieftext gehen an die KI (passt ins Kontextfenster).
-const kiMaxZeichen = 9000;
+const kiMaxZeichen = 7000;
 
 String kiAnfrage(String brieftext) {
   var text = brieftext.trim();
@@ -36,6 +36,8 @@ DRINGLICHKEIT: <HOCH | MITTEL | NIEDRIG>
 UNTERLAGEN:
 - <Unterlagen oder Nachweise, die der Absender verlangt. Wenn keine verlangt werden, schreibe genau: - Keine>
 FÜR: <Name der Person, an die der Brief gerichtet ist, oder UNBEKANNT>
+PRÜFEN:
+- <Widersprüche, Rechenfehler, Unklarheiten oder fehlende Angaben im Brief. Wenn alles stimmig ist, schreibe genau: - Nichts>
 
 Zu DRINGLICHKEIT: HOCH bei Mahnung, Inkasso, Gericht, drohenden Kosten oder einer Frist in den nächsten 7 Tagen. MITTEL, wenn etwas zu tun oder zu zahlen ist. NIEDRIG bei reinen Informationen.
 Zu GELD: Schreibe ZAHLEN nur, wenn der Leser wirklich Geld überweisen oder bezahlen soll. Schreibe BEKOMMEN, wenn er Geld erhält, zum Beispiel eine Erstattung, ein Guthaben, eine Rente oder eine Leistung. Beträge, die nur informieren, zum Beispiel eine voraussichtliche spätere Rente, ein Kontostand oder ein Jahreseinkommen, sind KEINS.
@@ -64,6 +66,7 @@ class KiErgebnis {
     this.dringlichkeit,
     this.unterlagen = const [],
     this.fuer,
+    this.pruefen = const [],
   });
 
   final String? absender;
@@ -80,6 +83,7 @@ class KiErgebnis {
   final int? dringlichkeit;
   final List<String> unterlagen;
   final String? fuer;
+  final List<String> pruefen;
 
   bool get brauchbar => kurzfassung.length >= 20;
 }
@@ -91,7 +95,7 @@ String _sauber(String s) => s
     .trim();
 
 final _kopf = RegExp(
-    r'^(absender|art|kurzfassung|bedeutung|zu tun|geld|frist|dringlichkeit|unterlagen|für|fuer)\s*:\s*(.*)$',
+    r'^(absender|art|kurzfassung|bedeutung|zu tun|geld|frist|dringlichkeit|unterlagen|für|fuer|prüfen|pruefen)\s*:\s*(.*)$',
     caseSensitive: false,
     unicode: true);
 
@@ -106,6 +110,7 @@ KiErgebnis kiAntwortLesen(String antwort) {
     if (m != null) {
       aktuell = m.group(1)!.toLowerCase();
       if (aktuell == 'fuer') aktuell = 'für';
+      if (aktuell == 'pruefen') aktuell = 'prüfen';
       felder[aktuell] = [];
       final rest = m.group(2)!.trim();
       if (rest.isNotEmpty) felder[aktuell]!.add(rest);
@@ -177,6 +182,7 @@ KiErgebnis kiAntwortLesen(String antwort) {
   return KiErgebnis(
     dringlichkeit: dringlichkeit,
     unterlagen: punkte('unterlagen'),
+    pruefen: punkte('prüfen'),
     fuer: fuer,
     absender: eins('absender'),
     art: eins('art'),
@@ -265,6 +271,7 @@ void kiUebernehmen(Brief b, KiErgebnis k) {
 
   if (k.dringlichkeit != null) b.kiDringlichkeit = k.dringlichkeit;
   if (k.fuer != null) b.person = k.fuer;
+  b.hinweise = k.pruefen;
   for (final u in k.unterlagen) {
     if (!b.unterlagen.any((x) => x.text.toLowerCase() == u.toLowerCase())) b.unterlagen.add(Aufgabe(u));
   }

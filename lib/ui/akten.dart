@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
+import '../logic/export.dart';
+import '../logic/ki_anfragen.dart';
 import '../logic/ordnung.dart';
 import 'app.dart';
 import 'brief_detail.dart';
+import 'ki_text.dart';
 import 'theme.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
@@ -105,6 +108,38 @@ class AkteScreen extends StatelessWidget {
                     '${fristen.isNotEmpty ? ' · nächste Frist ${datumKurz(fristen.first.frist!)}' : ''}'),
               ],
             ),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => KiTextScreen(
+                      titel: 'Vorgang zusammengefasst',
+                      anfrage: akteAnfrage(akte),
+                      hinweis: 'Zusammenfassung der KI aus den gespeicherten Erklärungen.',
+                    ),
+                  )),
+                  icon: const Icon(Icons.auto_awesome),
+                  label: const Text('Zusammenfassen'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final datei = await akteAlsPdf(akte);
+                      await dateiTeilen(datei.path);
+                    } catch (e) {
+                      if (context.mounted) zeigeHinweis(context, 'PDF konnte nicht erstellt werden: $e');
+                    }
+                  },
+                  icon: const Icon(Icons.picture_as_pdf_outlined),
+                  label: const Text('Als PDF'),
+                ),
+              ),
+            ],
           ),
           const Abschnitt('Verlauf (neueste zuerst)'),
           for (final b in akte.briefe) BriefZeile(brief: b, onTap: () => _oeffneBrief(context, b)),
