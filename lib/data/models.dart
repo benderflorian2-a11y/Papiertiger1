@@ -102,6 +102,7 @@ class Brief {
     this.nachfassenAm,
     List<Eintrag>? verlauf,
     this.bezahltAm,
+    this.zahlungsnachweis,
   })  : verlauf = verlauf ?? [],
         unterlagen = unterlagen ?? [],
         hinweise = hinweise ?? [],
@@ -172,6 +173,9 @@ class Brief {
   /// Wann du den Betrag bezahlt hast (von dir vermerkt).
   DateTime? bezahltAm;
 
+  /// Bild oder Screenshot als Zahlungsnachweis.
+  String? zahlungsnachweis;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -205,6 +209,7 @@ class Brief {
         'nachfassenAm': nachfassenAm?.toIso8601String(),
         'verlauf': verlauf.map((e) => e.toJson()).toList(),
         'bezahltAm': bezahltAm?.toIso8601String(),
+        'zahlungsnachweis': zahlungsnachweis,
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -256,6 +261,7 @@ class Brief {
                 .toList() ??
             [],
         bezahltAm: _datum(j['bezahltAm']),
+        zahlungsnachweis: j['zahlungsnachweis'] as String?,
       );
 }
 
@@ -361,12 +367,16 @@ class Beleg {
     this.steuerKategorie,
     this.notiz = '',
     this.geschaeftlich = false,
+    this.kategorie,
   });
 
   final String id;
 
   /// Betriebsausgabe (für Selbstständige).
   bool geschaeftlich;
+
+  /// Haushaltskategorie, z. B. Lebensmittel. null = automatisch aus dem Händler.
+  String? kategorie;
   String haendler;
   DateTime datum;
   double? betrag;
@@ -388,6 +398,7 @@ class Beleg {
         'steuerKategorie': steuerKategorie,
         'notiz': notiz,
         'geschaeftlich': geschaeftlich,
+        'kategorie': kategorie,
       };
 
   factory Beleg.fromJson(Map<String, dynamic> j) => Beleg(
@@ -400,6 +411,7 @@ class Beleg {
         steuerKategorie: j['steuerKategorie'] as String?,
         notiz: j['notiz'] as String? ?? '',
         geschaeftlich: j['geschaeftlich'] == true,
+        kategorie: j['kategorie'] as String?,
       );
 }
 
@@ -567,4 +579,39 @@ const versicherungsArten = [
   'Reise',
   'Tier',
   'Sonstige',
+];
+
+/// Ein Sparziel oder eine Rücklage (z. B. Steuer, neues Auto, Urlaub).
+class Sparziel {
+  Sparziel({required this.id, required this.name, required this.ziel, this.gespart = 0, this.bis});
+
+  final String id;
+  String name;
+  double ziel;
+  double gespart;
+  DateTime? bis;
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'name': name, 'ziel': ziel, 'gespart': gespart, 'bis': bis?.toIso8601String()};
+
+  factory Sparziel.fromJson(Map<String, dynamic> j) => Sparziel(
+        id: j['id'] as String,
+        name: j['name'] as String? ?? '',
+        ziel: _zahl(j['ziel']) ?? 0,
+        gespart: _zahl(j['gespart']) ?? 0,
+        bis: _datum(j['bis']),
+      );
+}
+
+const ausgabenKategorien = [
+  'Lebensmittel',
+  'Drogerie',
+  'Haushalt',
+  'Kleidung',
+  'Mobilität',
+  'Gesundheit',
+  'Freizeit',
+  'Elektronik',
+  'Wohnen',
+  'Sonstiges',
 ];

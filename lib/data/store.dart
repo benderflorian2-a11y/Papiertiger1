@@ -33,6 +33,8 @@ class AppStore extends ChangeNotifier {
   List<Kunde> kunden = [];
   List<Rechnung> rechnungen = [];
 
+  List<Sparziel> sparziele = [];
+
   // Haushalt
   List<Zaehler> zaehler = [];
   List<Gegenstand> inventar = [];
@@ -64,6 +66,7 @@ class AppStore extends ChangeNotifier {
     kunden = _liste('kunden').map(Kunde.fromJson).toList();
     rechnungen = _liste('rechnungen').map(Rechnung.fromJson).toList();
     zaehler = _liste('zaehler').map(Zaehler.fromJson).toList();
+    sparziele = _liste('sparziele').map(Sparziel.fromJson).toList();
     inventar = _liste('inventar').map(Gegenstand.fromJson).toList();
     final f = _prefs.getString('firma');
     if (f != null) {
@@ -120,6 +123,7 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('kunden', jsonEncode(kunden.map((k) => k.toJson()).toList()));
     await _prefs.setString('rechnungen', jsonEncode(rechnungen.map((r) => r.toJson()).toList()));
     await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
+    await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
     await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
     await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
@@ -254,6 +258,7 @@ class AppStore extends ChangeNotifier {
     }
     zaehler = [];
     inventar = [];
+    sparziele = [];
     onboardingFertig = false;
     await _prefs.clear();
     notifyListeners();

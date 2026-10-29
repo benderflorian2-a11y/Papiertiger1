@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
+import '../../logic/finanzen.dart';
 import '../../logic/brief_analyse.dart';
 import '../../logic/texterkennung.dart';
 import '../app.dart';
@@ -232,6 +233,7 @@ class _BelegFormularState extends State<BelegFormular> {
   late int _garantie = widget.beleg.garantieMonate;
   late String? _steuer = widget.beleg.steuerKategorie;
   late bool _geschaeftlich = widget.beleg.geschaeftlich;
+  late String _kategorie = belegKategorie(widget.beleg);
 
   @override
   void dispose() {
@@ -250,6 +252,7 @@ class _BelegFormularState extends State<BelegFormular> {
       ..garantieMonate = _garantie
       ..steuerKategorie = _steuer
       ..geschaeftlich = _geschaeftlich
+      ..kategorie = _kategorie
       ..notiz = _notiz.text.trim();
     await store.belegSpeichern(b);
     if (mounted) Navigator.of(context).pop();
@@ -308,6 +311,13 @@ class _BelegFormularState extends State<BelegFormular> {
           const SizedBox(height: 4),
           const Text('Gesetzliche Gewährleistung beim Händler: meist 2 Jahre.',
               style: TextStyle(color: PT.grau, fontSize: 12)),
+          const SizedBox(height: 16),
+          const Text('Kategorie', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final k in ausgabenKategorien)
+              ChoiceChip(label: Text(k), selected: _kategorie == k, onSelected: (_) => setState(() => _kategorie = k)),
+          ]),
           const SizedBox(height: 16),
           const Text('Für die Steuer', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
