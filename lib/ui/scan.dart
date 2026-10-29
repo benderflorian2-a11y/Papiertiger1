@@ -3,10 +3,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
+import '../logic/android_kanal.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/datei_import.dart';
 import '../logic/ki.dart';
 import '../logic/ordnung.dart';
-import '../logic/pdf_import.dart';
 import '../logic/texterkennung.dart';
 import 'app.dart';
 import 'brief_detail.dart';
@@ -302,16 +303,20 @@ class _TextEinfuegenScreenState extends State<TextEinfuegenScreen> {
   }
 }
 
-/// Wählt ein PDF, liest es und legt den Brief an.
-class PdfImportScreen extends StatefulWidget {
-  const PdfImportScreen({super.key});
+/// Liest ein PDF, eine E-Mail (.eml), Bilder oder Text – ausgewählt oder aus
+/// „Teilen → Papiertiger“ – und legt daraus einen Brief an.
+class DateiImportScreen extends StatefulWidget {
+  const DateiImportScreen({super.key, this.geteilt});
+
+  /// null = Datei auswählen lassen.
+  final List<Geteilt>? geteilt;
 
   @override
-  State<PdfImportScreen> createState() => _PdfImportScreenState();
+  State<DateiImportScreen> createState() => _DateiImportScreenState();
 }
 
-class _PdfImportScreenState extends State<PdfImportScreen> {
-  String _stand = 'PDF auswählen …';
+class _DateiImportScreenState extends State<DateiImportScreen> {
+  String _stand = 'Datei auswählen …';
 
   @override
   void initState() {
@@ -321,33 +326,37 @@ class _PdfImportScreenState extends State<PdfImportScreen> {
 
   Future<void> _los() async {
     try {
-      final pfad = await PdfImport.waehlen();
+      var teile = widget.geteilt;
+      if (teile == null) {
+        final d = await DateiImport.waehlen();
+        teile = d == null ? null : [d];
+      }
       if (!mounted) return;
-      if (pfad == null) {
+      if (teile == null || teile.isEmpty) {
         Navigator.of(context).pop();
         return;
       }
-      setState(() => _stand = 'Der Tiger liest das PDF …');
-      final ergebnis = await PdfImport.lesen(pfad, fortschritt: (s, von) {
-        if (mounted) setState(() => _stand = 'Der Tiger liest Seite $s von $von …');
+      setState(() => _stand = 'Der Tiger liest …');
+      final e = await DateiImport.lesen(teile, stand: (s) {
+        if (mounted) setState(() => _stand = s);
       });
       if (!mounted) return;
-      if (ergebnis.text.trim().length < 20) {
-        zeigeHinweis(context, 'In diesem PDF konnte der Tiger keinen Text finden.');
+      for (final h in e.hinweise) {
+        zeigeHinweis(context, h);
+      }
+      if (e.text.trim().length < 20) {
+        zeigeHinweis(context,
+            e.hinweise.isNotEmpty ? e.hinweise.first : 'Darin konnte der Tiger keinen Text finden.');
         Navigator.of(context).pop();
         return;
       }
-      if (ergebnis.seiten > PdfImport.maxSeiten) {
-        zeigeHinweis(context,
-            'Das PDF hat ${ergebnis.seiten} Seiten. Der Tiger hat die ersten ${PdfImport.maxSeiten} gelesen.');
-      }
-      await briefAnlegen(context, ergebnis.text, ergebnis.bilder, pdfPfad: ergebnis.pdfPfad);
+      await briefAnlegen(context, e.text, e.bilder, pdfPfad: e.pdfPfad);
     } catch (e) {
       if (!mounted) return;
       await showDialog<void>(
         context: context,
         builder: (d) => AlertDialog(
-          title: const Text('Das PDF konnte nicht gelesen werden'),
+          title: const Text('Das konnte nicht gelesen werden'),
           content: SelectableText('$e', style: const TextStyle(fontSize: 12, color: PT.grau)),
           actions: [TextButton(onPressed: () => Navigator.pop(d), child: const Text('OK'))],
         ),
@@ -360,15 +369,20 @@ class _PdfImportScreenState extends State<PdfImportScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Tiger(size: 120),
-            const SizedBox(height: 24),
-            Text(_stand, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-            const SizedBox(height: 16),
-            const SizedBox(width: 180, child: LinearProgressIndicator()),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Tiger(size: 120),
+              const SizedBox(height: 24),
+              Text(_stand,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 16),
+              const SizedBox(width: 180, child: LinearProgressIndicator()),
+            ],
+          ),
         ),
       ),
     );

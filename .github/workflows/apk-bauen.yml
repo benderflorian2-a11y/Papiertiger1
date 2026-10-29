@@ -77,8 +77,39 @@ jobs:
                   </receiver>
               </application>'''
           x = x.replace('</application>', empfaenger, 1)
+          # Teilen -> Papiertiger: E-Mails, PDFs, Bilder und Text annehmen
+          filter = '''
+                  <intent-filter>
+                      <action android:name="android.intent.action.SEND"/>
+                      <category android:name="android.intent.category.DEFAULT"/>
+                      <data android:mimeType="text/plain"/>
+                      <data android:mimeType="application/pdf"/>
+                      <data android:mimeType="message/rfc822"/>
+                      <data android:mimeType="image/*"/>
+                  </intent-filter>
+                  <intent-filter>
+                      <action android:name="android.intent.action.SEND_MULTIPLE"/>
+                      <category android:name="android.intent.category.DEFAULT"/>
+                      <data android:mimeType="image/*"/>
+                      <data android:mimeType="application/pdf"/>
+                  </intent-filter>
+                  <intent-filter>
+                      <action android:name="android.intent.action.VIEW"/>
+                      <category android:name="android.intent.category.DEFAULT"/>
+                      <data android:scheme="content"/>
+                      <data android:mimeType="application/pdf"/>
+                      <data android:mimeType="message/rfc822"/>
+                  </intent-filter>
+              </activity>'''
+          x = x.replace('</activity>', filter, 1)
           m.write_text(x)
           PY
+          # Eigene MainActivity: Geteiltes empfangen, E-Mail/Telefon-Links oeffnen
+          ziel=$(find android/app/src/main -name 'MainActivity.kt' | head -1)
+          [ -n "$ziel" ] || { echo "MainActivity.kt nicht gefunden"; exit 1; }
+          cp android-extra/MainActivity.kt "$ziel"
+          echo "MainActivity ersetzt: $ziel"
+          grep -n "intent.action.SEND\|VIEW" android/app/src/main/AndroidManifest.xml
           grep -n "Desugaring\|desugar" android/app/build.gradle.kts
           grep -n "Receiver\|BOOT" android/app/src/main/AndroidManifest.xml
           grep -n "minSdk" android/app/build.gradle.kts

@@ -72,7 +72,7 @@ void main() {
     expect(ics, contains('BEGIN:VEVENT'));
     expect(ics, contains('DTSTART;VALUE=DATE:20261102'));
     expect(ics, contains('DTEND;VALUE=DATE:20261103'));
-    expect(ics, contains('DESCRIPTION:Zahlen\; bitte'));
+    expect(ics, contains(r'DESCRIPTION:Zahlen\; bitte'));
     final mitZeit = icsErstellen('Termin', DateTime(2026, 11, 12, 10, 30), ganztags: false, jetzt: heute);
     expect(mitZeit, contains('DTSTART:20261112T103000'));
   });

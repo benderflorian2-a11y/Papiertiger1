@@ -20,6 +20,7 @@ class KiTextScreen extends StatefulWidget {
     required this.anfrage,
     this.alsBrief = false,
     this.hinweis,
+    this.brief,
   });
 
   final String titel;
@@ -28,6 +29,9 @@ class KiTextScreen extends StatefulWidget {
   /// Ergebnis ist ein Brief, der bearbeitet werden kann.
   final bool alsBrief;
   final String? hinweis;
+
+  /// Brief, auf den geantwortet wird.
+  final Brief? brief;
 
   @override
   State<KiTextScreen> createState() => _KiTextScreenState();
@@ -158,7 +162,7 @@ class _KiTextScreenState extends State<KiTextScreen> {
                         onPressed: () {
                           if (widget.alsBrief) {
                             Navigator.of(context).push(MaterialPageRoute(
-                                builder: (_) => VorlageScreen(titel: widget.titel, text: _ergebnis)));
+                                builder: (_) => VorlageScreen(titel: widget.titel, text: _ergebnis, brief: widget.brief)));
                           } else {
                             Clipboard.setData(ClipboardData(text: _ergebnis));
                             zeigeHinweis(context, 'Kopiert');
@@ -255,6 +259,7 @@ class _KiAntwortScreenState extends State<KiAntwortScreen> {
               builder: (_) => KiTextScreen(
                 titel: _ziel,
                 alsBrief: true,
+                brief: widget.brief,
                 anfrage: antwortAnfrage(widget.brief, profil,
                     ziel: _ziel, ton: _ton, inhalt: _inhalt.text, sprache: _sprache),
                 hinweis: 'Entwurf der KI. Prüfe alle Angaben, bevor du ihn verschickst.',

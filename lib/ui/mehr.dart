@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'module/module_liste.dart';
 import 'erinnerungen_einstellungen.dart';
+import 'kommunikation.dart';
 import 'ki_einstellungen.dart';
 import 'termine.dart';
 import 'module/profil.dart';
@@ -68,6 +69,42 @@ class MehrScreen extends StatelessWidget {
                 ],
               ),
             ),
+          const Abschnitt('Schriftverkehr'),
+          PTKarte(
+            padding: const EdgeInsets.all(12),
+            onTap: () => oeffne(const KommunikationScreen()),
+            child: const Row(
+              children: [
+                IconKachel(Icons.forum_outlined),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Antworten und Verlauf', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text('Worauf du wartest, was du verschickt hast', style: TextStyle(color: PT.grau, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
+          const PTKarte(
+            padding: EdgeInsets.all(12),
+            child: Row(
+              children: [
+                IconKachel(Icons.mark_email_unread_outlined),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    'E-Mails und PDFs übernehmen: In der E-Mail- oder Datei-App auf „Teilen“ tippen und „Papiertiger“ wählen.',
+                    style: TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const Abschnitt('Fristen & Termine'),
           PTKarte(
             padding: const EdgeInsets.all(12),

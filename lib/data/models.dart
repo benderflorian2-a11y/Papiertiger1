@@ -21,6 +21,53 @@ class Aufgabe {
       Aufgabe(j['text'] as String? ?? '', erledigt: j['erledigt'] == true);
 }
 
+/// Ein Eintrag im Schriftverkehr zu einem Brief: gesendet, erhalten, Anruf, Notiz.
+class Eintrag {
+  Eintrag({
+    required this.id,
+    required this.datum,
+    required this.art,
+    this.weg = '',
+    this.text = '',
+    this.sendungsnummer,
+    this.person,
+  });
+
+  final String id;
+  DateTime datum;
+
+  /// gesendet, erhalten, anruf, notiz
+  String art;
+
+  /// Post, Einschreiben, E-Mail, Fax, Online-Portal, Persönlich abgegeben, Telefon
+  String weg;
+  String text;
+  String? sendungsnummer;
+
+  /// Ansprechpartner, z. B. bei einem Anruf.
+  String? person;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'datum': datum.toIso8601String(),
+        'art': art,
+        'weg': weg,
+        'text': text,
+        'sendungsnummer': sendungsnummer,
+        'person': person,
+      };
+
+  factory Eintrag.fromJson(Map<String, dynamic> j) => Eintrag(
+        id: j['id'] as String? ?? neueId(),
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        art: j['art'] as String? ?? 'notiz',
+        weg: j['weg'] as String? ?? '',
+        text: j['text'] as String? ?? '',
+        sendungsnummer: j['sendungsnummer'] as String?,
+        person: j['person'] as String?,
+      );
+}
+
 class Brief {
   Brief({
     required this.id,
@@ -53,7 +100,9 @@ class Brief {
     List<String>? hinweise,
     this.antwortGesendet,
     this.nachfassenAm,
-  })  : unterlagen = unterlagen ?? [],
+    List<Eintrag>? verlauf,
+  })  : verlauf = verlauf ?? [],
+        unterlagen = unterlagen ?? [],
         hinweise = hinweise ?? [],
         aufgaben = aufgaben ?? [],
         fakten = fakten ?? [],
@@ -116,6 +165,9 @@ class Brief {
   /// Ab wann nachgefasst werden soll, wenn keine Antwort kommt.
   DateTime? nachfassenAm;
 
+  /// Schriftverkehr: gesendete Antworten, Anrufe, Notizen.
+  List<Eintrag> verlauf;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -147,6 +199,7 @@ class Brief {
         'hinweise': hinweise,
         'antwortGesendet': antwortGesendet?.toIso8601String(),
         'nachfassenAm': nachfassenAm?.toIso8601String(),
+        'verlauf': verlauf.map((e) => e.toJson()).toList(),
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -192,6 +245,11 @@ class Brief {
         hinweise: (j['hinweise'] as List?)?.whereType<String>().toList() ?? [],
         antwortGesendet: _datum(j['antwortGesendet']),
         nachfassenAm: _datum(j['nachfassenAm']),
+        verlauf: (j['verlauf'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(Eintrag.fromJson)
+                .toList() ??
+            [],
       );
 }
 

@@ -3,6 +3,7 @@ library;
 
 import '../data/models.dart';
 import 'brief_analyse.dart';
+import 'kommunikation.dart';
 
 class Vorlage {
   const Vorlage(this.key, this.titel, this.beschreibung);
@@ -39,7 +40,7 @@ String _fuss(Profil p) {
 }
 
 String vorlageText(String key, Brief b, Profil p) {
-  final empfaenger = b.absenderName ?? kategorieFuer(b.kategorie).name;
+  final empfaenger = kontaktVon(b, p).adresse ?? b.absenderName ?? kategorieFuer(b.kategorie).name;
   final az = b.aktenzeichen ?? 'Aktenzeichen: [bitte eintragen]';
   final vom = b.briefDatum != null ? ' vom ${_datum(b.briefDatum!)}' : '';
   final frist = b.frist != null ? ' bis zum ${_datum(b.frist!)}' : '';

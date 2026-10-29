@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 import '../data/models.dart';
+import 'kommunikation.dart';
 import 'ordnung.dart';
 
 String _d(DateTime d) =>
@@ -94,6 +95,74 @@ Future<File> akteAlsPdf(Akte a) async {
     }
   }
   return _speichern(doc, 'Vorgang ${a.titel}');
+}
+
+/// Antwort als richtiger Brief nach DIN 5008 (Form B): Anschrift passt ins
+/// Fenster eines DIN-lang-Umschlags, mit Falz- und Lochmarken.
+Future<File> antwortAlsPdf(String text, {String titel = 'Antwort'}) async {
+  final t = briefTeile(text);
+  final doc = pw.Document(title: titel, author: 'Papiertiger');
+  final mm = PdfPageFormat.mm;
+  const klein = pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700);
+  const normal = pw.TextStyle(fontSize: 11, lineSpacing: 2);
+  final absaetze = (t?.inhalt ?? text)
+      .split(RegExp(r'\n\s*\n'))
+      .map((a) => a.trim())
+      .where((a) => a.isNotEmpty)
+      .toList();
+  doc.addPage(pw.MultiPage(
+    pageTheme: pw.PageTheme(
+      pageFormat: PdfPageFormat.a4,
+      margin: pw.EdgeInsets.fromLTRB(25 * mm, 15 * mm, 20 * mm, 20 * mm),
+      buildBackground: (c) => c.pageNumber > 1
+          ? pw.SizedBox()
+          : pw.FullPage(
+              ignoreMargins: true,
+              child: pw.Stack(children: [
+                for (final y in [105.0, 148.5, 210.0])
+                  pw.Positioned(
+                    left: 5 * mm,
+                    top: y * mm,
+                    child: pw.Container(width: (y == 148.5 ? 7 : 4) * mm, height: 0.4, color: PdfColors.grey500),
+                  ),
+              ]),
+            ),
+    ),
+    build: (c) => [
+      if (t != null) ...[
+        pw.SizedBox(
+          height: 30 * mm,
+          child: pw.Align(
+            alignment: pw.Alignment.topRight,
+            child: pw.Text(t.absender, textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 9.5)),
+          ),
+        ),
+        pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.SizedBox(
+            width: 85 * mm,
+            height: 45 * mm,
+            child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Text(t.absender.split('\n').map((z) => z.trim()).where((z) => z.isNotEmpty).join(' · '),
+                  style: klein, maxLines: 1),
+              pw.SizedBox(height: 3 * mm),
+              pw.Text(t.empfaenger, style: normal),
+            ]),
+          ),
+          pw.Expanded(
+            child: pw.Align(
+              alignment: pw.Alignment.bottomRight,
+              child: pw.Text(t.datum, style: normal),
+            ),
+          ),
+        ]),
+        pw.SizedBox(height: 8 * mm),
+        pw.Text(t.betreff, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8 * mm),
+      ],
+      for (final a in absaetze) pw.Paragraph(text: a, style: normal, textAlign: pw.TextAlign.left, margin: pw.EdgeInsets.only(bottom: 4 * mm)),
+    ],
+  ));
+  return _speichern(doc, titel);
 }
 
 Future<void> dateiTeilen(String pfad, {String? text, String? mimeType}) =>

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../logic/android_kanal.dart';
 import 'archiv.dart';
 import 'fristen.dart';
 import 'home.dart';
 import 'mehr.dart';
+import 'scan.dart';
 
 /// Hauptgerüst mit der unteren Navigation.
 class Shell extends StatefulWidget {
@@ -15,6 +17,21 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // „Teilen → Papiertiger“ aus anderen Apps: beim Start und während die App läuft.
+    AndroidKanal.beiNeuem(_geteiltAbholen);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _geteiltAbholen());
+  }
+
+  Future<void> _geteiltAbholen() async {
+    final teile = await AndroidKanal.abholen();
+    if (teile.isEmpty || !mounted) return;
+    setState(() => _tab = 0);
+    await Navigator.of(context).push(MaterialPageRoute(builder: (_) => DateiImportScreen(geteilt: teile)));
+  }
 
   @override
   Widget build(BuildContext context) {

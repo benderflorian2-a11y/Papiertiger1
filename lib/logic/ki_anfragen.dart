@@ -2,6 +2,7 @@
 library;
 
 import '../data/models.dart';
+import 'kommunikation.dart';
 import 'ordnung.dart';
 
 String _kuerzen(String t, int max) {
@@ -31,6 +32,7 @@ String antwortAnfrage(Brief b, Profil p,
     {required String ziel, required String ton, String inhalt = '', String sprache = 'Deutsch'}) {
   final absender = p.name.isEmpty ? '[Dein Name]' : p.name;
   final adresse = p.adresse.isEmpty ? '[Deine Adresse]' : p.adresse;
+  final an = kontaktVon(b, p).adresse?.replaceAll('\n', ', ') ?? b.absenderName ?? 'der Absender des Schreibens';
   return '''
 Schreibe einen fertigen Brief als Antwort auf das Schreiben unten.
 
@@ -39,11 +41,11 @@ Ton: $ton
 Sprache des Briefs: $sprache
 ${inhalt.trim().isEmpty ? '' : 'Das möchte der Absender sagen: ${inhalt.trim()}\n'}
 Absender des Briefs: $absender, $adresse
-Empfänger: ${b.absenderName ?? 'der Absender des Schreibens'}
+Empfänger: $an
 ${b.aktenzeichen != null ? 'Bezug: ${b.aktenzeichen}\n' : ''}Datum des Schreibens: ${_datum(b.briefDatum)}
 
 Regeln:
-- Beginne mit Absender, Empfänger, Datum, Betreff und Anrede, ende mit Grußformel und Name.
+- Aufbau, jeder Teil durch eine Leerzeile getrennt: Absender (Name und Adresse), Empfänger (Name und Adresse), Ort und Datum, eine Zeile „Betreff: …“, Anrede, Text, Grußformel und Name.
 - Kurz, klar und korrekt. Erfinde keine Fakten. Wo Angaben fehlen, setze [eckige Klammern].
 - Keine Erklärung vor oder nach dem Brief, nur der Brief selbst.
 

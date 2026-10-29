@@ -14,6 +14,7 @@ import 'akten.dart';
 import 'app.dart';
 import 'formular_screen.dart';
 import 'kalender.dart';
+import 'kommunikation.dart';
 import 'termine.dart';
 import 'ki_text.dart';
 import 'theme.dart';
@@ -380,11 +381,7 @@ class BriefDetail extends StatelessWidget {
                             content: const Text('Alles beisammen. Unterlagen verschickt?'),
                             action: SnackBarAction(
                               label: 'Ja, erinnern',
-                              onPressed: () {
-                                b.antwortGesendet = DateTime.now();
-                                b.nachfassenAm = DateTime.now().add(const Duration(days: 28));
-                                store.geaendert();
-                              },
+                              onPressed: () => versandVermerken(context, b, text: 'Unterlagen nachgereicht'),
                             ),
                           ));
                         }
@@ -428,49 +425,9 @@ class BriefDetail extends StatelessWidget {
               ],
             ),
           ),
-          if (b.antwortGesendet == null)
-            OutlinedButton.icon(
-              onPressed: () {
-                b.antwortGesendet = DateTime.now();
-                b.nachfassenAm = DateTime.now().add(const Duration(days: 28));
-                store.geaendert();
-                zeigeHinweis(context, 'Der Tiger erinnert dich in 4 Wochen, falls keine Antwort kommt.');
-              },
-              icon: const Icon(Icons.outgoing_mail),
-              label: const Text('Ich habe geantwortet – an Nachfassen erinnern'),
-            )
-          else
-            PTKarte(
-              farbe: PT.orangeHell,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Geantwortet am ${datumKurz(b.antwortGesendet!)}',
-                      style: const TextStyle(fontWeight: FontWeight.w700)),
-                  if (b.nachfassenAm != null)
-                    Text('Erinnerung zum Nachfassen am ${datumKurz(b.nachfassenAm!)}, falls keine Antwort kommt.'),
-                  Wrap(spacing: 8, children: [
-                    TextButton(
-                      onPressed: () {
-                        b.nachfassenAm = null;
-                        store.geaendert();
-                      },
-                      child: const Text('Antwort ist da'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => VorlageScreen(
-                          titel: 'Nachfrage',
-                          text: vorlageText('nachfrage', b, store.profil),
-
-                        ),
-                      )),
-                      child: const Text('Nachfrage schreiben'),
-                    ),
-                  ]),
-                ],
-              ),
-            ),
+          const Abschnitt('Schriftverkehr'),
+          VerlaufKarte(brief: b),
+          const SizedBox(height: 12),
           for (final t in termineFinden(b.text))
             PTKarte(
               child: Row(
@@ -527,6 +484,7 @@ class BriefDetail extends StatelessWidget {
           ),
 
           const Abschnitt('Antwort schreiben'),
+          KontaktKarte(brief: b),
           FilledButton.icon(
             onPressed: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => KiAntwortScreen(brief: b))),
@@ -551,6 +509,7 @@ class BriefDetail extends StatelessWidget {
                     builder: (_) => VorlageScreen(
                       titel: v.titel,
                       text: vorlageText(v.key, b, store.profil),
+                      brief: b,
                     ),
                   )),
                   child: Column(

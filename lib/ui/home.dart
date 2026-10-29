@@ -90,9 +90,9 @@ class HomeScreen extends StatelessWidget {
                     ),
                     _Quelle(
                       key: const ValueKey('pdf-import-start'),
-                      icon: Icons.picture_as_pdf_outlined,
-                      text: 'PDF',
-                      onTap: () => oeffne(const PdfImportScreen()),
+                      icon: Icons.upload_file_outlined,
+                      text: 'PDF / E-Mail',
+                      onTap: () => oeffne(const DateiImportScreen()),
                     ),
                     _Quelle(
                       key: const ValueKey('text-einfuegen-start'),
