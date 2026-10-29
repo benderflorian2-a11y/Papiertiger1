@@ -149,3 +149,19 @@ String rechtsbehelfText(Brief b, Profil p, String art) {
       'Bitte bestätigen Sie mir den Eingang dieses Schreibens.'
       '${_fuss(p)}';
 }
+
+/// Schadensmeldung an die Versicherung.
+String schadenText(Vertrag v, Profil p,
+    {required String was, DateTime? wann, String wo = '', double? hoehe, String aktenzeichen = ''}) {
+  final datum = wann == null ? '[Datum]' : _datum(wann);
+  return '${_kopf(p, v.anbieter, 'Betreff: Schadensmeldung – ${_vertragArt(v)} ${_vertragNr(v)}')}'
+      'hiermit melde ich folgenden Schaden:\n\n'
+      'Datum: $datum\n'
+      '${wo.isEmpty ? '' : 'Ort: $wo\n'}'
+      'Was ist passiert: ${was.trim().isEmpty ? '[Beschreibung]' : was.trim()}\n'
+      '${hoehe == null ? '' : 'Geschätzte Schadenshöhe: ${hoehe.toStringAsFixed(2).replaceAll('.', ',')} €\n'}'
+      '${aktenzeichen.isEmpty ? '' : 'Polizeiliches Aktenzeichen: $aktenzeichen\n'}'
+      '\nFotos und Belege füge ich bei. Bitte teilen Sie mir mit, welche Unterlagen Sie noch benötigen, '
+      'und bestätigen Sie mir den Eingang der Schadensmeldung.'
+      '${_fuss(p)}\n\nAnlagen: Fotos, Belege';
+}

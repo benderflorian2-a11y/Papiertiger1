@@ -112,4 +112,40 @@ void main() {
     expect(kopie.gekuendigtAm, DateTime(2026, 10, 1));
     expect(kopie.bestaetigt, isTrue);
   });
+
+  test('Tarifvergleich über 24 Monate', () {
+    final e = tarifeVergleichen([
+      Tarif(name: 'A', monat: 30, einmalig: 40),
+      Tarif(name: 'B', monat: 25, einmalig: 70, bonus: 50),
+      Tarif(name: 'C', monat: 28),
+    ]);
+    expect(e.map((x) => x.tarif.name), ['B', 'C', 'A']);
+    expect(e.first.gesamt, 620);
+    expect(e.first.effektivMonat, closeTo(25.83, 0.001));
+  });
+
+  test('Schadensmeldung und Anbieterwechsel', () {
+    final hausrat = schadenUnterlagen('Hausrat');
+    expect(hausrat.first, contains('Polizeiliche Anzeige'));
+    expect(hausrat, contains('Fotos vom Schaden (Übersicht und Nahaufnahmen)'));
+    expect(schadenUnterlagen(null).length, 6);
+    final strom = Vertrag(id: 's', anbieter: 'E.ON', art: 'Strom', beginn: DateTime(2024, 1, 1), laufzeitMonate: 12);
+    final schritte = wechselSchritte(strom, heute: DateTime(2026, 10, 28));
+    expect(schritte.any((s) => s.contains('kündigt meist für dich')), isTrue);
+    expect(schritte.any((s) => s.contains('Zählerstand')), isTrue);
+    final handy = Vertrag(id: 'h', anbieter: 'O2', art: 'Handy', beginn: DateTime(2026, 1, 1));
+    expect(wechselSchritte(handy, heute: DateTime(2026, 10, 28)).any((s) => s.contains('Rufnummer')), isTrue);
+  });
+
+  test('Probeabo und Rückgabefrist erscheinen als Fälligkeit', () {
+    final heute = DateTime(2026, 10, 28);
+    final v = Vertrag(id: 'p', anbieter: 'Streamingdienst', art: 'Streaming', beginn: DateTime(2026, 10, 1), laufzeitMonate: 0, probeBis: DateTime(2026, 11, 1));
+    final b = Beleg(id: 'b', haendler: 'Onlineshop', datum: DateTime(2026, 10, 20), garantieMonate: 0, rueckgabeBis: DateTime(2026, 11, 3));
+    final f = faelligkeiten(briefe: const [], vertraege: [v], belege: [b], termine: const [], heute: heute);
+    expect(f.any((x) => x.text.startsWith('Probezeit endet')), isTrue);
+    expect(f.any((x) => x.text.startsWith('Rückgabe noch möglich')), isTrue);
+    expect(Vertrag.fromJson(v.toJson()).probeBis, DateTime(2026, 11, 1));
+    expect(Beleg.fromJson(b.toJson()).rueckgabeBis, DateTime(2026, 11, 3));
+  });
 }
+

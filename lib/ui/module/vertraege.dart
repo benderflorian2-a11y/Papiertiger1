@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../vorlage_screen.dart';
 import '../widgets/brief_teile.dart';
 import '../widgets/common.dart';
+import 'vertrag_hilfen.dart';
 
 Vertrag? _finde(List<Vertrag> l, String id) {
   for (final v in l) {
@@ -318,6 +319,29 @@ class VertragDetail extends StatelessWidget {
               ],
             ),
           ),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (v.art == 'Versicherung' && !v.gekuendigt)
+              OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => SchadenScreen(vertrag: v))),
+                icon: const Icon(Icons.report_outlined, size: 18),
+                label: const Text('Schaden melden'),
+              ),
+            if (!v.gekuendigt)
+              OutlinedButton.icon(
+                onPressed: () =>
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => WechselScreen(vertrag: v))),
+                icon: const Icon(Icons.swap_horiz, size: 18),
+                label: const Text('Anbieter wechseln'),
+              ),
+            OutlinedButton.icon(
+              onPressed: () =>
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => TarifVergleichScreen(aktuell: v))),
+              icon: const Icon(Icons.compare_arrows, size: 18),
+              label: const Text('Tarife vergleichen'),
+            ),
+          ]),
+          const SizedBox(height: 10),
           if (!v.gekuendigt) ...[
             FilledButton.icon(
               onPressed: () => vorlage('Kündigung', kuendigungText(v, store.profil, zum: info.endetAm)),
@@ -455,6 +479,7 @@ class _VertragFormularState extends State<VertragFormular> {
   late int _fristWert = _start?.fristWert ?? 1;
   late bool _wochen = _start?.fristInWochen ?? false;
   late int _zahlweise = _start?.zahlweiseMonate ?? 1;
+  late DateTime? _probeBis = _start?.probeBis;
 
   @override
   void dispose() {
@@ -483,6 +508,7 @@ class _VertragFormularState extends State<VertragFormular> {
       ..fristInWochen = _wochen
       ..zahlweiseMonate = _zahlweise
       ..kostenMonat = betrag == null ? null : (betrag / _zahlweise * 100).round() / 100
+      ..probeBis = _probeBis
       ..nummer = _nummer.text.trim().isEmpty ? null : _nummer.text.trim()
       ..notiz = _notiz.text.trim();
     if (widget.briefId != null && !v.briefIds.contains(widget.briefId)) v.briefIds.add(widget.briefId!);
@@ -543,6 +569,20 @@ class _VertragFormularState extends State<VertragFormular> {
               onTap: () async {
                 final d = await datumWaehlen(context, start: _beginn);
                 if (d != null) setState(() => _beginn = d);
+              },
+            ),
+          ),
+          PTKarte(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: ListTile(
+              title: const Text('Probeabo / Testphase bis (optional)'),
+              subtitle: Text(_probeBis == null ? 'keine' : datumLang(_probeBis!)),
+              trailing: _probeBis == null
+                  ? const Icon(Icons.edit_calendar_outlined)
+                  : IconButton(icon: const Icon(Icons.clear), onPressed: () => setState(() => _probeBis = null)),
+              onTap: () async {
+                final d = await datumWaehlen(context, start: _probeBis ?? DateTime.now().add(const Duration(days: 30)));
+                if (d != null) setState(() => _probeBis = d);
               },
             ),
           ),

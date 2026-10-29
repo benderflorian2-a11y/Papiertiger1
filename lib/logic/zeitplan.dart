@@ -68,12 +68,20 @@ List<Faelligkeit> faelligkeiten({
           'Kündigungsbestätigung noch nicht da? Beim Anbieter nachhaken.', v.id));
     }
     if (v.gekuendigt) continue;
+    if (v.probeBis != null && !nurTag(v.probeBis!).isBefore(jetzt)) {
+      liste.add(Faelligkeit(FaelligArt.vertrag, v.probeBis!, v.anbieter,
+          'Probezeit endet – vorher kündigen, wenn du es nicht behalten willst', v.id));
+    }
     final info = kuendigungsInfo(v, heute: jetzt);
     if (info.kuendigenBis.difference(jetzt).inDays > 120) continue;
     liste.add(Faelligkeit(FaelligArt.vertrag, info.kuendigenBis, v.anbieter,
         'Kündigen bis ${_d(info.kuendigenBis)}, sonst läuft der Vertrag weiter', v.id));
   }
   for (final b in belege) {
+    if (b.rueckgabeBis != null && !nurTag(b.rueckgabeBis!).isBefore(jetzt)) {
+      liste.add(Faelligkeit(FaelligArt.garantie, b.rueckgabeBis!, b.haendler.isEmpty ? 'Kauf' : b.haendler,
+          'Rückgabe noch möglich bis zu diesem Tag', b.id));
+    }
     if (b.garantieMonate <= 0) continue;
     final tage = nurTag(b.garantieEnde).difference(jetzt).inDays;
     if (tage < 0 || tage > 60) continue;

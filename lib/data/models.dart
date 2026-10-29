@@ -283,7 +283,11 @@ class Vertrag {
     this.gekuendigtAm,
     this.bestaetigt = false,
     List<String>? briefIds,
+    this.probeBis,
   }) : briefIds = briefIds ?? [];
+
+  /// Ende einer kostenlosen Probe- oder Testphase.
+  DateTime? probeBis;
 
   final String id;
   String anbieter;
@@ -334,6 +338,7 @@ class Vertrag {
         'gekuendigtAm': gekuendigtAm?.toIso8601String(),
         'bestaetigt': bestaetigt,
         'briefIds': briefIds,
+        'probeBis': probeBis?.toIso8601String(),
       };
 
   factory Vertrag.fromJson(Map<String, dynamic> j) => Vertrag(
@@ -353,6 +358,7 @@ class Vertrag {
         gekuendigtAm: _datum(j['gekuendigtAm']),
         bestaetigt: j['bestaetigt'] == true,
         briefIds: (j['briefIds'] as List?)?.whereType<String>().toList() ?? [],
+        probeBis: _datum(j['probeBis']),
       );
 }
 
@@ -368,7 +374,11 @@ class Beleg {
     this.notiz = '',
     this.geschaeftlich = false,
     this.kategorie,
+    this.rueckgabeBis,
   });
+
+  /// Bis wann die Ware zurückgegeben werden kann (Rückgaberecht des Händlers oder Widerruf).
+  DateTime? rueckgabeBis;
 
   final String id;
 
@@ -399,6 +409,7 @@ class Beleg {
         'notiz': notiz,
         'geschaeftlich': geschaeftlich,
         'kategorie': kategorie,
+        'rueckgabeBis': rueckgabeBis?.toIso8601String(),
       };
 
   factory Beleg.fromJson(Map<String, dynamic> j) => Beleg(
@@ -412,6 +423,7 @@ class Beleg {
         notiz: j['notiz'] as String? ?? '',
         geschaeftlich: j['geschaeftlich'] == true,
         kategorie: j['kategorie'] as String?,
+        rueckgabeBis: _datum(j['rueckgabeBis']),
       );
 }
 

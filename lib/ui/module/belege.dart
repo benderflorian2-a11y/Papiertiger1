@@ -234,6 +234,7 @@ class _BelegFormularState extends State<BelegFormular> {
   late String? _steuer = widget.beleg.steuerKategorie;
   late bool _geschaeftlich = widget.beleg.geschaeftlich;
   late String _kategorie = belegKategorie(widget.beleg);
+  late DateTime? _rueckgabe = widget.beleg.rueckgabeBis;
 
   @override
   void dispose() {
@@ -253,6 +254,7 @@ class _BelegFormularState extends State<BelegFormular> {
       ..steuerKategorie = _steuer
       ..geschaeftlich = _geschaeftlich
       ..kategorie = _kategorie
+      ..rueckgabeBis = _rueckgabe
       ..notiz = _notiz.text.trim();
     await store.belegSpeichern(b);
     if (mounted) Navigator.of(context).pop();
@@ -310,6 +312,21 @@ class _BelegFormularState extends State<BelegFormular> {
           ),
           const SizedBox(height: 4),
           const Text('Gesetzliche Gewährleistung beim Händler: meist 2 Jahre.',
+              style: TextStyle(color: PT.grau, fontSize: 12)),
+          const SizedBox(height: 16),
+          const Text('Rückgabe möglich?', style: TextStyle(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, children: [
+            for (final t in const [0, 14, 30])
+              ChoiceChip(
+                label: Text(t == 0 ? 'Nein' : '$t Tage'),
+                selected: t == 0
+                    ? _rueckgabe == null
+                    : _rueckgabe != null && _rueckgabe!.difference(_datum).inDays == t,
+                onSelected: (_) => setState(() => _rueckgabe = t == 0 ? null : _datum.add(Duration(days: t))),
+              ),
+          ]),
+          const Text('Online-Käufe kannst du meist 14 Tage widerrufen. Im Laden gilt nur, was der Händler anbietet.',
               style: TextStyle(color: PT.grau, fontSize: 12)),
           const SizedBox(height: 16),
           const Text('Kategorie', style: TextStyle(fontWeight: FontWeight.w700)),

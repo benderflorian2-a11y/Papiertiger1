@@ -315,3 +315,88 @@ DateTime? widerrufBis(Vertrag v, {DateTime? heute}) {
   final ende = nurTag(v.beginn).add(const Duration(days: 14));
   return ende.isBefore(nurTag(heute ?? DateTime.now())) ? null : ende;
 }
+
+// ---------------------------------------------------------------- Tarifvergleich
+
+class Tarif {
+  Tarif({required this.name, required this.monat, this.einmalig = 0, this.bonus = 0, this.laufzeitMonate = 24});
+
+  final String name;
+  final double monat;
+
+  /// Anschluss- oder Bereitstellungsgebühr.
+  final double einmalig;
+
+  /// Neukundenbonus oder Gutschrift.
+  final double bonus;
+  final int laufzeitMonate;
+}
+
+class TarifErgebnis {
+  TarifErgebnis(this.tarif, this.gesamt, this.effektivMonat);
+
+  final Tarif tarif;
+  final double gesamt;
+  final double effektivMonat;
+}
+
+/// Vergleicht Tarife über denselben Zeitraum (inkl. einmaliger Kosten und Bonus). Günstigster zuerst.
+List<TarifErgebnis> tarifeVergleichen(List<Tarif> tarife, {int monate = 24}) {
+  final l = [
+    for (final t in tarife)
+      () {
+        final g = ((t.monat * monate + t.einmalig - t.bonus) * 100).round() / 100;
+        return TarifErgebnis(t, g, ((g / monate) * 100).round() / 100);
+      }(),
+  ]..sort((a, b) => a.gesamt.compareTo(b.gesamt));
+  return l;
+}
+
+// ---------------------------------------------------------------- Schadensmeldung
+
+const _schadenAllgemein = [
+  'Fotos vom Schaden (Übersicht und Nahaufnahmen)',
+  'Datum, Uhrzeit und Ort',
+  'Kurze Schilderung, was passiert ist',
+  'Kaufbelege oder Rechnungen der beschädigten Sachen',
+  'Kostenvoranschlag oder Reparaturrechnung',
+  'Deine Versicherungsnummer',
+];
+
+const _schadenJeArt = <String, List<String>>{
+  'Hausrat': ['Polizeiliche Anzeige und Aktenzeichen (bei Einbruch oder Diebstahl)', 'Stehlgutliste an Polizei und Versicherung', 'Inventarliste aus dem Papiertiger'],
+  'Privathaftpflicht': ['Name und Anschrift der geschädigten Person', 'Wie es zum Schaden kam (eigene Worte)', 'Zeugen, falls vorhanden', 'Kein Schuldanerkenntnis abgeben – das klärt die Versicherung'],
+  'Kfz': ['Europäischer Unfallbericht', 'Kennzeichen und Versicherung des Unfallgegners', 'Polizei-Aktenzeichen, falls die Polizei da war', 'Zeugen mit Kontaktdaten'],
+  'Wohngebäude': ['Ursache, z. B. Sturm, Rohrbruch, Feuer', 'Schaden begrenzen (Wasser abstellen) und dokumentieren', 'Handwerkerrechnung'],
+  'Rechtsschutz': ['Schreiben der Gegenseite', 'Kurze Darstellung des Streits', 'Wann der Streit begann'],
+  'Reise': ['Buchungsbestätigung', 'Ärztliches Attest oder Stornobestätigung', 'Belege über Zusatzkosten'],
+  'Unfall': ['Arztbericht', 'Unfallhergang', 'Krankenhaus- und Behandlungsbelege'],
+};
+
+/// Was für eine Schadensmeldung bereitliegen sollte.
+List<String> schadenUnterlagen(String? versicherungsArt) => [
+      ...?_schadenJeArt[versicherungsArt],
+      ..._schadenAllgemein,
+    ];
+
+// ---------------------------------------------------------------- Anbieterwechsel
+
+/// Schritte für einen Anbieterwechsel, passend zur Vertragsart.
+List<String> wechselSchritte(Vertrag v, {DateTime? heute}) {
+  final info = kuendigungsInfo(v, heute: heute);
+  String d(DateTime x) => '${x.day.toString().padLeft(2, '0')}.${x.month.toString().padLeft(2, '0')}.${x.year}';
+  return [
+    'Neue Angebote vergleichen (Tarifvergleich unten) – auf Gesamtkosten über 24 Monate achten, nicht nur auf den Monatspreis.',
+    if (v.art == 'Strom' || v.art == 'Gas')
+      'Beim neuen Anbieter abschließen: Er kündigt meist für dich beim alten. Zählernummer und Zählerstand bereithalten.'
+    else
+      'Kündigung beim alten Anbieter bis ${d(info.kuendigenBis)} – Vertrag endet am ${d(info.endetAm)}.',
+    'Neuen Vertrag ab ${d(info.endetAm.add(const Duration(days: 1)))} beginnen lassen, damit es keine Lücke und keine doppelten Kosten gibt.',
+    if (v.art == 'Handy') 'Rufnummer mitnehmen: Beim neuen Anbieter Rufnummernmitnahme beantragen (kostet höchstens ein paar Euro).',
+    if (v.art == 'Internet') 'Termin für die Umschaltung abstimmen, damit du nicht ohne Internet bist.',
+    if (v.art == 'Strom' || v.art == 'Gas') 'Am Wechseltag Zählerstand fotografieren und im Papiertiger eintragen.',
+    if (v.art == 'Versicherung') 'Neue Versicherung erst abschließen, dann alte kündigen – nie ohne Schutz sein.',
+    'Lastschrift oder Dauerauftrag beim alten Anbieter nach der letzten Rechnung beenden.',
+    'Kündigungsbestätigung und Schlussrechnung aufheben.',
+  ];
+}
