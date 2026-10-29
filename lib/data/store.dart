@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/ordnung.dart';
+import 'alltag.dart';
 import 'geschaeft.dart';
 import 'haushalt.dart';
 import 'models.dart';
@@ -39,6 +40,7 @@ class AppStore extends ChangeNotifier {
   // Haushalt
   List<Zaehler> zaehler = [];
   List<Gegenstand> inventar = [];
+  Alltag alltag = Alltag();
 
   /// Zuschaltbare Bereichsgruppen: 'selbststaendig', 'haushalt'.
   bool bereichAktiv(String gruppe) => checklisten['bereich:$gruppe'] == true;
@@ -69,6 +71,12 @@ class AppStore extends ChangeNotifier {
     projekte = _liste('projekte').map(Projekt.fromJson).toList();
     zaehler = _liste('zaehler').map(Zaehler.fromJson).toList();
     sparziele = _liste('sparziele').map(Sparziel.fromJson).toList();
+    final a = _prefs.getString('alltag');
+    if (a != null) {
+      try {
+        alltag = Alltag.fromJson(jsonDecode(a) as Map<String, dynamic>);
+      } catch (_) {}
+    }
     inventar = _liste('inventar').map(Gegenstand.fromJson).toList();
     final f = _prefs.getString('firma');
     if (f != null) {
@@ -127,6 +135,7 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('projekte', jsonEncode(projekte.map((p) => p.toJson()).toList()));
     await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
     await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
+    await _prefs.setString('alltag', jsonEncode(alltag.toJson()));
     await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
     await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
@@ -273,6 +282,7 @@ class AppStore extends ChangeNotifier {
     zaehler = [];
     inventar = [];
     sparziele = [];
+    alltag = Alltag();
     onboardingFertig = false;
     await _prefs.clear();
     notifyListeners();

@@ -22,6 +22,7 @@ class KiTextScreen extends StatefulWidget {
     this.alsBrief = false,
     this.hinweis,
     this.brief,
+    this.uebernehmen,
   });
 
   final String titel;
@@ -33,6 +34,9 @@ class KiTextScreen extends StatefulWidget {
 
   /// Brief, auf den geantwortet wird.
   final Brief? brief;
+
+  /// Optional: Ergebnis in die App übernehmen (Beschriftung, Aktion).
+  final (String, void Function(String text))? uebernehmen;
 
   @override
   State<KiTextScreen> createState() => _KiTextScreenState();
@@ -159,7 +163,16 @@ class _KiTextScreenState extends State<KiTextScreen> {
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: FilledButton.icon(
+                      child: widget.uebernehmen != null
+                          ? FilledButton.icon(
+                              onPressed: () {
+                                widget.uebernehmen!.$2(_ergebnis);
+                                Navigator.of(context).pop();
+                              },
+                              icon: const Icon(Icons.download_done),
+                              label: Text(widget.uebernehmen!.$1),
+                            )
+                          : FilledButton.icon(
                         onPressed: () {
                           if (widget.alsBrief) {
                             Navigator.of(context).push(MaterialPageRoute(

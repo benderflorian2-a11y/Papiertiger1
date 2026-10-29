@@ -5,12 +5,15 @@ import 'package:flutter/material.dart';
 import '../../data/haushalt.dart';
 import '../../data/models.dart';
 import '../../logic/export.dart';
+import '../../logic/alltag.dart';
 import '../../logic/haushalt.dart';
 import '../../logic/texterkennung.dart';
 import '../app.dart';
 import '../termine.dart';
 import '../theme.dart';
+import '../finanzen.dart';
 import '../widgets/common.dart';
+import 'alltag.dart';
 
 double? _zahl(String s) => double.tryParse(s.replaceAll('.', '').replaceAll(',', '.').replaceAll('€', '').trim());
 String _feld(double? v) => v == null ? '' : v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2).replaceAll('.', ',');
@@ -30,6 +33,10 @@ class HaushaltScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final notfall = [for (var i = 0; i < notfallDokumente.length; i++) if (store.checklisten['notfall:$i'] == true) i].length;
+    final heute = DateTime.now();
+    final offenEinkauf = store.alltag.einkauf.where((e) => !e.erledigt).length;
+    final bald = laeuftBaldAb(store.alltag.vorraete, heute: heute).length;
+    final faellig = store.alltag.hausaufgaben.where((a) => hausaufgabeFaellig(a, heute: heute)).length;
     void oeffne(Widget w) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
     Widget kachel(IconData icon, String titel, String text, Widget ziel) => PTKarte(
           onTap: () => oeffne(ziel),
@@ -50,6 +57,20 @@ class HaushaltScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
+          const Abschnitt('Alltag'),
+          kachel(Icons.shopping_cart_outlined, 'Einkaufsliste',
+              offenEinkauf == 0 ? 'Nach Abteilungen sortiert, auch aus Rezepten' : '$offenEinkauf Artikel offen',
+              const EinkaufScreen()),
+          kachel(Icons.kitchen_outlined, 'Vorräte',
+              bald == 0 ? 'Haltbarkeit im Blick, Rezepte aus Resten' : '$bald laufen bald ab', const VorraeteScreen()),
+          kachel(Icons.restaurant_menu, 'Essensplan', 'Woche planen, Zutaten auf die Einkaufsliste', const EssensplanScreen()),
+          kachel(Icons.cleaning_services_outlined, 'Aufgaben im Haushalt',
+              faellig == 0 ? 'Wer ist dran? Putzplan, Müll, Wäsche' : '$faellig fällig', const HausaufgabenScreen()),
+          kachel(Icons.card_giftcard, 'Geschenke & Anschaffungen', 'Ideen, Geburtstage, geplante Käufe', const GeschenkeScreen()),
+          kachel(Icons.luggage_outlined, 'Reisen', 'Packliste, Unterlagen, Reiseplan', const ReisenScreen()),
+          kachel(Icons.savings_outlined, 'Haushaltsbudget', 'Ausgaben nach Kategorie, Budgets, Sparziele', const FinanzenScreen()),
+          kachel(Icons.key_outlined, 'Wohnungsübergabe', 'Checkliste für Auszug und Einzug', const WohnungsuebergabeScreen()),
+          const Abschnitt('Wohnung'),
           kachel(Icons.speed_outlined, 'Zählerstände',
               store.zaehler.isEmpty ? 'Strom, Gas, Wasser – Nachzahlung früh erkennen' : '${store.zaehler.length} Zähler',
               const ZaehlerScreen()),
