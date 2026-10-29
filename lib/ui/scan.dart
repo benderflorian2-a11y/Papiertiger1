@@ -63,10 +63,42 @@ class _ScanScreenState extends State<ScanScreen> {
       if (pfad != null && mounted) setState(() => _seiten.add(pfad));
     } catch (e) {
       if (mounted) {
-        zeigeHinweis(context,
-            kamera ? 'Die Kamera konnte nicht geöffnet werden.' : 'Das Bild konnte nicht geladen werden.');
+        _fehler(kamera ? 'Die Kamera konnte nicht geöffnet werden.' : 'Das Bild konnte nicht geladen werden.', e);
       }
     }
+  }
+
+  /// Zeigt einen Fehler mit technischen Details, damit man ihn melden kann.
+  void _fehler(String text, Object e) {
+    showDialog<void>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Das hat nicht geklappt'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(text),
+              const SizedBox(height: 12),
+              const Text('Technische Details:', style: TextStyle(fontWeight: FontWeight.w700)),
+              SelectableText('$e', style: const TextStyle(fontSize: 12, color: PT.grau)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(d);
+              Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const TextEinfuegenScreen()));
+            },
+            child: const Text('Text einfügen'),
+          ),
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('OK')),
+        ],
+      ),
+    );
   }
 
   Future<void> _auswerten() async {
@@ -84,7 +116,7 @@ class _ScanScreenState extends State<ScanScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _liest = false);
-      zeigeHinweis(context, 'Beim Lesen ist ein Fehler passiert. Bitte versuche es noch einmal.');
+      _fehler('Beim Lesen des Briefs ist ein Fehler passiert.', e);
     }
   }
 
