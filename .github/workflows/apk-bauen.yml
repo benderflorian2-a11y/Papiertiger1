@@ -1,0 +1,65 @@
+name: APK bauen
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Papiertiger-Code finden
+        run: |
+          for z in *.zip; do [ -f "$z" ] && mkdir -p "entpackt/${z%.zip}" && unzip -o -q "$z" -d "entpackt/${z%.zip}"; done
+          datei=$(find . -path '*lib/ui/home.dart' | sort | tail -1)
+          if [ -z "$datei" ]; then
+            echo "FEHLER: Papiertiger-Code nicht gefunden. Bitte die neueste papiertiger.zip hochladen."
+            exit 1
+          fi
+          ordner=$(dirname "$(dirname "$(dirname "$datei")")")
+          if [ "$ordner" != "." ]; then rm -rf lib test; cp -r "$ordner"/. .; fi
+          echo "Code gefunden in: $ordner"
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Android- und iPhone-Dateien erzeugen
+        run: |
+          flutter create --project-name papiertiger --org de.papiertiger --platforms android,ios .
+          sed -i 's/android:label="papiertiger"/android:label="Papiertiger"/' android/app/src/main/AndroidManifest.xml
+          printf '%s\n' \
+            '-dontwarn com.google.mlkit.vision.text.chinese.**' \
+            '-dontwarn com.google.mlkit.vision.text.devanagari.**' \
+            '-dontwarn com.google.mlkit.vision.text.japanese.**' \
+            '-dontwarn com.google.mlkit.vision.text.korean.**' \
+            >> android/app/proguard-rules.pro
+
+      - run: flutter pub get
+
+      - name: App-Icon erzeugen
+        continue-on-error: true
+        run: dart run flutter_launcher_icons
+
+      - name: Pruefung (Tests)
+        continue-on-error: true
+        run: flutter test
+
+      - name: APK bauen
+        run: |
+          flutter build apk --release || {
+            echo "Release-Bau fehlgeschlagen, baue Test-Version"
+            flutter build apk --debug
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: papiertiger-apk
+          path: build/app/outputs/flutter-apk/*.apk

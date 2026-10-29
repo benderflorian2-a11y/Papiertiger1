@@ -1,0 +1,89 @@
+/// Antwort-Vorlagen. Allgemeine Musterschreiben, keine Rechtsberatung.
+library;
+
+import '../data/models.dart';
+import 'brief_analyse.dart';
+
+class Vorlage {
+  const Vorlage(this.key, this.titel, this.beschreibung);
+
+  final String key;
+  final String titel;
+  final String beschreibung;
+}
+
+const briefVorlagen = [
+  Vorlage('frist', 'Fristverlängerung', 'Mehr Zeit erbitten'),
+  Vorlage('unterlagen', 'Unterlagen nachreichen', 'Angeforderte Unterlagen schicken'),
+  Vorlage('rueckfrage', 'Rückfrage', 'Etwas ist unklar'),
+  Vorlage('raten', 'Ratenzahlung', 'Betrag in Raten zahlen'),
+];
+
+String _heute() {
+  final d = DateTime.now();
+  return '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+}
+
+String _datum(DateTime d) =>
+    '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
+
+String _kopf(Profil p, String empfaenger, String betreff) {
+  final name = p.name.isEmpty ? '[Dein Name]' : p.name;
+  final adresse = p.adresse.isEmpty ? '[Deine Adresse]' : p.adresse;
+  return '$name\n$adresse\n\n$empfaenger\n\n${_heute()}\n\n$betreff\n\nSehr geehrte Damen und Herren,\n\n';
+}
+
+String _fuss(Profil p) {
+  final name = p.name.isEmpty ? '[Dein Name]' : p.name;
+  return '\n\nMit freundlichen Grüßen\n\n$name';
+}
+
+String vorlageText(String key, Brief b, Profil p) {
+  final empfaenger = b.absenderName ?? kategorieFuer(b.kategorie).name;
+  final az = b.aktenzeichen ?? 'Aktenzeichen: [bitte eintragen]';
+  final vom = b.briefDatum != null ? ' vom ${_datum(b.briefDatum!)}' : '';
+  final frist = b.frist != null ? ' bis zum ${_datum(b.frist!)}' : '';
+
+  switch (key) {
+    case 'frist':
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Bitte um Fristverlängerung')}'
+          'vielen Dank für Ihr Schreiben$vom. Sie haben mir eine Frist$frist gesetzt. '
+          'Leider kann ich diese Frist nicht einhalten, weil [Grund, z. B. mir noch Unterlagen fehlen].\n\n'
+          'Ich bitte Sie daher, die Frist bis zum [neues Datum] zu verlängern. '
+          'Bitte bestätigen Sie mir die Verlängerung kurz schriftlich.'
+          '${_fuss(p)}';
+    case 'unterlagen':
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Nachreichung von Unterlagen')}'
+          'bezugnehmend auf Ihr Schreiben$vom übersende ich Ihnen die angeforderten Unterlagen:\n\n'
+          '- [Unterlage 1]\n- [Unterlage 2]\n\n'
+          'Sollten noch Unterlagen fehlen, geben Sie mir bitte kurz Bescheid.'
+          '${_fuss(p)}';
+    case 'rueckfrage':
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Rückfrage zu Ihrem Schreiben')}'
+          'vielen Dank für Ihr Schreiben$vom. Mir ist folgender Punkt nicht klar:\n\n'
+          '[Deine Frage]\n\n'
+          'Ich bitte Sie um eine kurze Erläuterung. '
+          'Bis zur Klärung bitte ich Sie, keine weiteren Schritte einzuleiten.'
+          '${_fuss(p)}';
+    case 'raten':
+      final betrag = b.betrag != null
+          ? 'den Betrag von ${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €'
+          : 'den geforderten Betrag';
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Antrag auf Ratenzahlung')}'
+          'vielen Dank für Ihr Schreiben$vom. Ich kann $betrag derzeit leider nicht auf einmal bezahlen.\n\n'
+          'Ich biete Ihnen an, den Betrag in monatlichen Raten von [Betrag] € zu bezahlen, '
+          'beginnend am [Datum]. Bitte bestätigen Sie mir die Ratenzahlung schriftlich.'
+          '${_fuss(p)}';
+  }
+  return '';
+}
+
+String kuendigungText(Vertrag v, Profil p, {DateTime? zum}) {
+  final datum = zum != null ? 'zum ${_datum(zum)}' : 'zum nächstmöglichen Zeitpunkt';
+  return '${_kopf(p, v.anbieter, 'Betreff: Kündigung meines Vertrags (${v.art})')}'
+      'hiermit kündige ich meinen Vertrag [Kunden- oder Vertragsnummer] fristgerecht $datum, '
+      'hilfsweise zum nächstmöglichen Zeitpunkt.\n\n'
+      'Bitte bestätigen Sie mir die Kündigung und das Vertragsende schriftlich. '
+      'Einer Verlängerung oder Rückwerbung per Telefon oder E-Mail widerspreche ich.'
+      '${_fuss(p)}';
+}

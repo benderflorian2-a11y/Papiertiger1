@@ -1,0 +1,235 @@
+/// Datenmodelle der App. Alles wird als JSON auf dem Handy gespeichert.
+library;
+
+DateTime? _datum(Object? v) => v is String ? DateTime.tryParse(v) : null;
+double? _zahl(Object? v) => v is num ? v.toDouble() : null;
+String neueId() => DateTime.now().microsecondsSinceEpoch.toString();
+
+class Aufgabe {
+  Aufgabe(this.text, {this.erledigt = false});
+
+  String text;
+  bool erledigt;
+
+  Map<String, dynamic> toJson() => {'text': text, 'erledigt': erledigt};
+
+  factory Aufgabe.fromJson(Map<String, dynamic> j) =>
+      Aufgabe(j['text'] as String? ?? '', erledigt: j['erledigt'] == true);
+}
+
+class Brief {
+  Brief({
+    required this.id,
+    required this.erstellt,
+    required this.kategorie,
+    required this.typ,
+    required this.text,
+    required this.erklaerung,
+    this.absenderName,
+    this.bilder = const [],
+    this.frist,
+    this.fristUnsicher = false,
+    this.betrag,
+    this.guthaben = false,
+    this.aktenzeichen,
+    this.briefDatum,
+    List<Aufgabe>? aufgaben,
+    this.erledigt = false,
+    this.steuerKategorie,
+  }) : aufgaben = aufgaben ?? [];
+
+  final String id;
+  final DateTime erstellt;
+  String kategorie;
+  String typ;
+  String? absenderName;
+  String text;
+  String erklaerung;
+  List<String> bilder;
+  DateTime? frist;
+  bool fristUnsicher;
+  double? betrag;
+  bool guthaben;
+  String? aktenzeichen;
+  DateTime? briefDatum;
+  List<Aufgabe> aufgaben;
+  bool erledigt;
+  String? steuerKategorie;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'erstellt': erstellt.toIso8601String(),
+        'kategorie': kategorie,
+        'typ': typ,
+        'absenderName': absenderName,
+        'text': text,
+        'erklaerung': erklaerung,
+        'bilder': bilder,
+        'frist': frist?.toIso8601String(),
+        'fristUnsicher': fristUnsicher,
+        'betrag': betrag,
+        'guthaben': guthaben,
+        'aktenzeichen': aktenzeichen,
+        'briefDatum': briefDatum?.toIso8601String(),
+        'aufgaben': aufgaben.map((a) => a.toJson()).toList(),
+        'erledigt': erledigt,
+        'steuerKategorie': steuerKategorie,
+      };
+
+  factory Brief.fromJson(Map<String, dynamic> j) => Brief(
+        id: j['id'] as String,
+        erstellt: _datum(j['erstellt']) ?? DateTime.now(),
+        kategorie: j['kategorie'] as String? ?? 'sonstiges',
+        typ: j['typ'] as String? ?? 'schreiben',
+        absenderName: j['absenderName'] as String?,
+        text: j['text'] as String? ?? '',
+        erklaerung: j['erklaerung'] as String? ?? '',
+        bilder: (j['bilder'] as List?)?.whereType<String>().toList() ?? [],
+        frist: _datum(j['frist']),
+        fristUnsicher: j['fristUnsicher'] == true,
+        betrag: _zahl(j['betrag']),
+        guthaben: j['guthaben'] == true,
+        aktenzeichen: j['aktenzeichen'] as String?,
+        briefDatum: _datum(j['briefDatum']),
+        aufgaben: (j['aufgaben'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(Aufgabe.fromJson)
+                .toList() ??
+            [],
+        erledigt: j['erledigt'] == true,
+        steuerKategorie: j['steuerKategorie'] as String?,
+      );
+}
+
+class Vertrag {
+  Vertrag({
+    required this.id,
+    required this.anbieter,
+    required this.art,
+    required this.beginn,
+    this.laufzeitMonate = 24,
+    this.fristWert = 1,
+    this.fristInWochen = false,
+    this.kostenMonat,
+    this.gekuendigt = false,
+  });
+
+  final String id;
+  String anbieter;
+  String art;
+  DateTime beginn;
+  int laufzeitMonate;
+  int fristWert;
+  bool fristInWochen;
+  double? kostenMonat;
+  bool gekuendigt;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'anbieter': anbieter,
+        'art': art,
+        'beginn': beginn.toIso8601String(),
+        'laufzeitMonate': laufzeitMonate,
+        'fristWert': fristWert,
+        'fristInWochen': fristInWochen,
+        'kostenMonat': kostenMonat,
+        'gekuendigt': gekuendigt,
+      };
+
+  factory Vertrag.fromJson(Map<String, dynamic> j) => Vertrag(
+        id: j['id'] as String,
+        anbieter: j['anbieter'] as String? ?? '',
+        art: j['art'] as String? ?? 'Sonstiges',
+        beginn: _datum(j['beginn']) ?? DateTime.now(),
+        laufzeitMonate: (j['laufzeitMonate'] as num?)?.toInt() ?? 24,
+        fristWert: (j['fristWert'] as num?)?.toInt() ?? 1,
+        fristInWochen: j['fristInWochen'] == true,
+        kostenMonat: _zahl(j['kostenMonat']),
+        gekuendigt: j['gekuendigt'] == true,
+      );
+}
+
+class Beleg {
+  Beleg({
+    required this.id,
+    required this.haendler,
+    required this.datum,
+    this.betrag,
+    this.garantieMonate = 24,
+    this.bild,
+    this.steuerKategorie,
+    this.notiz = '',
+  });
+
+  final String id;
+  String haendler;
+  DateTime datum;
+  double? betrag;
+  int garantieMonate;
+  String? bild;
+  String? steuerKategorie;
+  String notiz;
+
+  DateTime get garantieEnde => DateTime(
+      datum.year, datum.month + garantieMonate, datum.day);
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'haendler': haendler,
+        'datum': datum.toIso8601String(),
+        'betrag': betrag,
+        'garantieMonate': garantieMonate,
+        'bild': bild,
+        'steuerKategorie': steuerKategorie,
+        'notiz': notiz,
+      };
+
+  factory Beleg.fromJson(Map<String, dynamic> j) => Beleg(
+        id: j['id'] as String,
+        haendler: j['haendler'] as String? ?? '',
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        betrag: _zahl(j['betrag']),
+        garantieMonate: (j['garantieMonate'] as num?)?.toInt() ?? 24,
+        bild: j['bild'] as String?,
+        steuerKategorie: j['steuerKategorie'] as String?,
+        notiz: j['notiz'] as String? ?? '',
+      );
+}
+
+class Profil {
+  Profil({this.name = '', this.adresse = ''});
+
+  String name;
+  String adresse;
+
+  Map<String, dynamic> toJson() => {'name': name, 'adresse': adresse};
+
+  factory Profil.fromJson(Map<String, dynamic> j) => Profil(
+        name: j['name'] as String? ?? '',
+        adresse: j['adresse'] as String? ?? '',
+      );
+}
+
+const steuerKategorien = [
+  'Arbeitsmittel',
+  'Fahrtkosten',
+  'Fortbildung',
+  'Handwerkerleistungen',
+  'Haushaltsnahe Dienstleistungen',
+  'Krankheitskosten',
+  'Spenden',
+  'Versicherungen',
+  'Sonstiges',
+];
+
+const vertragsArten = [
+  'Handy',
+  'Internet',
+  'Strom',
+  'Gas',
+  'Fitnessstudio',
+  'Streaming',
+  'Versicherung',
+  'Zeitschrift',
+  'Sonstiges',
+];
