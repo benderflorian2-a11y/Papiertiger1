@@ -32,7 +32,12 @@ ZU TUN:
 - <Was musst du tun? Wenn nichts zu tun ist, schreibe genau: - Nichts>
 GELD: <ZAHLEN Betrag | BEKOMMEN Betrag | KEINS>
 FRIST: <TT.MM.JJJJ | KEINE>
+DRINGLICHKEIT: <HOCH | MITTEL | NIEDRIG>
+UNTERLAGEN:
+- <Unterlagen oder Nachweise, die der Absender verlangt. Wenn keine verlangt werden, schreibe genau: - Keine>
+FÜR: <Name der Person, an die der Brief gerichtet ist, oder UNBEKANNT>
 
+Zu DRINGLICHKEIT: HOCH bei Mahnung, Inkasso, Gericht, drohenden Kosten oder einer Frist in den nächsten 7 Tagen. MITTEL, wenn etwas zu tun oder zu zahlen ist. NIEDRIG bei reinen Informationen.
 Zu GELD: Schreibe ZAHLEN nur, wenn der Leser wirklich Geld überweisen oder bezahlen soll. Schreibe BEKOMMEN, wenn er Geld erhält, zum Beispiel eine Erstattung, ein Guthaben, eine Rente oder eine Leistung. Beträge, die nur informieren, zum Beispiel eine voraussichtliche spätere Rente, ein Kontostand oder ein Jahreseinkommen, sind KEINS.
 Zu FRIST: Nur ein Datum, bis zu dem der Leser etwas tun muss. Kein Briefdatum und kein Zeitraum.
 
@@ -56,6 +61,9 @@ class KiErgebnis {
     this.betrag,
     this.frist,
     this.keineFrist = false,
+    this.dringlichkeit,
+    this.unterlagen = const [],
+    this.fuer,
   });
 
   final String? absender;
@@ -68,6 +76,11 @@ class KiErgebnis {
   final DateTime? frist;
   final bool keineFrist;
 
+  /// 0 niedrig, 1 mittel, 2 hoch.
+  final int? dringlichkeit;
+  final List<String> unterlagen;
+  final String? fuer;
+
   bool get brauchbar => kurzfassung.length >= 20;
 }
 
@@ -78,8 +91,9 @@ String _sauber(String s) => s
     .trim();
 
 final _kopf = RegExp(
-    r'^(absender|art|kurzfassung|bedeutung|zu tun|geld|frist)\s*:\s*(.*)$',
-    caseSensitive: false);
+    r'^(absender|art|kurzfassung|bedeutung|zu tun|geld|frist|dringlichkeit|unterlagen|für|fuer)\s*:\s*(.*)$',
+    caseSensitive: false,
+    unicode: true);
 
 /// Liest die Antwort der KI. Ist robust gegen Markdown und kleine Formatfehler.
 KiErgebnis kiAntwortLesen(String antwort) {
@@ -91,6 +105,7 @@ KiErgebnis kiAntwortLesen(String antwort) {
     final m = _kopf.firstMatch(zeile);
     if (m != null) {
       aktuell = m.group(1)!.toLowerCase();
+      if (aktuell == 'fuer') aktuell = 'für';
       felder[aktuell] = [];
       final rest = m.group(2)!.trim();
       if (rest.isNotEmpty) felder[aktuell]!.add(rest);
@@ -145,7 +160,24 @@ KiErgebnis kiAntwortLesen(String antwort) {
     }
   }
 
+  int? dringlichkeit;
+  final dr = eins('dringlichkeit')?.toLowerCase();
+  if (dr != null) {
+    if (dr.startsWith('hoch')) {
+      dringlichkeit = 2;
+    } else if (dr.startsWith('mittel')) {
+      dringlichkeit = 1;
+    } else if (dr.startsWith('niedrig')) {
+      dringlichkeit = 0;
+    }
+  }
+  var fuer = eins('für');
+  if (fuer != null && (fuer.toLowerCase().startsWith('unbekannt') || fuer.length > 60)) fuer = null;
+
   return KiErgebnis(
+    dringlichkeit: dringlichkeit,
+    unterlagen: punkte('unterlagen'),
+    fuer: fuer,
     absender: eins('absender'),
     art: eins('art'),
     kurzfassung: eins('kurzfassung') ?? '',
@@ -230,5 +262,11 @@ void kiUebernehmen(Brief b, KiErgebnis k) {
   }
   if (k.zuTun.isEmpty && erledigt.isEmpty) neu.add(Aufgabe('Brief aufbewahren'));
   b.aufgaben = neu;
+
+  if (k.dringlichkeit != null) b.kiDringlichkeit = k.dringlichkeit;
+  if (k.fuer != null) b.person = k.fuer;
+  for (final u in k.unterlagen) {
+    if (!b.unterlagen.any((x) => x.text.toLowerCase() == u.toLowerCase())) b.unterlagen.add(Aufgabe(u));
+  }
   b.kiFertig = true;
 }

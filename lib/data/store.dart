@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../logic/ordnung.dart';
 import 'models.dart';
 
 /// Hält alle Daten der App und speichert sie auf dem Handy.
@@ -86,13 +87,17 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> briefHinzufuegen(Brief b) {
+    b.duplikatVon = duplikatFinden(b, briefe)?.id;
     briefe.add(b);
     return _speichern();
   }
 
   Future<void> briefLoeschen(Brief b) {
     briefe.removeWhere((x) => x.id == b.id);
-    _dateienLoeschen(b.bilder);
+    for (final x in briefe) {
+      if (x.duplikatVon == b.id) x.duplikatVon = null;
+    }
+    _dateienLoeschen([...b.bilder, if (b.pdfPfad != null) b.pdfPfad!]);
     return _speichern();
   }
 
@@ -125,7 +130,7 @@ class AppStore extends ChangeNotifier {
   /// Löscht alle Daten und Bilder der App.
   Future<void> allesLoeschen() async {
     for (final b in briefe) {
-      _dateienLoeschen(b.bilder);
+      _dateienLoeschen([...b.bilder, if (b.pdfPfad != null) b.pdfPfad!]);
     }
     for (final b in belege) {
       if (b.bild != null) _dateienLoeschen([b.bild!]);

@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../data/models.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/ordnung.dart';
+import 'akten.dart';
 import 'app.dart';
 import 'brief_detail.dart';
 import 'theme.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
+
+enum _Ansicht { ordner, vorgaenge, alle }
 
 class ArchivScreen extends StatefulWidget {
   const ArchivScreen({super.key});
@@ -16,21 +21,25 @@ class ArchivScreen extends StatefulWidget {
 
 class _ArchivScreenState extends State<ArchivScreen> {
   String _suche = '';
-  String? _kategorie;
+  _Ansicht _ansicht = _Ansicht.ordner;
+
+  void _oeffne(Widget seite) =>
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => seite));
 
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final vorhanden = <String>{for (final b in store.briefe) b.kategorie}.toList();
-    final q = _suche.toLowerCase();
-    final liste = store.briefe.where((b) {
-      if (_kategorie != null && b.kategorie != _kategorie) return false;
+    final q = _suche.toLowerCase().trim();
+    final suchtreffer = store.briefe.where((b) {
       if (q.isEmpty) return true;
       return b.text.toLowerCase().contains(q) ||
+          titelVon(b).toLowerCase().contains(q) ||
           (b.absenderName ?? '').toLowerCase().contains(q) ||
           kategorieFuer(b.kategorie).name.toLowerCase().contains(q) ||
-          (b.aktenzeichen ?? '').toLowerCase().contains(q);
+          (b.aktenzeichen ?? '').toLowerCase().contains(q) ||
+          (b.person ?? '').toLowerCase().contains(q);
     }).toList();
+    final ansicht = q.isNotEmpty ? _Ansicht.alle : _ansicht;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Archiv')),
@@ -38,63 +47,119 @@ class _ArchivScreenState extends State<ArchivScreen> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           TextField(
-            decoration: feld(
-              prefixIcon: const Icon(Icons.search),
-              hintText: 'Briefe durchsuchen',
-            ),
+            decoration: feld(prefixIcon: const Icon(Icons.search), hintText: 'Alle Dokumente durchsuchen'),
             onChanged: (v) => setState(() => _suche = v),
           ),
-          if (vorhanden.length > 1) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 40,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: const Text('Alle'),
-                      selected: _kategorie == null,
-                      onSelected: (_) => setState(() => _kategorie = null),
-                    ),
-                  ),
-                  for (final k in vorhanden)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        label: Text(kategorieFuer(k).name),
-                        selected: _kategorie == k,
-                        onSelected: (_) => setState(() => _kategorie = k),
-                      ),
-                    ),
-                ],
-              ),
+          const SizedBox(height: 12),
+          if (q.isEmpty)
+            SegmentedButton<_Ansicht>(
+              segments: const [
+                ButtonSegment(value: _Ansicht.ordner, label: Text('Ordner'), icon: Icon(Icons.folder_outlined)),
+                ButtonSegment(value: _Ansicht.vorgaenge, label: Text('Vorgänge'), icon: Icon(Icons.layers_outlined)),
+                ButtonSegment(value: _Ansicht.alle, label: Text('Alle'), icon: Icon(Icons.list)),
+              ],
+              selected: {_ansicht},
+              showSelectedIcon: false,
+              onSelectionChanged: (s) => setState(() => _ansicht = s.first),
             ),
-          ],
           const SizedBox(height: 12),
           if (store.briefe.isEmpty)
             const LeerHinweis(
                 icon: Icons.inventory_2_outlined,
-                text: 'Hier landen alle Briefe, die du scannst.')
-          else if (liste.isEmpty)
-            const LeerHinweis(icon: Icons.search_off, text: 'Nichts gefunden.')
+                text: 'Hier landen alle Dokumente, die du scannst oder als PDF importierst.')
           else
-            for (final b in liste)
-              BriefZeile(
-                brief: b,
-                onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => BriefDetail(briefId: b.id))),
-              ),
-          if (liste.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text('${liste.length} ${liste.length == 1 ? 'Brief' : 'Briefe'}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: PT.grau, fontSize: 13)),
-            ),
+            ...switch (ansicht) {
+              _Ansicht.ordner => _ordner(store.briefe),
+              _Ansicht.vorgaenge => _vorgaenge(store.briefe),
+              _Ansicht.alle => _alle(suchtreffer),
+            },
         ],
       ),
     );
   }
+
+  List<Widget> _ordner(List<Brief> briefe) {
+    final anzahl = <String, int>{};
+    final dringend = <String, int>{};
+    for (final b in briefe) {
+      final k = ordnerFuer(b).key;
+      anzahl[k] = (anzahl[k] ?? 0) + 1;
+      if (dringlichkeit(b) == Dringlichkeit.hoch) dringend[k] = (dringend[k] ?? 0) + 1;
+    }
+    return [
+      for (final o in alleOrdner)
+        if ((anzahl[o.key] ?? 0) > 0)
+          PTKarte(
+            padding: const EdgeInsets.all(14),
+            onTap: () => _oeffne(OrdnerScreen(ordnerKey: o.key)),
+            child: Row(
+              children: [
+                IconKachel(ordnerIcon(o.key)),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(o.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                ),
+                if ((dringend[o.key] ?? 0) > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Etikett('${dringend[o.key]} dringend', farbe: PT.rot, hintergrund: PT.rotHell),
+                  ),
+                Text('${anzahl[o.key]}', style: const TextStyle(color: PT.grau, fontWeight: FontWeight.w700)),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
+    ];
+  }
+
+  List<Widget> _vorgaenge(List<Brief> briefe) {
+    final akten = aktenBilden(briefe);
+    return [
+      for (final a in akten)
+        PTKarte(
+          padding: const EdgeInsets.all(14),
+          onTap: a.briefe.length == 1
+              ? () => _oeffne(BriefDetail(briefId: a.neuester.id))
+              : () => _oeffne(AkteScreen(schluessel: a.schluessel)),
+          child: Row(
+            children: [
+              IconKachel(a.briefe.length > 1 ? Icons.layers_outlined : kategorieIcon(a.neuester.kategorie)),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(a.titel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    Text(
+                      '${a.briefe.length} ${a.briefe.length == 1 ? 'Dokument' : 'Dokumente'} · '
+                      'zuletzt ${datumKurz(a.neuester.briefDatum ?? a.neuester.erstellt)}',
+                      style: const TextStyle(color: PT.grau, fontSize: 13),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: PT.grau),
+            ],
+          ),
+        ),
+    ];
+  }
+
+  List<Widget> _alle(List<Brief> treffer) {
+    if (treffer.isEmpty) {
+      return const [LeerHinweis(icon: Icons.search_off, text: 'Nichts gefunden.')];
+    }
+    return [
+      for (final b in treffer) BriefZeile(brief: b, onTap: () => _oeffne(BriefDetail(briefId: b.id))),
+      Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text('${treffer.length} ${treffer.length == 1 ? 'Dokument' : 'Dokumente'}',
+            textAlign: TextAlign.center, style: const TextStyle(color: PT.grau, fontSize: 13)),
+      ),
+    ];
+  }
+
 }

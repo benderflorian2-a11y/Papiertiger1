@@ -17,6 +17,9 @@ class Ki {
   static const groesse = '2,6 GB';
 
   static bool _gestartet = false;
+
+  /// In automatischen Tests gibt es keine KI.
+  static bool deaktiviert = false;
   static Future<void>? _start;
   static InferenceModel? _modell;
   static bool? _cpuGeladen;
@@ -39,6 +42,7 @@ class Ki {
   }
 
   static Future<bool> istInstalliert() async {
+    if (deaktiviert) return false;
     try {
       await starten();
       return await FlutterEdgeAi.isModelInstalled(modellDatei);
@@ -56,6 +60,7 @@ class Ki {
 
   /// Zeigt einmal an, dass nach einem Absturz auf den Prozessor gewechselt wurde.
   static Future<bool> absturzHinweisAbholen() async {
+    if (deaktiviert) return false;
     final p = await _prefs;
     final da = p.getBool('kiAbsturzHinweis') ?? false;
     if (da) await p.setBool('kiAbsturzHinweis', false);

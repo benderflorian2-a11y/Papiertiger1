@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
-import '../../logic/brief_analyse.dart';
+import '../../logic/ordnung.dart';
 import '../theme.dart';
 import 'common.dart';
 
@@ -42,6 +42,22 @@ IconData kategorieIcon(String key) {
   return Icons.mail_outline;
 }
 
+/// Etikett für die Dringlichkeit eines Briefs.
+class DringlichkeitEtikett extends StatelessWidget {
+  const DringlichkeitEtikett(this.stufe, {super.key});
+
+  final Dringlichkeit stufe;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (stufe) {
+      Dringlichkeit.hoch => const Etikett('Dringend', farbe: PT.rot, hintergrund: PT.rotHell),
+      Dringlichkeit.mittel => const Etikett('Zu erledigen', farbe: PT.gelb, hintergrund: PT.gelbHell),
+      Dringlichkeit.niedrig => const Etikett('Info', farbe: PT.gruen, hintergrund: PT.gruenHell),
+    };
+  }
+}
+
 /// Zeile für einen Brief in Listen.
 class BriefZeile extends StatelessWidget {
   const BriefZeile({super.key, required this.brief, required this.onTap});
@@ -51,38 +67,42 @@ class BriefZeile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final k = kategorieFuer(brief.kategorie);
-    final t = typFuer(brief.typ);
+    final stufe = dringlichkeit(brief);
     return PTKarte(
       onTap: onTap,
       padding: const EdgeInsets.all(14),
       child: Row(
         children: [
-          IconKachel(kategorieIcon(brief.kategorie)),
+          IconKachel(kategorieIcon(brief.kategorie),
+              farbe: stufe == Dringlichkeit.hoch ? PT.rotHell : PT.orangeHell,
+              iconFarbe: stufe == Dringlichkeit.hoch ? PT.rot : PT.orangeDunkel),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  brief.absenderName ?? k.name,
-                  maxLines: 1,
+                  titelVon(brief),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 15, color: PT.tinte),
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: PT.tinte),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${t.name} · ${datumKurz(brief.briefDatum ?? brief.erstellt)}',
+                  '${datumKurz(brief.briefDatum ?? brief.erstellt)} · ${ordnerFuer(brief).name}'
+                  '${brief.pdfPfad != null ? ' · PDF' : ''}',
                   style: const TextStyle(color: PT.grau, fontSize: 13),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           if (brief.erledigt)
             const Etikett('Erledigt', farbe: PT.gruen, hintergrund: PT.gruenHell)
           else if (brief.frist != null)
-            FristEtikett(brief.frist!),
+            FristEtikett(brief.frist!)
+          else
+            DringlichkeitEtikett(stufe),
         ],
       ),
     );

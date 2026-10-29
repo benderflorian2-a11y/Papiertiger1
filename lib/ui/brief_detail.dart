@@ -5,7 +5,9 @@ import 'package:flutter/services.dart';
 
 import '../data/models.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/ordnung.dart';
 import '../logic/vorlagen.dart';
+import 'akten.dart';
 import 'app.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
@@ -37,13 +39,27 @@ class BriefDetail extends StatelessWidget {
         body: const LeerHinweis(icon: Icons.mail_outline, text: 'Dieser Brief wurde gelöscht.'),
       );
     }
-    final k = kategorieFuer(b.kategorie);
     final t = typFuer(b.typ);
+    final duplikat = b.duplikatVon == null ? null : _finde(store.briefe, b.duplikatVon!);
+    final akte = aktenBilden(store.briefe).firstWhere((a) => a.briefe.any((x) => x.id == b.id));
+    final ablage = aufbewahrung(b);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(k.name),
+        title: Text(ordnerFuer(b).name),
         actions: [
+          IconButton(
+            tooltip: 'Umbenennen',
+            icon: const Icon(Icons.drive_file_rename_outline),
+            onPressed: () async {
+              final neuerTitel = await _textAbfragen(context, 'Titel ändern',
+                  start: titelVon(b), knopf: 'Speichern');
+              if (neuerTitel != null) {
+                b.titel = neuerTitel.trim().isEmpty ? null : neuerTitel.trim();
+                await store.geaendert();
+              }
+            },
+          ),
           IconButton(
             tooltip: 'Löschen',
             icon: const Icon(Icons.delete_outline),
@@ -93,6 +109,48 @@ class BriefDetail extends StatelessWidget {
               ),
             ),
 
+          if (duplikat != null)
+            PTKarte(
+              farbe: PT.gelbHell,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.copy_all_outlined, color: PT.gelb),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text('Diesen Brief hast du vermutlich schon gespeichert.',
+                            style: TextStyle(fontWeight: FontWeight.w700)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(spacing: 8, children: [
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => BriefDetail(briefId: duplikat.id))),
+                      child: const Text('Original ansehen'),
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        await store.briefLoeschen(b);
+                      },
+                      child: const Text('Duplikat löschen'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        b.duplikatVon = null;
+                        store.geaendert();
+                      },
+                      child: const Text('Behalten'),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+
           // Kopf
           PTKarte(
             child: Row(
@@ -103,16 +161,24 @@ class BriefDetail extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(b.absenderName ?? k.name,
+                      Text(titelVon(b),
                           style: const TextStyle(
                               fontSize: 17, fontWeight: FontWeight.w800, color: PT.tinte)),
+                      if (b.person != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text('An: ${b.person}',
+                              style: const TextStyle(color: PT.grau, fontSize: 13)),
+                        ),
                       const SizedBox(height: 6),
                       Wrap(spacing: 6, runSpacing: 6, children: [
-                        Etikett(b.kiArt ?? t.name, farbe: PT.orangeDunkel, hintergrund: PT.orangeHell),
                         if (b.erledigt)
                           const Etikett('Erledigt', farbe: PT.gruen, hintergrund: PT.gruenHell)
-                        else if (b.frist != null)
-                          FristEtikett(b.frist!),
+                        else ...[
+                          DringlichkeitEtikett(dringlichkeit(b)),
+                          if (b.frist != null) FristEtikett(b.frist!),
+                        ],
+                        Etikett(b.kiArt ?? t.name, farbe: PT.orangeDunkel, hintergrund: PT.orangeHell),
                       ]),
                     ],
                   ),
@@ -248,6 +314,30 @@ class BriefDetail extends StatelessWidget {
             ),
           ),
 
+          if (b.unterlagen.isNotEmpty) ...[
+            Abschnitt('Diese Unterlagen werden verlangt '
+                '(${b.unterlagen.where((u) => u.erledigt).length}/${b.unterlagen.length})'),
+            PTKarte(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  for (final u in b.unterlagen)
+                    CheckboxListTile(
+                      value: u.erledigt,
+                      controlAffinity: ListTileControlAffinity.leading,
+                      title: Text(u.text,
+                          style: TextStyle(
+                              decoration: u.erledigt ? TextDecoration.lineThrough : null)),
+                      onChanged: (v) {
+                        u.erledigt = v ?? false;
+                        store.geaendert();
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ],
+
           const Abschnitt('Deine Aufgaben'),
           PTKarte(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -327,6 +417,41 @@ class BriefDetail extends StatelessWidget {
             ],
           ),
 
+          const Abschnitt('Ablage'),
+          PTKarte(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.folder_outlined, color: PT.orangeDunkel),
+                  title: const Text('Ordner'),
+                  subtitle: Text(ordnerFuer(b).name),
+                ),
+                if (akte.briefe.length > 1)
+                  ListTile(
+                    leading: const Icon(Icons.layers_outlined, color: PT.orangeDunkel),
+                    title: const Text('Vorgang'),
+                    subtitle: Text('${akte.titel} · ${akte.briefe.length} Dokumente'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => AkteScreen(schluessel: akte.schluessel))),
+                  ),
+                ListTile(
+                  leading: const Icon(Icons.inventory_outlined, color: PT.orangeDunkel),
+                  title: Text(ablage.bis == null
+                      ? 'Aufbewahren: dauerhaft bzw. nach Bedarf'
+                      : 'Aufbewahren bis mindestens ${datumKurz(ablage.bis!)}'),
+                  subtitle: Text('${ablage.text} (Empfehlung, ohne Gewähr)'),
+                ),
+                if (b.pdfPfad != null)
+                  const ListTile(
+                    leading: Icon(Icons.picture_as_pdf_outlined, color: PT.orangeDunkel),
+                    title: Text('Original-PDF ist gespeichert'),
+                  ),
+              ],
+            ),
+          ),
+
           const Abschnitt('Für die Steuer'),
           PTKarte(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -397,8 +522,9 @@ class BriefDetail extends StatelessWidget {
   }
 }
 
-Future<String?> _textAbfragen(BuildContext context, String titel) {
-  final c = TextEditingController();
+Future<String?> _textAbfragen(BuildContext context, String titel,
+    {String start = '', String knopf = 'Hinzufügen'}) {
+  final c = TextEditingController(text: start);
   return showDialog<String>(
     context: context,
     builder: (d) => AlertDialog(
@@ -406,7 +532,7 @@ Future<String?> _textAbfragen(BuildContext context, String titel) {
       content: TextField(controller: c, autofocus: true),
       actions: [
         TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
-        TextButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('Hinzufügen')),
+        TextButton(onPressed: () => Navigator.pop(d, c.text), child: Text(knopf)),
       ],
     ),
   );

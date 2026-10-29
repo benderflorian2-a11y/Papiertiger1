@@ -44,7 +44,14 @@ class Brief {
     List<String>? bedeutung,
     this.kiFertig = false,
     this.kiArt,
-  })  : aufgaben = aufgaben ?? [],
+    this.titel,
+    this.pdfPfad,
+    this.duplikatVon,
+    this.kiDringlichkeit,
+    this.person,
+    List<Aufgabe>? unterlagen,
+  })  : unterlagen = unterlagen ?? [],
+        aufgaben = aufgaben ?? [],
         fakten = fakten ?? [],
         bedeutung = bedeutung ?? [];
 
@@ -78,6 +85,24 @@ class Brief {
   /// Art des Briefs laut KI, z. B. „Renteninformation“.
   String? kiArt;
 
+  /// Eigener Titel; null = automatischer Titel.
+  String? titel;
+
+  /// Original-PDF, falls als PDF importiert.
+  String? pdfPfad;
+
+  /// Id des Briefs, von dem dieser vermutlich ein Duplikat ist.
+  String? duplikatVon;
+
+  /// Dringlichkeit laut KI: 0 niedrig, 1 mittel, 2 hoch.
+  int? kiDringlichkeit;
+
+  /// An wen der Brief gerichtet ist.
+  String? person;
+
+  /// Unterlagen, die der Absender verlangt (abhakbar).
+  List<Aufgabe> unterlagen;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -100,6 +125,12 @@ class Brief {
         'bedeutung': bedeutung,
         'kiFertig': kiFertig,
         'kiArt': kiArt,
+        'titel': titel,
+        'pdfPfad': pdfPfad,
+        'duplikatVon': duplikatVon,
+        'kiDringlichkeit': kiDringlichkeit,
+        'person': person,
+        'unterlagen': unterlagen.map((a) => a.toJson()).toList(),
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -132,6 +163,16 @@ class Brief {
         bedeutung: (j['bedeutung'] as List?)?.whereType<String>().toList() ?? [],
         kiFertig: j['kiFertig'] == true,
         kiArt: j['kiArt'] as String?,
+        titel: j['titel'] as String?,
+        pdfPfad: j['pdfPfad'] as String?,
+        duplikatVon: j['duplikatVon'] as String?,
+        kiDringlichkeit: (j['kiDringlichkeit'] as num?)?.toInt(),
+        person: j['person'] as String?,
+        unterlagen: (j['unterlagen'] as List?)
+                ?.whereType<Map<String, dynamic>>()
+                .map(Aufgabe.fromJson)
+                .toList() ??
+            [],
       );
 }
 

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../data/models.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/ordnung.dart';
+import '../logic/pdf_import.dart';
 import '../logic/texterkennung.dart';
 import 'app.dart';
 import 'brief_detail.dart';
@@ -12,7 +14,8 @@ import 'widgets/common.dart';
 import 'widgets/tiger.dart';
 
 /// Erstellt aus erkanntem Text einen gespeicherten Brief und öffnet ihn.
-Future<void> briefAnlegen(BuildContext context, String text, List<String> bilder) async {
+Future<void> briefAnlegen(BuildContext context, String text, List<String> bilder,
+    {String? pdfPfad}) async {
   final store = StoreScope.of(context);
   final a = analysiereBrief(text);
   final brief = Brief(
@@ -33,6 +36,8 @@ Future<void> briefAnlegen(BuildContext context, String text, List<String> bilder
     aufgaben: a.aufgaben.map(Aufgabe.new).toList(),
     fakten: a.fakten,
     bedeutung: a.bedeutung,
+    pdfPfad: pdfPfad,
+    unterlagen: unterlagenFinden(text).map(Aufgabe.new).toList(),
   );
   await store.briefHinzufuegen(brief);
   if (!context.mounted) return;
@@ -273,6 +278,79 @@ class _TextEinfuegenScreenState extends State<TextEinfuegenScreen> {
             icon: const Icon(Icons.auto_awesome_outlined),
             label: const Text('Brief auswerten'),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Wählt ein PDF, liest es und legt den Brief an.
+class PdfImportScreen extends StatefulWidget {
+  const PdfImportScreen({super.key});
+
+  @override
+  State<PdfImportScreen> createState() => _PdfImportScreenState();
+}
+
+class _PdfImportScreenState extends State<PdfImportScreen> {
+  String _stand = 'PDF auswählen …';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _los());
+  }
+
+  Future<void> _los() async {
+    try {
+      final pfad = await PdfImport.waehlen();
+      if (!mounted) return;
+      if (pfad == null) {
+        Navigator.of(context).pop();
+        return;
+      }
+      setState(() => _stand = 'Der Tiger liest das PDF …');
+      final ergebnis = await PdfImport.lesen(pfad, fortschritt: (s, von) {
+        if (mounted) setState(() => _stand = 'Der Tiger liest Seite $s von $von …');
+      });
+      if (!mounted) return;
+      if (ergebnis.text.trim().length < 20) {
+        zeigeHinweis(context, 'In diesem PDF konnte der Tiger keinen Text finden.');
+        Navigator.of(context).pop();
+        return;
+      }
+      if (ergebnis.seiten > PdfImport.maxSeiten) {
+        zeigeHinweis(context,
+            'Das PDF hat ${ergebnis.seiten} Seiten. Der Tiger hat die ersten ${PdfImport.maxSeiten} gelesen.');
+      }
+      await briefAnlegen(context, ergebnis.text, ergebnis.bilder, pdfPfad: ergebnis.pdfPfad);
+    } catch (e) {
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: const Text('Das PDF konnte nicht gelesen werden'),
+          content: SelectableText('$e', style: const TextStyle(fontSize: 12, color: PT.grau)),
+          actions: [TextButton(onPressed: () => Navigator.pop(d), child: const Text('OK'))],
+        ),
+      );
+      if (mounted) Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Tiger(size: 120),
+            const SizedBox(height: 24),
+            Text(_stand, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            const SizedBox(width: 180, child: LinearProgressIndicator()),
+          ],
         ),
       ),
     );

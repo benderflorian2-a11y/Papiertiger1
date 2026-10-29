@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../logic/ordnung.dart';
 import 'app.dart';
+import 'brief_detail.dart';
 import 'fristen.dart';
 import 'module/module_liste.dart';
 import 'scan.dart';
 import 'theme.dart';
+import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
 import 'widgets/tiger.dart';
 
@@ -18,6 +21,8 @@ class HomeScreen extends StatelessWidget {
     final store = StoreScope.of(context);
     final fristen = alleFristen(store);
     final offen = store.briefe.where((b) => !b.erledigt).length;
+    final dringend =
+        store.briefe.where((b) => dringlichkeit(b) == Dringlichkeit.hoch).toList();
     final name = store.profil.name.split(' ').first;
 
     void oeffne(Widget seite) =>
@@ -78,22 +83,22 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
-                      child: TextButton.icon(
-                        style: TextButton.styleFrom(foregroundColor: PT.tinte),
-                        onPressed: () => oeffne(const ScanScreen(mitKamera: false)),
-                        icon: const Icon(Icons.photo_library_outlined),
-                        label: const Text('Galerie'),
-                      ),
+                    _Quelle(
+                      icon: Icons.photo_library_outlined,
+                      text: 'Galerie',
+                      onTap: () => oeffne(const ScanScreen(mitKamera: false)),
                     ),
-                    Expanded(
-                      child: TextButton.icon(
-                        key: const ValueKey('text-einfuegen-start'),
-                        style: TextButton.styleFrom(foregroundColor: PT.tinte),
-                        onPressed: () => oeffne(const TextEinfuegenScreen()),
-                        icon: const Icon(Icons.content_paste),
-                        label: const Text('Text einfügen'),
-                      ),
+                    _Quelle(
+                      key: const ValueKey('pdf-import-start'),
+                      icon: Icons.picture_as_pdf_outlined,
+                      text: 'PDF',
+                      onTap: () => oeffne(const PdfImportScreen()),
+                    ),
+                    _Quelle(
+                      key: const ValueKey('text-einfuegen-start'),
+                      icon: Icons.content_paste,
+                      text: 'Text',
+                      onTap: () => oeffne(const TextEinfuegenScreen()),
                     ),
                   ],
                 ),
@@ -121,6 +126,15 @@ class HomeScreen extends StatelessWidget {
             )
           else
             for (final f in fristen.take(3)) FristZeile(f),
+
+          if (dringend.isNotEmpty) ...[
+            const Abschnitt('Dringend'),
+            for (final b in dringend.take(3))
+              BriefZeile(
+                brief: b,
+                onTap: () => oeffne(BriefDetail(briefId: b.id)),
+              ),
+          ],
 
           Row(
             children: [
@@ -150,6 +164,34 @@ class HomeScreen extends StatelessWidget {
           const Abschnitt('Alle Module'),
           const ModulRaster(),
         ],
+      ),
+    );
+  }
+}
+
+class _Quelle extends StatelessWidget {
+  const _Quelle({super.key, required this.icon, required this.text, required this.onTap});
+
+  final IconData icon;
+  final String text;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              Icon(icon, color: PT.tinte),
+              const SizedBox(height: 4),
+              Text(text, style: const TextStyle(color: PT.tinte, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
       ),
     );
   }

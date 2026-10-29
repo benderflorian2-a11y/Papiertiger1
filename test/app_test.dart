@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:papiertiger/data/store.dart';
+import 'package:papiertiger/logic/ki.dart';
 import 'package:papiertiger/ui/app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -11,6 +12,7 @@ Future<AppStore> _neuerStore({bool onboardingFertig = false}) async {
 }
 
 void main() {
+  Ki.deaktiviert = true;
   testWidgets('Onboarding führt zum Startbildschirm', (tester) async {
     final store = await _neuerStore();
     await tester.pumpWidget(PapiertigerApp(store: store));
