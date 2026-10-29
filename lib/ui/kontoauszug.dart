@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
+import '../logic/rechnungen.dart';
 import '../logic/kontoauszug.dart';
 import '../logic/ordnung.dart';
 import 'app.dart';
@@ -17,9 +18,12 @@ class KontoauszugScreen extends StatefulWidget {
   State<KontoauszugScreen> createState() => _KontoauszugScreenState();
 }
 
-class _KontoauszugScreenState extends State<KontoauszugScreen> {
+/// Auswahl der Quelle: Kontoauszüge aus dem Archiv und/oder eingefügter Text.
+mixin _AuszugQuelle<T extends StatefulWidget> on State<T> {
   final Set<String> _gewaehlt = {};
   String _eingefuegt = '';
+
+  bool get _hatQuelle => _gewaehlt.isNotEmpty || _eingefuegt.isNotEmpty;
 
   String _text(List<Brief> briefe) =>
       [for (final b in briefe) if (_gewaehlt.contains(b.id)) b.text, _eingefuegt].join('\n');
@@ -34,7 +38,7 @@ class _KontoauszugScreenState extends State<KontoauszugScreen> {
           controller: c,
           minLines: 8,
           maxLines: 14,
-          decoration: feld(hintText: 'Aus dem Online-Banking kopieren: Datum, Empfänger, Betrag je Zeile'),
+          decoration: feld(hintText: 'Aus dem Online-Banking kopieren: Datum, Name, Betrag je Zeile'),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
@@ -46,12 +50,39 @@ class _KontoauszugScreenState extends State<KontoauszugScreen> {
     c.dispose();
   }
 
+  List<Widget> _quelleAuswahl(List<Brief> briefe) {
+    final auszuege = briefe
+        .where((b) => RegExp(r'kontoauszug|umsätze|umsatzliste|kontostand', caseSensitive: false)
+            .hasMatch('${b.titel ?? ''} ${b.kiArt ?? ''} ${b.text.length > 600 ? b.text.substring(0, 600) : b.text}'))
+        .toList();
+    return [
+      const Abschnitt('Kontoauszüge'),
+      if (auszuege.isEmpty)
+        const Text(
+            'Im Archiv ist noch kein Kontoauszug. Importiere das PDF über „Datei importieren“ '
+            'oder teile es aus der Banking-App mit dem Papiertiger.',
+            style: TextStyle(fontSize: 13)),
+      for (final b in auszuege)
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _gewaehlt.contains(b.id),
+          title: Text(titelVon(b)),
+          subtitle: Text(datumKurz(b.briefDatum ?? b.erstellt)),
+          onChanged: (v) => setState(() => v == true ? _gewaehlt.add(b.id) : _gewaehlt.remove(b.id)),
+        ),
+      TextButton.icon(
+        onPressed: _einfuegen,
+        icon: const Icon(Icons.content_paste),
+        label: Text(_eingefuegt.isEmpty ? 'Umsätze einfügen' : 'Eingefügte Umsätze bearbeiten'),
+      ),
+    ];
+  }
+}
+
+class _KontoauszugScreenState extends State<KontoauszugScreen> with _AuszugQuelle<KontoauszugScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final auszuege = store.briefe
-        .where((b) => RegExp(r'kontoauszug|umsätze|umsatzliste|kontostand', caseSensitive: false).hasMatch('${b.titel ?? ''} ${b.kiArt ?? ''} ${b.text.length > 600 ? b.text.substring(0, 600) : b.text}'))
-        .toList();
     final buchungen = abbuchungenLesen(_text(store.briefe));
     final wieder = wiederkehrendeAbbuchungen(buchungen, vertraege: store.vertraege);
     final doppelt = doppelteAbbuchungen(buchungen);
@@ -66,25 +97,8 @@ class _KontoauszugScreenState extends State<KontoauszugScreen> {
             'Online-Banking ein. Der Tiger liest nur – er hat keinen Zugang zu deinem Konto.',
             style: TextStyle(color: PT.grau),
           ),
-          const Abschnitt('Kontoauszüge'),
-          if (auszuege.isEmpty)
-            const Text('Im Archiv ist noch kein Kontoauszug. Importiere das PDF über „Datei importieren“ '
-                'oder teile es aus der Banking-App mit dem Papiertiger.',
-                style: TextStyle(fontSize: 13)),
-          for (final b in auszuege)
-            CheckboxListTile(
-              contentPadding: EdgeInsets.zero,
-              value: _gewaehlt.contains(b.id),
-              title: Text(titelVon(b)),
-              subtitle: Text(datumKurz(b.briefDatum ?? b.erstellt)),
-              onChanged: (v) => setState(() => v == true ? _gewaehlt.add(b.id) : _gewaehlt.remove(b.id)),
-            ),
-          TextButton.icon(
-            onPressed: _einfuegen,
-            icon: const Icon(Icons.content_paste),
-            label: Text(_eingefuegt.isEmpty ? 'Umsätze einfügen' : 'Eingefügte Umsätze bearbeiten'),
-          ),
-          if (_gewaehlt.isNotEmpty || _eingefuegt.isNotEmpty) ...[
+          ..._quelleAuswahl(store.briefe),
+          if (_hatQuelle) ...[
             Text('${buchungen.length} Abbuchungen gelesen', style: const TextStyle(color: PT.grau, fontSize: 13)),
             if (doppelt.isNotEmpty) ...[
               const Abschnitt('Vielleicht doppelt abgebucht'),
@@ -131,6 +145,62 @@ class _KontoauszugScreenState extends State<KontoauszugScreen> {
                       )),
                       child: const Text('Als Vertrag'),
                     ),
+                ]),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+
+/// Zahlungseingänge aus dem Kontoauszug offenen Rechnungen zuordnen. Du bestätigst jede Zuordnung.
+class ZahlungseingaengeScreen extends StatefulWidget {
+  const ZahlungseingaengeScreen({super.key});
+
+  @override
+  State<ZahlungseingaengeScreen> createState() => _ZahlungseingaengeScreenState();
+}
+
+class _ZahlungseingaengeScreenState extends State<ZahlungseingaengeScreen> with _AuszugQuelle<ZahlungseingaengeScreen> {
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final eingaenge = gutschriftenLesen(_text(store.briefe));
+    final treffer = zahlungenZuordnen(store.rechnungen, eingaenge, kleinunternehmer: store.firma.kleinunternehmer);
+    final offen = store.rechnungen.where(istOffen).length;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Zahlungseingänge zuordnen')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        children: [
+          Text('$offen offene Rechnungen. Der Tiger sucht im Kontoauszug nach der Rechnungsnummer oder dem genauen Betrag. '
+              'Du bestätigst jede Zahlung selbst.',
+              style: const TextStyle(color: PT.grau)),
+          ..._quelleAuswahl(store.briefe),
+          if (_hatQuelle) ...[
+            Text('${eingaenge.length} Zahlungseingänge gelesen', style: const TextStyle(color: PT.grau, fontSize: 13)),
+            Abschnitt(treffer.isEmpty ? 'Keine passenden Zahlungen' : 'Passt zusammen'),
+            for (final (r, g, grund) in treffer)
+              PTKarte(
+                padding: const EdgeInsets.all(12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Rechnung ${r.nummer} · ${store.kundeMitId(r.kundeId)?.name ?? ''}',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text('${euro(g.betrag)} am ${datumKurz(g.datum)} von ${g.von} – $grund',
+                      style: const TextStyle(color: PT.grau, fontSize: 13)),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.tonal(
+                      onPressed: () {
+                        r.bezahltAm = g.datum;
+                        store.geaendert();
+                        zeigeHinweis(context, 'Rechnung ${r.nummer} als bezahlt vermerkt');
+                      },
+                      child: const Text('Als bezahlt vermerken'),
+                    ),
+                  ),
                 ]),
               ),
           ],

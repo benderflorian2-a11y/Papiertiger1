@@ -1,10 +1,10 @@
 # Papiertiger – Checkliste Gesamtkonzept
 
-Stand: 29.10.2026, Version test-19
+Stand: 29.10.2026, Version 1.19 (test-30)
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 200 Punkte – ✅ 178 fertig, 🟡 17 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11 und folgende noch nicht erfasst)
+**Gesamt: 200 Punkte – ✅ 179 fertig, 🟡 16 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11 und folgende noch nicht erfasst)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
 ✅ 23 · 🟡 1 · ❌ 0 · 🔒 0
@@ -143,14 +143,14 @@ Stand: 29.10.2026, Version test-19
 - ✅ Info, Plausibilitätsprüfung und Beratung klar trennen
 
 ## 7. Steuern und Buchhaltung
-✅ 19 · 🟡 2 · ❌ 0 · 🔒 1
+✅ 20 · 🟡 1 · ❌ 0 · 🔒 1
 
 - ✅ Kassenbons und Rechnungen erfassen
 - ✅ Betriebsausgaben kategorisieren
 - ✅ Geschäftliche und private Belege unterscheiden
 - ✅ Eingangs- und Ausgangsrechnungen verwalten
 - ✅ Offene Forderungen anzeigen
-- 🟡 Zahlungseingänge Belegen zuordnen
+- ✅ Zahlungseingänge Belegen zuordnen
 - ✅ Umsatzübersichten erstellen
 - ✅ Belege für den Steuerberater exportieren
 - ✅ Fehlende Belege und Buchungsinformationen markieren

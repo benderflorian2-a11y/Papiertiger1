@@ -13,6 +13,7 @@ import '../vorlage_screen.dart';
 import '../widgets/common.dart';
 import 'marketing.dart';
 import 'projekte.dart';
+import '../kontoauszug.dart';
 
 Rechnung? _rechnung(List<Rechnung> l, String id) {
   for (final r in l) {
@@ -122,6 +123,10 @@ class GeschaeftScreen extends StatelessWidget {
                 avatar: const Icon(Icons.people_outline, size: 18),
                 label: const Text('Kunden'),
                 onPressed: () => oeffne(const KundenScreen())),
+            ActionChip(
+                avatar: const Icon(Icons.price_check, size: 18),
+                label: const Text('Zahlungseingänge'),
+                onPressed: () => oeffne(const ZahlungseingaengeScreen())),
             ActionChip(
                 avatar: const Icon(Icons.bar_chart, size: 18),
                 label: const Text('Einnahmen & Ausgaben'),

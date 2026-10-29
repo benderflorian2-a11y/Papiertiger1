@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:papiertiger/data/geschaeft.dart';
 import 'package:papiertiger/data/models.dart';
 import 'package:papiertiger/logic/behoerden.dart';
 import 'package:papiertiger/logic/ki_anfragen.dart';
@@ -87,5 +88,27 @@ void main() {
       if (c.frist.isNotEmpty && c.key != 'auto') expect(c.quelle, isNotEmpty, reason: c.key);
     }
     expect(behoerdenChecklisten.firstWhere((c) => c.key == 'ummelden').quelle, contains('Bundesmeldegesetz'));
+  });
+
+  test('Zahlungseingänge werden offenen Rechnungen zugeordnet', () {
+    const auszug = '''
+Alter Kontostand 01.10.2026 1.000,00
+05.10.2026 05.10.2026 Gutschrift Familie Meier 238,00
+RE 2026-007 Bad
+06.10.2026 06.10.2026 Gutschrift Hans Huber 59,50
+07.10.2026 07.10.2026 Lastschrift VODAFONE -39,99
+''';
+    final g = gutschriftenLesen(auszug);
+    expect(g.map((x) => x.betrag), [238.0, 59.5]);
+    Rechnung r(String id, String nr, double preis) => Rechnung(
+        id: id, art: 'rechnung', nummer: nr, kundeId: 'k', datum: DateTime(2026, 10, 1),
+        positionen: [Position(text: 'Arbeit', preis: preis)]);
+    final rechnungen = [r('a', '2026-007', 200), r('b', '2026-008', 50), r('c', '2026-009', 70)..bezahltAm = DateTime(2026, 10, 2)];
+    final t = zahlungenZuordnen(rechnungen, g, kleinunternehmer: false);
+    expect(t.length, 2);
+    expect(t[0].$1.id, 'a');
+    expect(t[0].$3, contains('Rechnungsnummer'));
+    expect(t[1].$1.id, 'b'); // 50 + 19 % = 59,50
+    expect(t[1].$2.von, contains('Huber'));
   });
 }
