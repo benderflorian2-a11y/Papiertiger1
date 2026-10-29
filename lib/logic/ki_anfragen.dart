@@ -56,6 +56,30 @@ ${_kuerzen(b.text, 5000)}
 ''';
 }
 
+/// Aus einem Diktat (gesprochen, ungeordnet) einen fertigen Brief oder eine E-Mail machen.
+String diktatAnfrage(String diktat, Profil p, {String art = 'Brief', String ton = 'sachlich und freundlich'}) {
+  final absender = p.name.isEmpty ? '[Dein Name]' : p.name;
+  final adresse = p.adresse.isEmpty ? '[Deine Adresse]' : p.adresse;
+  final brief = art == 'Brief';
+  return '''
+Mach aus dem gesprochenen Text unten ${brief ? 'einen fertigen Brief' : 'eine fertige E-Mail'} auf Deutsch.
+Der Text wurde diktiert: Er kann Füllwörter, Wiederholungen und Erkennungsfehler enthalten. Übernimm nur, was gemeint ist.
+
+Ton: $ton
+Absender: $absender, $adresse
+
+Regeln:
+${brief ? '- Aufbau, jeder Teil durch eine Leerzeile getrennt: Absender (Name und Adresse), Empfänger (Name und Adresse), Ort und Datum, eine Zeile „Betreff: …“, Anrede, Text, Grußformel und Name.' : '- Aufbau: eine Zeile „Betreff: …“, Anrede, Text, Grußformel und Name.'}
+- Erfinde keine Fakten, Beträge oder Daten. Wo Angaben fehlen (z. B. Empfänger, Aktenzeichen), setze [eckige Klammern].
+- Keine Erklärung vor oder nach dem Text.
+
+Diktat:
+"""
+${_kuerzen(diktat, 5000)}
+"""
+''';
+}
+
 String vergleichAnfrage(Brief alt, Brief neu) => '''
 Vergleiche die beiden Dokumente unten und erkläre die Unterschiede in einfachen, kurzen Sätzen auf Deutsch. Sprich den Leser mit „du“ an.
 

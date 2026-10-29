@@ -66,7 +66,7 @@ Rechnung rechnungAusProjekt(Projekt p, List<Rechnung> alle,
 }
 
 String _d(DateTime d) => '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
-String _h(double h) => h.toStringAsFixed(h == h.roundToDouble() ? 0 : 2).replaceAll('.', ',');
+String _h(double h) => h.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '').replaceAll('.', ',');
 
 /// Wochenbericht bzw. Tätigkeitsnachweis über alle Projekte im Zeitraum.
 String taetigkeitsnachweis(List<Projekt> projekte, Map<String, String> kundenNamen,

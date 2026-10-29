@@ -104,3 +104,125 @@ Rechtsbehelf? rechtsbehelfFinden(String text, {DateTime? briefDatum, DateTime? z
   }
   return null;
 }
+
+// ---------------------------------------------------------------- Checklisten für Behördengänge
+
+class BehoerdenCheckliste {
+  const BehoerdenCheckliste(this.key, this.titel, this.kurz,
+      {required this.frist, required this.unterlagen, required this.schritte, this.quelle = ''});
+
+  final String key;
+  final String titel;
+  final String kurz;
+
+  /// Frist in Worten; leer, wenn es keine feste gibt.
+  final String frist;
+
+  /// Gesetz bzw. Fundstelle der Frist.
+  final String quelle;
+  final List<String> unterlagen;
+  final List<String> schritte;
+
+  List<String> get punkte => [...unterlagen, ...schritte];
+}
+
+/// Allgemeine Checklisten. Anforderungen und Gebühren unterscheiden sich je nach Stadt –
+/// die App zeigt deshalb immer den Hinweis, sie bei der zuständigen Behörde zu prüfen.
+const behoerdenChecklisten = [
+  BehoerdenCheckliste('ummelden', 'Wohnsitz anmelden oder ummelden', 'Nach einem Umzug innerhalb Deutschlands',
+      frist: 'Innerhalb von zwei Wochen nach dem Einzug',
+      quelle: '§ 17 Abs. 1 Bundesmeldegesetz',
+      unterlagen: [
+        'Personalausweis oder Reisepass (für alle Personen, die umziehen)',
+        'Wohnungsgeberbestätigung vom Vermieter (§ 19 Bundesmeldegesetz)',
+        'Ausgefülltes Anmeldeformular (oft online vorab möglich)',
+        'Bei Kindern: Geburtsurkunde, bei getrennten Eltern ggf. Zustimmung des anderen Elternteils',
+      ],
+      schritte: [
+        'Termin beim Bürgeramt buchen',
+        'Neue Adresse auf dem Ausweis eintragen lassen (passiert bei der Anmeldung)',
+        'Nachsendeauftrag bei der Post einrichten',
+        'Neue Adresse mitteilen: Bank, Arbeitgeber, Krankenkasse, Versicherungen, Rundfunkbeitrag',
+        'Auto: Adresse bei der Zulassungsstelle ändern lassen',
+        'Verträge für Strom, Gas, Internet ummelden oder kündigen',
+      ]),
+  BehoerdenCheckliste('abmelden', 'Abmelden bei Umzug ins Ausland', 'Wenn du keine Wohnung in Deutschland behältst',
+      frist: 'Innerhalb von zwei Wochen nach dem Auszug',
+      quelle: '§ 17 Abs. 2 Bundesmeldegesetz',
+      unterlagen: ['Personalausweis oder Reisepass', 'Neue Adresse im Ausland, falls bekannt'],
+      schritte: [
+        'Abmeldung beim Bürgeramt (teilweise auch schriftlich oder online)',
+        'Abmeldebestätigung aufbewahren – brauchen Krankenkasse, Rundfunkbeitrag, Banken',
+        'Krankenversicherung, Rundfunkbeitrag und Verträge kündigen oder anpassen',
+        'Finanzamt informieren, wenn du noch Einkünfte in Deutschland hast',
+      ]),
+  BehoerdenCheckliste('gewerbe', 'Gewerbe anmelden', 'Wenn du dich mit einem Gewerbe selbstständig machst',
+      frist: 'Gleichzeitig mit dem Beginn der Tätigkeit',
+      quelle: '§ 14 Gewerbeordnung',
+      unterlagen: [
+        'Personalausweis oder Reisepass',
+        'Erlaubnisse, falls nötig (z. B. Meisterbrief bzw. Eintrag in die Handwerksrolle, Gaststättenerlaubnis)',
+        'Bei GmbH, UG oder OHG: Handelsregisterauszug bzw. Gesellschaftsvertrag',
+        'Gebühr – je nach Gemeinde unterschiedlich',
+      ],
+      schritte: [
+        'Gewerbeanmeldung beim Gewerbeamt (oft online)',
+        'Fragebogen zur steuerlichen Erfassung über ELSTER ans Finanzamt – innerhalb eines Monats (§ 138 Abgabenordnung)',
+        'Kleinunternehmerregelung ja oder nein entscheiden (im Fragebogen)',
+        'Berufsgenossenschaft: Anmeldung innerhalb einer Woche (§ 192 SGB VII)',
+        'IHK bzw. Handwerkskammer meldet sich von selbst – Beitrag prüfen',
+        'Geschäftskonto und Buchhaltung einrichten (in Papiertiger: Selbstständige)',
+        'Freiberufler (z. B. Beratung, Kunst, Heilberufe) brauchen keine Gewerbeanmeldung, aber den Fragebogen ans Finanzamt',
+      ]),
+  BehoerdenCheckliste('aufenthalt', 'Aufenthaltstitel verlängern', 'Bei der Ausländerbehörde',
+      frist: 'Antrag unbedingt vor Ablauf des Titels stellen – Termin am besten 6 bis 8 Wochen vorher anfragen',
+      quelle: '§ 81 Abs. 4 Aufenthaltsgesetz (Antrag vor Ablauf: der Aufenthalt gilt bis zur Entscheidung als erlaubt)',
+      unterlagen: [
+        'Reisepass (gültig) und bisheriger Aufenthaltstitel',
+        'Aktuelles biometrisches Passfoto',
+        'Antragsformular deiner Ausländerbehörde',
+        'Nachweis Lebensunterhalt: Arbeitsvertrag, letzte Gehaltsabrechnungen oder Bescheide',
+        'Mietvertrag bzw. Wohnungsnachweis und Meldebescheinigung',
+        'Nachweis Krankenversicherung',
+        'Je nach Titel: Sprachzertifikat, Nachweis Integrationskurs, Studienbescheinigung',
+      ],
+      schritte: [
+        'Ablaufdatum als Frist im Papiertiger eintragen',
+        'Termin bei der Ausländerbehörde anfragen – schriftlich, damit du einen Nachweis hast',
+        'Wenn kein Termin vor Ablauf frei ist: Antrag trotzdem vorher schriftlich stellen und Kopie aufheben',
+        'Fiktionsbescheinigung mitnehmen bzw. anfordern, falls die Entscheidung dauert',
+        'Bei Unsicherheit: kostenlose Migrationsberatung fragen',
+      ]),
+  BehoerdenCheckliste('ausweis', 'Personalausweis oder Reisepass beantragen', 'Neu oder Verlängerung',
+      frist: '',
+      unterlagen: [
+        'Alter Ausweis bzw. Pass',
+        'Biometrisches Passfoto (vielerorts digital – vorher bei der Behörde nachfragen)',
+        'Beim ersten Antrag: Geburts- oder Heiratsurkunde',
+        'Gebühr',
+      ],
+      schritte: [
+        'Ablaufdatum prüfen und als Termin eintragen',
+        'Termin beim Bürgeramt buchen',
+        'Abholung: alter Ausweis mitbringen, PIN-Brief aufheben',
+      ]),
+  BehoerdenCheckliste('auto', 'Auto ummelden', 'Nach einem Umzug oder beim Halterwechsel',
+      frist: 'Unverzüglich nach dem Umzug bzw. Kauf',
+      quelle: 'Fahrzeug-Zulassungsverordnung',
+      unterlagen: [
+        'Personalausweis bzw. Reisepass mit neuer Adresse',
+        'Zulassungsbescheinigung Teil I (Fahrzeugschein), bei Halterwechsel auch Teil II',
+        'eVB-Nummer der Kfz-Versicherung (bei Halterwechsel)',
+        'Nachweis der Hauptuntersuchung',
+        'SEPA-Mandat für die Kfz-Steuer',
+      ],
+      schritte: [
+        'Termin bei der Zulassungsstelle oder online (i-Kfz)',
+        'Kennzeichen behalten oder neue nehmen (je nach Ort möglich)',
+        'Versicherung über neue Adresse informieren',
+      ]),
+];
+
+const behoerdenHinweis =
+    'Allgemeine Information, keine Rechtsberatung. Unterlagen und Gebühren unterscheiden sich je nach Stadt – '
+    'bitte vorher auf der Website deiner Behörde prüfen.';

@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
+import android.speech.RecognizerIntent
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -17,6 +18,7 @@ import java.io.File
 class MainActivity : FlutterActivity() {
     private var geteilt: List<Map<String, String?>> = emptyList()
     private var kanal: MethodChannel? = null
+    private var diktatErgebnis: MethodChannel.Result? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -29,6 +31,7 @@ class MainActivity : FlutterActivity() {
                     geteilt = emptyList()
                 }
                 "oeffnen" -> result.success(oeffnen(call.argument<String>("uri") ?: ""))
+                "diktieren" -> diktieren(result)
                 else -> result.notImplemented()
             }
         }
@@ -150,5 +153,39 @@ class MainActivity : FlutterActivity() {
         } catch (e: ActivityNotFoundException) {
             false
         }
+    }
+    /** Spracheingabe des Systems: zeigt das Mikrofon-Fenster, liefert den erkannten Text (oder null). */
+    private fun diktieren(result: MethodChannel.Result) {
+        diktatErgebnis?.success(null)
+        val i = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE")
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Sprich jetzt – der Tiger schreibt mit")
+        }
+        try {
+            diktatErgebnis = result
+            @Suppress("DEPRECATION")
+            startActivityForResult(i, DIKTAT)
+        } catch (e: ActivityNotFoundException) {
+            diktatErgebnis = null
+            result.error("keine_spracheingabe", "Keine Spracheingabe auf diesem Gerät", null)
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != DIKTAT) return
+        val r = diktatErgebnis ?: return
+        diktatErgebnis = null
+        val text = if (resultCode == android.app.Activity.RESULT_OK) {
+            data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+        } else null
+        r.success(text)
+    }
+
+    companion object {
+        private const val DIKTAT = 4711
     }
 }

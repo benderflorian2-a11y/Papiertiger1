@@ -12,6 +12,7 @@ import 'brief_detail.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
 import 'widgets/common.dart';
+import 'diktat.dart';
 
 const _sendungsverfolgung = 'https://www.deutschepost.de/de/s/sendungsverfolgung.html';
 
@@ -413,8 +414,13 @@ class KommunikationScreen extends StatelessWidget {
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => BriefDetail(briefId: b.id)));
     return Scaffold(
       appBar: AppBar(title: const Text('Schriftverkehr')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DiktatScreen())),
+        icon: const Icon(Icons.mic),
+        label: const Text('Diktieren'),
+      ),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
           if (warten.isEmpty && verlauf.isEmpty)
             const LeerHinweis(

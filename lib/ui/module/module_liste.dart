@@ -6,6 +6,7 @@ import '../geschaeft/geschaeft.dart';
 import '../haushalt/haushalt.dart';
 import '../theme.dart';
 import 'antraege.dart';
+import 'behoerdengaenge.dart';
 import 'belege.dart';
 import 'ereignisse.dart';
 import 'leistungen.dart';
@@ -36,6 +37,8 @@ final module = <ModulInfo>[
       () => const LeistungenScreen()),
   ModulInfo('Anträge', 'Kindergeld und Wohngeld', Icons.assignment_outlined,
       () => const AntraegeScreen()),
+  ModulInfo('Behördengänge', 'Ummelden, Gewerbe, Ausweis', Icons.account_balance_outlined,
+      () => const BehoerdengaengeScreen()),
 ];
 
 class ModulRaster extends StatelessWidget {
@@ -49,7 +52,7 @@ class ModulRaster extends StatelessWidget {
         ModulInfo('Mein Gewerbe', 'Rechnungen, Kunden, Marketing', Icons.storefront_outlined,
             () => const GeschaeftScreen()),
       if (store.bereichAktiv('haushalt'))
-        ModulInfo('Haushalt', 'Zähler, Inventar, Notfallmappe', Icons.home_outlined, () => const HaushaltScreen()),
+        ModulInfo('Haushalt', 'Einkauf, Essen, Reisen, Zähler', Icons.home_outlined, () => const HaushaltScreen()),
       ...module,
     ];
     return GridView.count(

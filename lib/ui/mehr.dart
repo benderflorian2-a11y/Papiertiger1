@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'app.dart';
 import 'module/module_liste.dart';
 import 'erinnerungen_einstellungen.dart';
+import 'diktat.dart';
 import 'kommunikation.dart';
 import 'ki_einstellungen.dart';
 import 'termine.dart';
@@ -103,6 +104,27 @@ class MehrScreen extends StatelessWidget {
                     children: [
                       Text('Antworten und Verlauf', style: TextStyle(fontWeight: FontWeight.w700)),
                       Text('Worauf du wartest, was du verschickt hast', style: TextStyle(color: PT.grau, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
+          PTKarte(
+            padding: const EdgeInsets.all(12),
+            onTap: () => oeffne(const DiktatScreen()),
+            child: const Row(
+              children: [
+                IconKachel(Icons.mic),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Diktieren', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text('Sprechen statt tippen – der Tiger macht einen Brief daraus',
+                          style: TextStyle(color: PT.grau, fontSize: 13)),
                     ],
                   ),
                 ),

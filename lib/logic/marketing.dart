@@ -56,6 +56,11 @@ const marketingArten = [
   MarketingArt('feedback', 'Feedback und Bewertungen zusammenfassen', 'Themen erkennen',
       'Fasse die Kundenstimmen unten zusammen. Antworte im Format:\nGESAMTEINDRUCK: <ein Satz>\nLOB:\n- <Themen mit Häufigkeit>\nKRITIK:\n- <Themen mit Häufigkeit>\nVERBESSERUNGEN:\n- <2 bis 3 konkrete Vorschläge>',
       eingabe: 'Bewertungen, Umfrage-Antworten oder Feedback', beispiel: 'Mehrere Texte untereinander einfügen', zielgruppe: false),
+  MarketingArt('umfrage', 'Umfrage auswerten', 'Antworten zählen und deuten',
+      'Werte die Umfrage unten aus. Die Auszählung ist schon gemacht, übernimm die Zahlen genau. Antworte im Format:\nWICHTIGSTE ERGEBNISSE:\n- <3 bis 5 Punkte mit Prozent>\nAUFFÄLLIG:\n- <Überraschendes oder Widersprüchliches>\nWAS DU TUN KANNST:\n- <2 bis 3 konkrete Schritte>\nWeise darauf hin, wenn sehr wenige Antworten vorliegen.',
+      eingabe: 'Umfrage-Ergebnisse (Tabelle aus Google Forms, Excel o. ä. einfügen)',
+      beispiel: 'Erste Zeile die Fragen, darunter eine Zeile je Antwort',
+      zielgruppe: false),
   MarketingArt('kampagne', 'Kampagne auswerten', 'Zahlen verständlich machen',
       'Werte die Zahlen der Kampagne unten aus: Was lief gut, was schlecht, was sollte man beim nächsten Mal ändern? Rechne Kennzahlen wie Kosten pro Klick oder pro Anfrage nach, wenn die Zahlen dafür da sind.',
       eingabe: 'Zahlen der Kampagne', beispiel: 'z. B. 500 € Budget, 12.000 Aufrufe, 340 Klicks, 9 Anfragen', zielgruppe: false),
@@ -71,6 +76,10 @@ const marketingToene = ['freundlich', 'professionell', 'locker'];
 String marketingAnfrage(MarketingArt art, Firma f,
     {required String thema, String zielgruppe = '', String ton = 'freundlich'}) {
   final kontakt = [if (f.telefon.isNotEmpty) f.telefon, if (f.email.isNotEmpty) f.email].join(', ');
+  if (art.key == 'umfrage') {
+    final z = umfrageZaehlen(thema);
+    if (z.isNotEmpty) thema = '$z\n\nRohdaten (gekürzt):\n${thema.length > 3000 ? thema.substring(0, 3000) : thema}';
+  }
   return '''
 ${art.auftrag}
 
@@ -119,4 +128,38 @@ List<Rechnung> angeboteNachfassen(List<Rechnung> rechnungen, {required DateTime 
           !rechnungen.any((x) => !x.istAngebot && x.kundeId == r.kundeId && !x.datum.isBefore(r.datum)))
       .toList()
     ..sort((a, b) => a.datum.compareTo(b.datum));
+}
+
+
+/// Zählt eine eingefügte Umfrage-Tabelle aus (Tab, Semikolon oder Komma getrennt;
+/// erste Zeile = Fragen). Fragen mit wenigen verschiedenen Antworten werden gezählt,
+/// Freitext-Fragen nur mit der Zahl der Antworten genannt. Leer, wenn es keine Tabelle ist.
+String umfrageZaehlen(String text) {
+  final zeilen = text.split('\n').map((z) => z.trimRight()).where((z) => z.trim().isNotEmpty).toList();
+  if (zeilen.length < 2) return '';
+  final trenner = ['\t', ';', ','].firstWhere((t) => zeilen.first.contains(t), orElse: () => '');
+  if (trenner.isEmpty) return '';
+  List<String> teile(String z) => z.split(trenner).map((x) => x.trim().replaceAll(RegExp(r'^"|"$'), '')).toList();
+  final fragen = teile(zeilen.first);
+  final antworten = zeilen.skip(1).map(teile).toList();
+  final out = StringBuffer('Auszählung (${antworten.length} Antworten):');
+  for (var i = 0; i < fragen.length; i++) {
+    if (RegExp(r'zeitstempel|timestamp|e-mail|email|name', caseSensitive: false).hasMatch(fragen[i])) continue;
+    final werte = [for (final a in antworten) if (i < a.length && a[i].isNotEmpty) a[i]];
+    if (werte.isEmpty) continue;
+    final zaehler = <String, int>{};
+    for (final w in werte) {
+      zaehler[w] = (zaehler[w] ?? 0) + 1;
+    }
+    out.write('\n\n${fragen[i]}');
+    if (zaehler.length > 8 && zaehler.length > werte.length / 2) {
+      out.write(' – Freitext, ${werte.length} Antworten');
+      continue;
+    }
+    final sortiert = zaehler.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+    for (final e in sortiert) {
+      out.write('\n- ${e.key}: ${e.value} (${(e.value * 100 / werte.length).round()} %)');
+    }
+  }
+  return out.toString();
 }

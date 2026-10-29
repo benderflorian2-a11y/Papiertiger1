@@ -172,6 +172,10 @@ Future<File> antwortAlsPdf(String text, {String titel = 'Antwort'}) async {
 Future<void> dateiTeilen(String pfad, {String? text, String? mimeType}) =>
     SharePlus.instance.share(ShareParams(files: [XFile(pfad, mimeType: mimeType)], text: text));
 
+/// Mehrere Dateien auf einmal teilen, z. B. Brief-PDF mit Anlagen an die E-Mail-App.
+Future<void> dateienTeilen(List<String> pfade, {String? text, String? betreff}) => SharePlus.instance
+    .share(ShareParams(files: [for (final p in pfade) XFile(p)], text: text, subject: betreff));
+
 Future<void> textTeilen(String text) => SharePlus.instance.share(ShareParams(text: text));
 
 String _csv(String s) => '"${s.replaceAll('"', '""')}"';

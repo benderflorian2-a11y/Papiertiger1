@@ -10,6 +10,7 @@ import '../logic/texterkennung.dart';
 import '../logic/vorlagen.dart';
 import 'app.dart';
 import 'brief_detail.dart';
+import 'kontoauszug.dart';
 import 'module/vertraege.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
@@ -482,6 +483,21 @@ class _FinanzenScreenState extends State<FinanzenScreen> {
                 ]),
               ),
           ],
+          PTKarte(
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KontoauszugScreen())),
+            child: const Row(children: [
+              IconKachel(Icons.repeat),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Kontoauszug prüfen', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text('Abos und regelmäßige Abbuchungen finden, doppelte Abbuchungen erkennen',
+                      style: TextStyle(color: PT.grau, fontSize: 13)),
+                ]),
+              ),
+              Icon(Icons.chevron_right, color: PT.grau),
+            ]),
+          ),
           Row(children: [
             const Expanded(child: Abschnitt('Sparziele und Rücklagen')),
             TextButton.icon(

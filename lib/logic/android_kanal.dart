@@ -54,3 +54,16 @@ class AndroidKanal {
     }
   }
 }
+
+/// Spracheingabe über das Android-System (Google oder Samsung). Liefert den erkannten Text,
+/// null bei Abbruch. Wirft [StateError], wenn das Gerät keine Spracheingabe hat.
+Future<String?> diktieren() async {
+  try {
+    return await const MethodChannel('papiertiger/android').invokeMethod<String>('diktieren');
+  } on PlatformException catch (e) {
+    if (e.code == 'keine_spracheingabe') throw StateError('Keine Spracheingabe auf diesem Gerät gefunden.');
+    return null;
+  } on MissingPluginException {
+    throw StateError('Spracheingabe gibt es nur in der Android-App.');
+  }
+}

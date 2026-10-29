@@ -293,3 +293,19 @@ String? fristQuelle(String text, DateTime frist) {
 const _monatsnamen = [
   'januar', 'februar', 'märz', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'dezember',
 ];
+
+
+/// Trägt eine Anlage in den Brief ein: ergänzt die Liste unter „Anlagen:“ oder legt sie am Ende an.
+String anlagenVermerk(String text, String anlage) {
+  final zeilen = text.trimRight().split('\n');
+  final kopf = zeilen.lastIndexWhere((z) => RegExp(r'^\s*Anlagen?\s*:?\s*$', caseSensitive: false).hasMatch(z));
+  if (kopf < 0) return '${text.trimRight()}\n\nAnlagen:\n- $anlage';
+  var ende = kopf + 1;
+  while (ende < zeilen.length && zeilen[ende].trim().startsWith('-')) {
+    if (zeilen[ende].trim().substring(1).trim() == anlage) return text;
+    ende++;
+  }
+  zeilen[kopf] = 'Anlagen:';
+  zeilen.insert(ende, '- $anlage');
+  return zeilen.join('\n');
+}
