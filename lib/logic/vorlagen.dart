@@ -87,12 +87,35 @@ String vorlageText(String key, Brief b, Profil p) {
   return '';
 }
 
+String _vertragNr(Vertrag v) => v.nummer == null || v.nummer!.isEmpty ? '[Kunden- oder Vertragsnummer]' : 'Nr. ${v.nummer}';
+
+String _vertragArt(Vertrag v) => v.versicherungsArt != null ? '${v.versicherungsArt}-Versicherung' : v.art;
+
 String kuendigungText(Vertrag v, Profil p, {DateTime? zum}) {
   final datum = zum != null ? 'zum ${_datum(zum)}' : 'zum nächstmöglichen Zeitpunkt';
-  return '${_kopf(p, v.anbieter, 'Betreff: Kündigung meines Vertrags (${v.art})')}'
-      'hiermit kündige ich meinen Vertrag [Kunden- oder Vertragsnummer] fristgerecht $datum, '
+  return '${_kopf(p, v.anbieter, 'Betreff: Kündigung meines Vertrags (${_vertragArt(v)})')}'
+      'hiermit kündige ich meinen Vertrag ${_vertragNr(v)} fristgerecht $datum, '
       'hilfsweise zum nächstmöglichen Zeitpunkt.\n\n'
       'Bitte bestätigen Sie mir die Kündigung und das Vertragsende schriftlich. '
       'Einer Verlängerung oder Rückwerbung per Telefon oder E-Mail widerspreche ich.'
       '${_fuss(p)}';
 }
+
+/// Sonderkündigung, z. B. nach einer Preis- oder Beitragserhöhung.
+String sonderkuendigungText(Vertrag v, Profil p, {DateTime? ab, DateTime? schreibenVom}) {
+  final vom = schreibenVom != null ? ' vom ${_datum(schreibenVom)}' : '';
+  final zum = ab != null ? 'zum ${_datum(ab.subtract(const Duration(days: 1)))}, also vor Inkrafttreten der Erhöhung' : 'zum Zeitpunkt des Inkrafttretens der Erhöhung';
+  return '${_kopf(p, v.anbieter, 'Betreff: Sonderkündigung meines Vertrags ${_vertragNr(v)}')}'
+      'mit Ihrem Schreiben$vom haben Sie mir eine Preis- bzw. Beitragserhöhung mitgeteilt. '
+      'Ich mache von meinem Sonderkündigungsrecht Gebrauch und kündige den Vertrag $zum, '
+      'hilfsweise zum nächstmöglichen Zeitpunkt.\n\n'
+      'Bitte bestätigen Sie mir die Kündigung und das Vertragsende schriftlich.'
+      '${_fuss(p)}';
+}
+
+/// Widerruf innerhalb der Widerrufsfrist (online, telefonisch oder an der Haustür geschlossen).
+String widerrufText(Vertrag v, Profil p) =>
+    '${_kopf(p, v.anbieter, 'Betreff: Widerruf meines Vertrags ${_vertragNr(v)}')}'
+    'hiermit widerrufe ich den von mir abgeschlossenen Vertrag (${_vertragArt(v)}, abgeschlossen am [Datum]).\n\n'
+    'Bitte bestätigen Sie mir den Widerruf schriftlich und erstatten Sie bereits gezahlte Beträge.'
+    '${_fuss(p)}';

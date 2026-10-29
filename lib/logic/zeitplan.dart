@@ -59,6 +59,11 @@ List<Faelligkeit> faelligkeiten({
     }
   }
   for (final v in vertraege) {
+    final pruefen = bestaetigungPruefenAb(v);
+    if (pruefen != null) {
+      liste.add(Faelligkeit(FaelligArt.vertrag, pruefen, v.anbieter,
+          'Kündigungsbestätigung noch nicht da? Beim Anbieter nachhaken.', v.id));
+    }
     if (v.gekuendigt) continue;
     final info = kuendigungsInfo(v, heute: jetzt);
     if (info.kuendigenBis.difference(jetzt).inDays > 120) continue;

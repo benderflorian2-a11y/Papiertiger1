@@ -15,6 +15,7 @@ import 'app.dart';
 import 'formular_screen.dart';
 import 'kalender.dart';
 import 'kommunikation.dart';
+import 'module/vertraege.dart';
 import 'termine.dart';
 import 'ki_text.dart';
 import 'theme.dart';
@@ -579,6 +580,7 @@ class BriefDetail extends StatelessWidget {
               ],
             ),
           ),
+          BriefVertragKarte(brief: b),
 
           const Abschnitt('Für die Steuer'),
           PTKarte(

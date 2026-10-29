@@ -264,7 +264,14 @@ class Vertrag {
     this.fristInWochen = false,
     this.kostenMonat,
     this.gekuendigt = false,
-  });
+    this.nummer,
+    this.zahlweiseMonate = 1,
+    this.versicherungsArt,
+    this.notiz = '',
+    this.gekuendigtAm,
+    this.bestaetigt = false,
+    List<String>? briefIds,
+  }) : briefIds = briefIds ?? [];
 
   final String id;
   String anbieter;
@@ -276,6 +283,28 @@ class Vertrag {
   double? kostenMonat;
   bool gekuendigt;
 
+  /// Vertrags-, Kunden- oder Versicherungsnummer.
+  String? nummer;
+
+  /// Wie oft gezahlt wird: 1 monatlich, 3 vierteljährlich, 6 halbjährlich, 12 jährlich.
+  int zahlweiseMonate;
+
+  /// Bei Versicherungen: z. B. Privathaftpflicht, Hausrat.
+  String? versicherungsArt;
+  String notiz;
+
+  /// Wann die Kündigung verschickt wurde.
+  DateTime? gekuendigtAm;
+
+  /// Kündigungsbestätigung erhalten?
+  bool bestaetigt;
+
+  /// Briefe, die zu diesem Vertrag gehören.
+  List<String> briefIds;
+
+  /// Betrag pro Zahlung (z. B. Jahresbeitrag bei jährlicher Zahlung).
+  double? get betragProZahlung => kostenMonat == null ? null : kostenMonat! * zahlweiseMonate;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'anbieter': anbieter,
@@ -286,6 +315,13 @@ class Vertrag {
         'fristInWochen': fristInWochen,
         'kostenMonat': kostenMonat,
         'gekuendigt': gekuendigt,
+        'nummer': nummer,
+        'zahlweiseMonate': zahlweiseMonate,
+        'versicherungsArt': versicherungsArt,
+        'notiz': notiz,
+        'gekuendigtAm': gekuendigtAm?.toIso8601String(),
+        'bestaetigt': bestaetigt,
+        'briefIds': briefIds,
       };
 
   factory Vertrag.fromJson(Map<String, dynamic> j) => Vertrag(
@@ -298,6 +334,13 @@ class Vertrag {
         fristInWochen: j['fristInWochen'] == true,
         kostenMonat: _zahl(j['kostenMonat']),
         gekuendigt: j['gekuendigt'] == true,
+        nummer: j['nummer'] as String?,
+        zahlweiseMonate: (j['zahlweiseMonate'] as num?)?.toInt() ?? 1,
+        versicherungsArt: j['versicherungsArt'] as String?,
+        notiz: j['notiz'] as String? ?? '',
+        gekuendigtAm: _datum(j['gekuendigtAm']),
+        bestaetigt: j['bestaetigt'] == true,
+        briefIds: (j['briefIds'] as List?)?.whereType<String>().toList() ?? [],
       );
 }
 
@@ -488,4 +531,22 @@ const vertragsArten = [
   'Versicherung',
   'Zeitschrift',
   'Sonstiges',
+];
+
+const zahlweisen = <(int, String)>[(1, 'monatlich'), (3, 'vierteljährlich'), (6, 'halbjährlich'), (12, 'jährlich')];
+
+const versicherungsArten = [
+  'Privathaftpflicht',
+  'Hausrat',
+  'Kfz',
+  'Berufsunfähigkeit',
+  'Kranken-Zusatz',
+  'Rechtsschutz',
+  'Wohngebäude',
+  'Unfall',
+  'Risikoleben',
+  'Zahnzusatz',
+  'Reise',
+  'Tier',
+  'Sonstige',
 ];
