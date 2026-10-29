@@ -1,6 +1,6 @@
 # Papiertiger – Checkliste Gesamtkonzept
 
-Stand: 29.10.2026, Version 1.19 (test-30)
+Stand: 29.10.2026, Version 1.21 (test-32)
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
