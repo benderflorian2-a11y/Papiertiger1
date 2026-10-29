@@ -23,6 +23,7 @@ class ArchivScreen extends StatefulWidget {
 class _ArchivScreenState extends State<ArchivScreen> {
   String _suche = '';
   _Ansicht _ansicht = _Ansicht.ordner;
+  String? _person;
 
   void _oeffne(Widget seite) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => seite));
@@ -31,7 +32,10 @@ class _ArchivScreenState extends State<ArchivScreen> {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final q = _suche.toLowerCase().trim();
+    final personen = {for (final b in store.briefe) if (b.person != null) b.person!}.toList()..sort();
+    if (_person != null && !personen.contains(_person)) _person = null;
     final suchtreffer = store.briefe.where((b) {
+      if (_person != null && b.person != _person) return false;
       if (q.isEmpty) return true;
       return b.text.toLowerCase().contains(q) ||
           titelVon(b).toLowerCase().contains(q) ||
@@ -40,7 +44,7 @@ class _ArchivScreenState extends State<ArchivScreen> {
           (b.aktenzeichen ?? '').toLowerCase().contains(q) ||
           (b.person ?? '').toLowerCase().contains(q);
     }).toList();
-    final ansicht = q.isNotEmpty ? _Ansicht.alle : _ansicht;
+    final ansicht = q.isNotEmpty || _person != null ? _Ansicht.alle : _ansicht;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,8 +72,20 @@ class _ArchivScreenState extends State<ArchivScreen> {
             decoration: feld(prefixIcon: const Icon(Icons.search), hintText: 'Alle Dokumente durchsuchen'),
             onChanged: (v) => setState(() => _suche = v),
           ),
+          if (personen.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, children: [
+              for (final p in personen)
+                FilterChip(
+                  avatar: const Icon(Icons.person_outline, size: 18),
+                  label: Text(p),
+                  selected: _person == p,
+                  onSelected: (an) => setState(() => _person = an ? p : null),
+                ),
+            ]),
+          ],
           const SizedBox(height: 12),
-          if (q.isEmpty)
+          if (q.isEmpty && _person == null)
             SegmentedButton<_Ansicht>(
               segments: const [
                 ButtonSegment(value: _Ansicht.ordner, label: Text('Ordner'), icon: Icon(Icons.folder_outlined)),

@@ -18,6 +18,8 @@ const briefVorlagen = [
   Vorlage('unterlagen', 'Unterlagen nachreichen', 'Angeforderte Unterlagen schicken'),
   Vorlage('rueckfrage', 'Rückfrage', 'Etwas ist unklar'),
   Vorlage('raten', 'Ratenzahlung', 'Betrag in Raten zahlen'),
+  Vorlage('bezahlt', 'Schon bezahlt', 'Mahnung, obwohl bezahlt'),
+  Vorlage('bestreiten', 'Forderung bestreiten', 'Betrag stimmt nicht'),
 ];
 
 String _heute() {
@@ -73,6 +75,22 @@ String vorlageText(String key, Brief b, Profil p) {
           'Leider habe ich bisher keine Rückmeldung erhalten.\n\n'
           'Ich bitte Sie, mir den aktuellen Stand kurz mitzuteilen. '
           'Sollten noch Unterlagen fehlen, geben Sie mir bitte Bescheid.'
+          '${_fuss(p)}';
+    case 'bezahlt':
+      final betrag = b.betrag != null ? ' über ${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €' : '';
+      final am = b.bezahltAm != null ? 'am ${_datum(b.bezahltAm!)}' : 'am [Datum der Zahlung]';
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Ihre Mahnung$vom')}'
+          'mit Ihrem Schreiben$vom mahnen Sie eine offene Forderung$betrag an. '
+          'Diesen Betrag habe ich bereits $am per [Überweisung / Lastschrift] bezahlt.\n\n'
+          'Einen Zahlungsnachweis füge ich bei. Bitte prüfen Sie Ihren Zahlungseingang, buchen Sie die Zahlung richtig zu '
+          'und stellen Sie das Mahnverfahren ein. Mahngebühren erkenne ich nicht an.'
+          '${_fuss(p)}\n\nAnlage: Zahlungsnachweis';
+    case 'bestreiten':
+      return '${_kopf(p, empfaenger, 'Betreff: $az – Widerspruch gegen Ihre Forderung$vom')}'
+          'mit Ihrem Schreiben$vom fordern Sie von mir eine Zahlung. Diese Forderung bestreite ich, weil '
+          '[Grund, z. B. ich keinen Vertrag mit Ihnen geschlossen habe / die Leistung nicht erbracht wurde / der Betrag falsch ist].\n\n'
+          'Bitte legen Sie mir die Grundlage Ihrer Forderung schriftlich vor (Vertrag, Rechnung, Berechnung). '
+          'Bis zur Klärung leiste ich keine Zahlung.'
           '${_fuss(p)}';
     case 'raten':
       final betrag = b.betrag != null

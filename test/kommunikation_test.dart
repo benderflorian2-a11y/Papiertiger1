@@ -90,4 +90,31 @@ void main() {
     final b = _b()..antwortGesendet = DateTime(2026, 9, 1);
     expect(verlaufVon(b).single.art, 'gesendet');
   });
+
+  test('Sprache des Briefs erkennen', () {
+    expect(spracheErkennen('Sehr geehrte Damen und Herren, wir bitten Sie, die Unterlagen nicht zu vergessen.'), 'Deutsch');
+    expect(spracheErkennen('Dear customer, please find attached your invoice and the terms of the contract.'), 'Englisch');
+    expect(spracheErkennen('Sayın müşterimiz, bu fatura için lütfen ödeme yapın ve bir kopya saklayın.'), 'Türkisch');
+  });
+
+  test('Quelle der Frist im Brief', () {
+    const t = 'Ihre Steuererklärung ist eingegangen. Bitte reichen Sie die Belege bis zum 15.11.2026 nach. Vielen Dank.';
+    expect(fristQuelle(t, DateTime(2026, 11, 15)), 'Bitte reichen Sie die Belege bis zum 15.11.2026 nach.');
+    expect(fristQuelle('Zahlbar bis 5. Dezember 2026 auf das Konto.', DateTime(2026, 12, 5)), 'Zahlbar bis 5. Dezember 2026 auf das Konto.');
+    expect(fristQuelle(t, DateTime(2026, 11, 16)), isNull);
+    expect(fristQuelle(t, DateTime(2026, 11, 5)), isNull);
+  });
+
+  test('Vorlagen für Mahnungen', () {
+    final b = _b()
+      ..betrag = 49.9
+      ..bezahltAm = DateTime(2026, 10, 2);
+    final p = Profil(name: 'Florian Bender', adresse: 'Lindenweg 5\n50667 Köln');
+    final bezahlt = vorlageText('bezahlt', b, p);
+    expect(bezahlt, contains('über 49,90 €'));
+    expect(bezahlt, contains('bereits am 02.10.2026'));
+    expect(bezahlt, endsWith('Anlage: Zahlungsnachweis'));
+    expect(vorlageText('bestreiten', b, p), contains('bestreite'));
+    expect(briefVorlagen.map((v) => v.key), containsAll(['bezahlt', 'bestreiten']));
+  });
 }

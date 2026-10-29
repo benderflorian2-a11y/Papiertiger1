@@ -7,6 +7,7 @@ import '../data/models.dart';
 import '../logic/brief_analyse.dart';
 import '../logic/export.dart';
 import '../logic/ki_anfragen.dart';
+import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
 import '../logic/steuer.dart';
 import '../logic/zeitplan.dart';
@@ -320,9 +321,17 @@ class BriefDetail extends StatelessWidget {
                 ListTile(
                   leading: const Icon(Icons.event_outlined, color: PT.orangeDunkel),
                   title: const Text('Frist'),
-                  subtitle: Text(b.frist == null
-                      ? 'Keine gefunden – tippen zum Eintragen'
-                      : '${datumLang(b.frist!)}${b.fristUnsicher ? ' (bitte prüfen)' : ''}'),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(b.frist == null
+                          ? 'Keine gefunden – tippen zum Eintragen'
+                          : '${datumLang(b.frist!)}${b.fristUnsicher ? ' (bitte prüfen)' : ''}'),
+                      if (b.frist != null && fristQuelle(b.text, b.frist!) != null)
+                        Text('Laut Brief: „${fristQuelle(b.text, b.frist!)}“',
+                            style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: PT.grau)),
+                    ],
+                  ),
                   trailing: const Icon(Icons.edit_outlined, size: 20),
                   onTap: () async {
                     final d = await datumWaehlen(context, start: b.frist);
@@ -557,6 +566,35 @@ class BriefDetail extends StatelessWidget {
             child: Column(
               children: [
                 ListTile(
+                  leading: const Icon(Icons.person_outline, color: PT.orangeDunkel),
+                  title: const Text('Für wen?'),
+                  subtitle: Text(b.person ?? 'nicht festgelegt – tippen'),
+                  trailing: const Icon(Icons.edit_outlined, size: 20),
+                  onTap: () async {
+                    final namen = {for (final x in store.briefe) if (x.person != null) x.person!}.toList()..sort();
+                    final wahl = await showDialog<String>(
+                      context: context,
+                      builder: (d) => SimpleDialog(
+                        title: const Text('Für wen ist der Brief?'),
+                        children: [
+                          for (final n in namen) SimpleDialogOption(onPressed: () => Navigator.pop(d, n), child: Text(n)),
+                          SimpleDialogOption(onPressed: () => Navigator.pop(d, '+'), child: const Text('+ Andere Person')),
+                          SimpleDialogOption(onPressed: () => Navigator.pop(d, '-'), child: const Text('Niemand Bestimmtes')),
+                        ],
+                      ),
+                    );
+                    if (wahl == null || !context.mounted) return;
+                    if (wahl == '+') {
+                      final neu = await _textAbfragen(context, 'Name', knopf: 'Speichern');
+                      if (neu == null || neu.trim().isEmpty) return;
+                      b.person = neu.trim();
+                    } else {
+                      b.person = wahl == '-' ? null : wahl;
+                    }
+                    await store.geaendert();
+                  },
+                ),
+                ListTile(
                   leading: const Icon(Icons.folder_outlined, color: PT.orangeDunkel),
                   title: const Text('Ordner'),
                   subtitle: Text(ordnerFuer(b).name),
@@ -699,6 +737,47 @@ void _teilenMenue(BuildContext context, Brief b) {
                 dateiTeilen(b.pdfPfad!);
               },
             ),
+          ListTile(
+            leading: const Icon(Icons.article_outlined),
+            title: const Text('Als Word-Datei teilen'),
+            onTap: () async {
+              Navigator.pop(s);
+              final inhalt = [
+                titelVon(b),
+                'Einfach erklärt:\n${b.erklaerung}',
+                if (b.frist != null) 'Frist: ${datumKurz(b.frist!)}',
+                if (b.aufgaben.isNotEmpty) 'Zu tun:\n${b.aufgaben.map((a) => '- ${a.text}').join('\n')}',
+                'Text des Schreibens:\n${b.text}',
+              ].join('\n\n');
+              final datei = await alsWord(titelVon(b), inhalt);
+              await dateiTeilen(datei.path, mimeType: 'application/rtf');
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.translate),
+            title: const Text('Brief übersetzen lassen (KI)'),
+            onTap: () async {
+              Navigator.pop(s);
+              final sprache = await showDialog<String>(
+                context: context,
+                builder: (d) => SimpleDialog(
+                  title: const Text('In welche Sprache?'),
+                  children: [
+                    for (final x in const ['Deutsch (einfach)', 'Englisch', 'Türkisch', 'Arabisch', 'Ukrainisch', 'Russisch', 'Polnisch'])
+                      SimpleDialogOption(onPressed: () => Navigator.pop(d, x), child: Text(x)),
+                  ],
+                ),
+              );
+              if (sprache == null || !context.mounted) return;
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => KiTextScreen(
+                  titel: 'Übersetzung',
+                  anfrage: uebersetzungAnfrage(b, sprache == 'Deutsch (einfach)' ? 'einfache Deutsch (kurze Sätze, keine Fachwörter)' : sprache),
+                  hinweis: 'Maschinelle Übersetzung. Maßgeblich ist immer das Original.',
+                ),
+              ));
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.notes),
             title: const Text('Zusammenfassung als Text teilen'),

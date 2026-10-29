@@ -427,3 +427,27 @@ Future<File> inventarAlsPdf(List<Gegenstand> liste) async {
   ));
   return _speichern(doc, 'Inventar ${_d(DateTime.now())}');
 }
+
+String _rtf(String s) {
+  final b = StringBuffer();
+  for (final r in s.runes) {
+    if (r == 92 || r == 123 || r == 125) {
+      b.write('\\${String.fromCharCode(r)}');
+    } else if (r == 10) {
+      b.write('\\par\n');
+    } else if (r < 128) {
+      b.writeCharCode(r);
+    } else {
+      // Unicode für Umlaute und andere Zeichen
+      final v = r > 32767 ? r - 65536 : r;
+      b.write('\\u$v?');
+    }
+  }
+  return b.toString();
+}
+
+/// Text als Word-Datei (RTF – öffnet sich in Word, LibreOffice und Google Docs).
+Future<File> alsWord(String titel, String text) async {
+  final inhalt = '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Arial;}}\\fs22\n${_rtf(text.replaceAll('\r\n', '\n'))}\n}';
+  return textDatei('$titel.rtf', inhalt);
+}

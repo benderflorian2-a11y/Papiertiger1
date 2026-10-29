@@ -102,3 +102,15 @@ NOCH OFFEN:
 Erfinde nichts, nutze nur die Angaben oben.
 ''';
 }
+
+/// Übersetzt einen Brief, damit man ihn in der eigenen Sprache versteht.
+String uebersetzungAnfrage(Brief b, String sprache) => '''
+Übersetze das Schreiben unten vollständig und genau ins $sprache.
+Behalte Zahlen, Beträge, Daten, Namen und Aktenzeichen unverändert bei.
+Fasse nichts zusammen und lass nichts weg. Nur die Übersetzung, keine Erklärung.
+
+Schreiben:
+"""
+${_kuerzen(b.text, 5000)}
+"""
+''';

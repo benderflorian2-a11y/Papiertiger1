@@ -38,7 +38,20 @@ class _VorlageScreenState extends State<VorlageScreen> {
   Widget build(BuildContext context) {
     final profil = StoreScope.of(context).profil;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.titel)),
+      appBar: AppBar(
+        title: Text(widget.titel),
+        actions: [
+          IconButton(
+            tooltip: 'Als Word-Datei',
+            icon: const Icon(Icons.article_outlined),
+            onPressed: () async {
+              final d = await alsWord(widget.titel, _text.text);
+              await dateiTeilen(d.path, mimeType: 'application/rtf');
+              _versandFragen('Post');
+            },
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

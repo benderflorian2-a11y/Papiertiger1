@@ -107,6 +107,7 @@ class _NotizScreenState extends State<NotizScreen> {
   final _person = TextEditingController();
   final _text = TextEditingController();
   DateTime _datum = DateTime.now();
+  bool _alsAufgabe = false;
 
   @override
   void dispose() {
@@ -153,6 +154,14 @@ class _NotizScreenState extends State<NotizScreen> {
               hintText: widget.anruf ? 'z. B. Frist bis 30.11. verlängert, Bestätigung kommt per Post.' : null,
             ),
           ),
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: _alsAufgabe,
+            title: const Text('Als Aufgabe übernehmen'),
+            subtitle: const Text('Steht dann unter „Deine Aufgaben“ und zählt, bis du sie abhakst.'),
+            onChanged: (v) => setState(() => _alsAufgabe = v ?? false),
+          ),
           if (widget.anruf)
             const Padding(
               padding: EdgeInsets.only(top: 12),
@@ -179,6 +188,10 @@ class _NotizScreenState extends State<NotizScreen> {
                 text: _text.text.trim(),
                 person: _person.text.trim().isEmpty ? null : _person.text.trim(),
               ));
+              if (_alsAufgabe && _text.text.trim().isNotEmpty) {
+                widget.brief.aufgaben.add(Aufgabe(_text.text.trim().split('\n').first));
+                widget.brief.erledigt = false;
+              }
               await store.geaendert();
               if (context.mounted) Navigator.of(context).pop();
             },

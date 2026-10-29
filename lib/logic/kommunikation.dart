@@ -235,3 +235,61 @@ String verlaufAlsText(Brief b) {
   }
   return z.toString();
 }
+
+// ---------------------------------------------------------------- Sprache und Fristquelle
+
+const _sprachWoerter = <String, List<String>>{
+  'Deutsch': [' und ', ' der ', ' die ', ' das ', ' nicht ', ' ihre ', ' sie ', ' mit ', ' wir '],
+  'Englisch': [' the ', ' and ', ' your ', ' you ', ' please ', ' with ', ' this ', ' we '],
+  'Türkisch': [' ve ', ' bir ', ' için ', ' ile ', ' bu ', ' lütfen ', ' sayın '],
+  'Französisch': [' le ', ' la ', ' et ', ' vous ', ' votre ', ' nous ', ' pour '],
+  'Spanisch': [' el ', ' los ', ' y ', ' usted ', ' por ', ' para ', ' su '],
+  'Italienisch': [' il ', ' gli ', ' e ', ' per ', ' lei ', ' suo ', ' della '],
+  'Polnisch': [' i ', ' nie ', ' się ', ' na ', ' jest ', ' pan ', ' pani '],
+  'Ukrainisch': [' і ', ' та ', ' не ', ' на ', ' ви ', ' ваш '],
+  'Russisch': [' и ', ' не ', ' на ', ' вы ', ' ваш ', ' что '],
+  'Arabisch': [' في ', ' من ', ' على ', ' إلى ', ' أن '],
+};
+
+/// Erkennt grob die Sprache eines Briefs (für Antworten in der Sprache des Absenders).
+String spracheErkennen(String text) {
+  final t = ' ${text.toLowerCase().replaceAll(RegExp(r'[\s,.;:!?()]+'), ' ')} ';
+  var beste = 'Deutsch';
+  var punkte = 0;
+  _sprachWoerter.forEach((sprache, woerter) {
+    var n = 0;
+    for (final w in woerter) {
+      n += w.allMatches(t).length;
+    }
+    if (n > punkte) {
+      punkte = n;
+      beste = sprache;
+    }
+  });
+  return beste;
+}
+
+/// Der Satz im Brief, in dem das Fristdatum steht – damit die Frist eine Quelle hat.
+String? fristQuelle(String text, DateTime frist) {
+  final d = frist.day, m = frist.month, j = frist.year;
+  final muster = RegExp(
+      '(?<!\\d)(?:0?$d\\.\\s?0?$m\\.\\s?(?:$j|${j % 100})(?!\\d)|0?$d\\.\\s?(?:${_monatsnamen[m - 1]})\\w*\\s+$j)',
+      caseSensitive: false);
+  final treffer = muster.firstMatch(text);
+  if (treffer == null) return null;
+  var start = text.lastIndexOf(RegExp(r'[.!?\n]\s'), treffer.start);
+  // Datumspunkte („15.11.“) nicht als Satzende werten: weiter nach vorne suchen.
+  while (start > 0 && RegExp(r'\d').hasMatch(text[start - 1 < 0 ? 0 : start - 1]) && text[start] == '.') {
+    start = text.lastIndexOf(RegExp(r'[.!?\n]\s'), start - 1);
+  }
+  final ende = text.indexOf(RegExp(r'[.!?](\s|$)|\n'), treffer.end);
+  final satz = text
+      .substring(start < 0 ? 0 : start + 1, ende < 0 ? text.length : ende + 1)
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+  return satz.length > 220 ? '${satz.substring(0, 217)}…' : satz;
+}
+
+const _monatsnamen = [
+  'januar', 'februar', 'märz', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'dezember',
+];

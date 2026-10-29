@@ -5,6 +5,7 @@ import '../data/models.dart';
 import '../logic/export.dart';
 import '../logic/ki.dart';
 import '../logic/ki_anfragen.dart';
+import '../logic/kommunikation.dart';
 import 'app.dart';
 import 'ki_einrichten.dart';
 import 'theme.dart';
@@ -193,7 +194,7 @@ class KiAntwortScreen extends StatefulWidget {
 class _KiAntwortScreenState extends State<KiAntwortScreen> {
   String _ziel = antwortZiele.first;
   String _ton = antwortToene.first;
-  String _sprache = 'Deutsch';
+  late String _sprache = spracheErkennen(widget.brief.text);
   final _inhalt = TextEditingController();
 
   @override
@@ -227,7 +228,7 @@ class _KiAntwortScreenState extends State<KiAntwortScreen> {
           const Text('Sprache', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(spacing: 8, children: [
-            for (final s in const ['Deutsch', 'Englisch', 'Türkisch', 'Arabisch', 'Ukrainisch'])
+            for (final s in {'Deutsch', 'Englisch', 'Türkisch', 'Arabisch', 'Ukrainisch', _sprache})
               ChoiceChip(label: Text(s), selected: _sprache == s, onSelected: (_) => setState(() => _sprache = s)),
           ]),
           const SizedBox(height: 16),
