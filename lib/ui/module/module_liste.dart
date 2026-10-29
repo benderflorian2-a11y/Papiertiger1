@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../finanzen.dart';
 import '../theme.dart';
 import 'antraege.dart';
 import 'belege.dart';
@@ -18,6 +19,8 @@ class ModulInfo {
 }
 
 final module = <ModulInfo>[
+  ModulInfo('Finanzen', 'Zahlungen und Monatsüberblick', Icons.account_balance_wallet_outlined,
+      () => const FinanzenScreen()),
   ModulInfo('Verträge & Abos', 'Kündigungsfristen im Blick', Icons.description_outlined,
       () => const VertraegeScreen()),
   ModulInfo('Belege & Garantien', 'Kassenbons sicher aufheben', Icons.receipt_long_outlined,

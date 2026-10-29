@@ -12,6 +12,7 @@ import '../logic/zeitplan.dart';
 import '../logic/vorlagen.dart';
 import 'akten.dart';
 import 'app.dart';
+import 'finanzen.dart';
 import 'formular_screen.dart';
 import 'kalender.dart';
 import 'kommunikation.dart';
@@ -360,6 +361,7 @@ class BriefDetail extends StatelessWidget {
           ),
 
           RechtsbehelfKarte(brief: b),
+          ZahlungKarte(brief: b),
           if (b.unterlagen.isNotEmpty) ...[
             Abschnitt('Diese Unterlagen werden verlangt '
                 '(${b.unterlagen.where((u) => u.erledigt).length}/${b.unterlagen.length})'),

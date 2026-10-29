@@ -101,6 +101,7 @@ class Brief {
     this.antwortGesendet,
     this.nachfassenAm,
     List<Eintrag>? verlauf,
+    this.bezahltAm,
   })  : verlauf = verlauf ?? [],
         unterlagen = unterlagen ?? [],
         hinweise = hinweise ?? [],
@@ -168,6 +169,9 @@ class Brief {
   /// Schriftverkehr: gesendete Antworten, Anrufe, Notizen.
   List<Eintrag> verlauf;
 
+  /// Wann du den Betrag bezahlt hast (von dir vermerkt).
+  DateTime? bezahltAm;
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'erstellt': erstellt.toIso8601String(),
@@ -200,6 +204,7 @@ class Brief {
         'antwortGesendet': antwortGesendet?.toIso8601String(),
         'nachfassenAm': nachfassenAm?.toIso8601String(),
         'verlauf': verlauf.map((e) => e.toJson()).toList(),
+        'bezahltAm': bezahltAm?.toIso8601String(),
       };
 
   factory Brief.fromJson(Map<String, dynamic> j) => Brief(
@@ -250,6 +255,7 @@ class Brief {
                 .map(Eintrag.fromJson)
                 .toList() ??
             [],
+        bezahltAm: _datum(j['bezahltAm']),
       );
 }
 
