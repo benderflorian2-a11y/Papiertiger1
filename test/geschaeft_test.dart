@@ -125,4 +125,41 @@ void main() {
     expect(naechsteNummer([kv], art: 'kostenvoranschlag', jahr: 2026), 'KV-2026-002');
     expect(istOffen(kv), isFalse);
   });
+
+  test('Wiederkehrende Rechnung und Folgerechnung', () {
+    final r = _r('1', '2026-001', datum: DateTime(2026, 9, 1))
+      ..wiederholungMonate = 1
+      ..leistungVon = DateTime(2026, 9, 1)
+      ..leistungBis = DateTime(2026, 9, 30);
+    expect(naechsteWiederholung(r, [r]), DateTime(2026, 10, 1));
+    final f = folgeRechnung(r, [r], id: '2', datum: DateTime(2026, 10, 1));
+    expect(f.nummer, '2026-002');
+    expect(f.leistungVon, DateTime(2026, 10, 1));
+    expect(f.positionen.single.text, 'Leistung');
+    expect(naechsteWiederholung(r, [r, f]), isNull);
+    final fa = faelligkeiten(briefe: const [], vertraege: const [], belege: const [], termine: const [], rechnungen: [r]);
+    expect(fa.any((x) => x.titel == 'Rechnung 2026-001 wiederholen'), isTrue);
+  });
+
+  test('Steuer-Rücklage und Buchhaltungslücken', () {
+    final u = Ueberschuss(einnahmenNetto: 10000, ustEingenommen: 1900, ausgaben: 2000, offen: 0);
+    final rl = ruecklageVorschlag(u);
+    expect(rl.umsatzsteuer, 1900);
+    expect(rl.einkommensteuer, 2400);
+    expect(rl.gesamt, 4300);
+    final luecken = buchhaltungsLuecken(
+      z: Zeitraum.jahr(2026),
+      belege: [
+        Beleg(id: 'a', haendler: 'Büro', datum: DateTime(2026, 3, 1), betrag: 50, geschaeftlich: true),
+        Beleg(id: 'b', haendler: 'Privat', datum: DateTime(2026, 3, 1), betrag: 50),
+      ],
+      rechnungen: [_r('1', '2026-001', datum: DateTime(2026, 1, 1), kunde: '')],
+      heute: DateTime(2026, 10, 28),
+    );
+    expect(luecken, contains('1 geschäftliche Ausgabe hat kein Belegfoto.'));
+    expect(luecken, contains('1 geschäftliche Ausgabe hat keine Betriebsausgaben-Kategorie.'));
+    expect(luecken, contains('Rechnung 2026-001 hat keinen Kunden.'));
+    expect(luecken.any((l) => l.contains('über 30 Tagen überfällig')), isTrue);
+  });
 }
+

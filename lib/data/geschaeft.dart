@@ -123,7 +123,15 @@ class Rechnung {
     this.notiz = '',
     this.gemahntAm,
     this.storniert = false,
+    this.wiederholungMonate = 0,
+    this.projektId,
   }) : positionen = positionen ?? [];
+
+  /// Wiederkehrende Rechnung: alle n Monate neu (0 = einmalig).
+  int wiederholungMonate;
+
+  /// Zugehöriges Projekt.
+  String? projektId;
 
   final String id;
 
@@ -160,6 +168,8 @@ class Rechnung {
         'notiz': notiz,
         'gemahntAm': gemahntAm?.toIso8601String(),
         'storniert': storniert,
+        'wiederholungMonate': wiederholungMonate,
+        'projektId': projektId,
       };
 
   factory Rechnung.fromJson(Map<String, dynamic> j) => Rechnung(
@@ -180,5 +190,7 @@ class Rechnung {
         notiz: j['notiz'] as String? ?? '',
         gemahntAm: _datum(j['gemahntAm']),
         storniert: j['storniert'] == true,
+        wiederholungMonate: (j['wiederholungMonate'] as num?)?.toInt() ?? 0,
+        projektId: j['projektId'] as String?,
       );
 }

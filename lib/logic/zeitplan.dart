@@ -94,6 +94,11 @@ List<Faelligkeit> faelligkeiten({
         t.notiz.isEmpty ? t.art : t.notiz, t.id));
   }
   for (final r in rechnungen) {
+    final naechste = naechsteWiederholung(r, rechnungen);
+    if (naechste != null) {
+      liste.add(Faelligkeit(FaelligArt.rechnung, naechste, 'Rechnung ${r.nummer} wiederholen',
+          'Wiederkehrende Rechnung – Folgerechnung erstellen', r.id));
+    }
     if (!istOffen(r)) continue;
     liste.add(Faelligkeit(FaelligArt.rechnung, faelligAm(r), 'Rechnung ${r.nummer}',
         'Zahlung vom Kunden fällig – Eingang prüfen', r.id));

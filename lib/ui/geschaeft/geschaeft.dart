@@ -77,6 +77,33 @@ class GeschaeftScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (ruecklageVorschlag(u).gesamt > 0)
+            PTKarte(
+              farbe: PT.gelbHell,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Für Steuern zurücklegen: ca. ${euro(ruecklageVorschlag(u).gesamt)}',
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                    '${f.kleinunternehmer ? '' : 'Umsatzsteuer ${euro(ruecklageVorschlag(u).umsatzsteuer)} + '}'
+                    '30 % vom Überschuss ${euro(ruecklageVorschlag(u).einkommensteuer)}. Faustregel – den genauen Betrag kennt deine Steuerberatung.',
+                    style: const TextStyle(fontSize: 13)),
+                TextButton.icon(
+                  onPressed: () async {
+                    final ziel = ruecklageVorschlag(u).gesamt;
+                    final vorhanden = store.sparziele.where((z) => z.name == 'Steuer-Rücklage $jahr').firstOrNull;
+                    if (vorhanden != null) {
+                      vorhanden.ziel = ziel;
+                    } else {
+                      store.sparziele.add(Sparziel(id: neueId(), name: 'Steuer-Rücklage $jahr', ziel: ziel, bis: DateTime(jahr + 1, 5, 31)));
+                    }
+                    await store.geaendert();
+                    if (context.mounted) zeigeHinweis(context, 'Als Sparziel unter Finanzen gespeichert.');
+                  },
+                  icon: const Icon(Icons.savings_outlined, size: 18),
+                  label: const Text('Als Sparziel anlegen'),
+                ),
+              ]),
+            ),
           Wrap(spacing: 8, runSpacing: 8, children: [
             ActionChip(
                 avatar: const Icon(Icons.request_quote_outlined, size: 18),
@@ -292,6 +319,27 @@ class RechnungDetail extends StatelessWidget {
                 },
               ),
             ),
+          if (naechsteWiederholung(r, store.rechnungen) != null)
+            PTKarte(
+              farbe: PT.orangeHell,
+              child: Row(children: [
+                const Icon(Icons.repeat, color: PT.orangeDunkel),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Nächste Rechnung am ${datumKurz(naechsteWiederholung(r, store.rechnungen)!)}')),
+                TextButton(
+                  onPressed: () async {
+                    final neu = folgeRechnung(r, store.rechnungen,
+                        id: neueId(), datum: naechsteWiederholung(r, store.rechnungen)!);
+                    await store.rechnungSpeichern(neu);
+                    if (context.mounted) {
+                      Navigator.of(context)
+                          .pushReplacement(MaterialPageRoute(builder: (_) => RechnungDetail(rechnungId: neu.id)));
+                    }
+                  },
+                  child: const Text('Jetzt erstellen'),
+                ),
+              ]),
+            ),
           FilledButton.icon(
             onPressed: pdfTeilen,
             icon: const Icon(Icons.picture_as_pdf_outlined),
@@ -393,6 +441,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
   late DateTime _datum;
   DateTime? _von, _bis;
   late int _ziel;
+  int _wiederholung = 0;
   final _notiz = TextEditingController();
   final _pos = <_PosFelder>[];
   bool _bereit = false;
@@ -409,6 +458,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
     _von = r?.leistungVon ?? (widget.art == 'rechnung' ? DateTime.now() : null);
     _bis = r?.leistungBis;
     _ziel = r?.zahlungszielTage ?? store.firma.zahlungszielTage;
+    _wiederholung = r?.wiederholungMonate ?? 0;
     _notiz.text = r?.notiz ?? '';
     for (final p in r?.positionen ?? [Position(text: '', ustSatz: store.firma.kleinunternehmer ? 0 : 19)]) {
       _pos.add(_PosFelder(p));
@@ -440,6 +490,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
       ..leistungVon = _von
       ..leistungBis = _bis
       ..zahlungszielTage = _ziel
+      ..wiederholungMonate = widget.art == 'rechnung' ? _wiederholung : 0
       ..notiz = _notiz.text.trim()
       ..positionen = [for (final p in _pos) if (p.text.text.trim().isNotEmpty || (_zahl(p.preis.text) ?? 0) > 0) p.position];
     await store.rechnungSpeichern(r);
@@ -603,6 +654,13 @@ class _RechnungFormularState extends State<RechnungFormular> {
             Wrap(spacing: 8, children: [
               for (final t in {7, 14, 30, _ziel})
                 ChoiceChip(label: Text('$t Tage'), selected: _ziel == t, onSelected: (_) => setState(() => _ziel = t)),
+            ]),
+            const SizedBox(height: 12),
+            const Text('Wiederholen', style: TextStyle(fontWeight: FontWeight.w700)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, children: [
+              for (final (m, t) in const [(0, 'Einmalig'), (1, 'Monatlich'), (3, 'Vierteljährlich'), (12, 'Jährlich')])
+                ChoiceChip(label: Text(t), selected: _wiederholung == m, onSelected: (_) => setState(() => _wiederholung = m)),
             ]),
             const SizedBox(height: 12),
           ],
@@ -928,6 +986,40 @@ class _EuerScreenState extends State<EuerScreen> {
               farbe: PT.orangeHell,
               child: Text('Umsatzsteuer-Voranmeldung für ${z.name}: meist bis ${datumKurz(ustVoranmeldungBis(z))} '
                   '(ohne Dauerfristverlängerung, über ELSTER).'),
+            ),
+          for (final l in buchhaltungsLuecken(z: z, belege: store.belege, rechnungen: store.rechnungen, heute: DateTime.now()))
+            PTKarte(
+              farbe: PT.gelbHell,
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                const Icon(Icons.report_outlined, color: PT.gelb),
+                const SizedBox(width: 10),
+                Expanded(child: Text(l)),
+              ]),
+            ),
+          if (ausgaben.isNotEmpty)
+            PTKarte(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(children: [
+                for (final e in () {
+                  final m = <String, double>{};
+                  for (final a in ausgaben) {
+                    final k = a.kategorie != null && betriebsKategorien.contains(a.kategorie) ? a.kategorie! : 'Ohne Kategorie';
+                    m[k] = (m[k] ?? 0) + (a.betrag ?? 0);
+                  }
+                  return m.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+                }())
+                  ListTile(dense: true, title: Text(e.key), trailing: Text(euro(e.value))),
+              ]),
+            ),
+          if (ausgaben.isNotEmpty)
+            OutlinedButton.icon(
+              onPressed: () async {
+                final d = await belegeAlsPdf('Belege ${z.name}', ausgaben);
+                await dateiTeilen(d.path, mimeType: 'application/pdf');
+              },
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: const Text('Belege mit Fotos als PDF'),
             ),
           OutlinedButton.icon(
             onPressed: () async {

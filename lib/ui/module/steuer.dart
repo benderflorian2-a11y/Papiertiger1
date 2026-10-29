@@ -127,6 +127,36 @@ class _SteuerScreenState extends State<SteuerScreen> {
               ],
             ),
           ),
+          PTKarte(
+            onTap: () => Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => SteuerFragen(jahr: _jahr))),
+            child: Row(
+              children: [
+                const IconKachel(Icons.help_outline),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    (store.notizen['steuer:$_jahr:fragen'] ?? '').trim().isEmpty
+                        ? 'Fragen an die Steuerberatung sammeln'
+                        : '${(store.notizen['steuer:$_jahr:fragen'] ?? '').trim().split('\n').length} Fragen an die Steuerberatung',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
+          if (store.belege.any((b) => b.steuerKategorie != null && b.datum.year == _jahr))
+            OutlinedButton.icon(
+              onPressed: () async {
+                final l = store.belege.where((b) => b.steuerKategorie != null && b.datum.year == _jahr).toList()
+                  ..sort((a, b) => a.datum.compareTo(b.datum));
+                final f = await belegeAlsPdf('Steuer-Belege $_jahr', l);
+                await dateiTeilen(f.path, mimeType: 'application/pdf');
+              },
+              icon: const Icon(Icons.photo_library_outlined),
+              label: const Text('Belege mit Fotos als PDF'),
+            ),
           const Abschnitt('Gesammelt'),
           PTKarte(
             farbe: PT.orangeHell,
@@ -316,6 +346,86 @@ class SteuerCheckliste extends StatelessWidget {
                 ),
             ]),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class SteuerFragen extends StatefulWidget {
+  const SteuerFragen({super.key, required this.jahr});
+
+  final int jahr;
+
+  @override
+  State<SteuerFragen> createState() => _SteuerFragenState();
+}
+
+class _SteuerFragenState extends State<SteuerFragen> {
+  TextEditingController? _c;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _c ??= TextEditingController(text: StoreScope.of(context).notizen['steuer:${widget.jahr}:fragen'] ?? '');
+  }
+
+  @override
+  void dispose() {
+    _c?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    const vorschlaege = [
+      'Lohnt sich für mich eine Steuererklärung?',
+      'Kann ich Homeoffice und Fahrten gleichzeitig angeben?',
+      'Welche Belege muss ich aufheben und wie lange?',
+      'Muss ich Vorauszahlungen leisten?',
+      'Lohnt sich die Kleinunternehmerregelung für mich?',
+    ];
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Fragen ${widget.jahr}'),
+        actions: [
+          IconButton(
+            tooltip: 'Teilen',
+            icon: const Icon(Icons.share_outlined),
+            onPressed: () => textTeilen('Fragen zur Steuer ${widget.jahr}:\n\n${_c!.text.trim()}'),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text('Schreib auf, was du deine Steuerberatung oder den Lohnsteuerhilfeverein fragen willst – eine Frage pro Zeile.',
+              style: TextStyle(color: PT.grau)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _c,
+            minLines: 6,
+            maxLines: 14,
+            decoration: feld(hintText: 'Eine Frage pro Zeile'),
+            onChanged: (v) {
+              store.notizen['steuer:${widget.jahr}:fragen'] = v;
+              store.geaendert();
+            },
+          ),
+          const Abschnitt('Häufige Fragen'),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final v in vorschlaege)
+              ActionChip(
+                label: Text(v),
+                onPressed: () {
+                  final t = _c!.text.trim();
+                  _c!.text = t.isEmpty ? v : '$t\n$v';
+                  store.notizen['steuer:${widget.jahr}:fragen'] = _c!.text;
+                  store.geaendert();
+                },
+              ),
+          ]),
         ],
       ),
     );

@@ -453,3 +453,46 @@ Future<File> alsWord(String titel, String text) async {
   final inhalt = '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Arial;}}\\fs22\n${_rtf(text.replaceAll('\r\n', '\n'))}\n}';
   return textDatei('$titel.rtf', inhalt);
 }
+
+/// Belege mit Fotos als PDF, z. B. für die Steuerberatung.
+Future<File> belegeAlsPdf(String titel, List<Beleg> belege) async {
+  final doc = pw.Document(title: titel, author: 'Papiertiger');
+  final summe = belege.fold(0.0, (s, b) => s + (b.betrag ?? 0));
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    footer: (c) => pw.Text('Erstellt mit Papiertiger am ${_d(DateTime.now())}',
+        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+    build: (c) => [
+      pw.Header(level: 0, text: titel),
+      pw.Text('${belege.length} Belege · zusammen ${_euro(summe)}'),
+      pw.SizedBox(height: 8),
+      pw.TableHelper.fromTextArray(
+        headers: ['Nr.', 'Datum', 'Händler', 'Kategorie', 'Betrag'],
+        data: [
+          for (var i = 0; i < belege.length; i++)
+            ['${i + 1}', _d(belege[i].datum), belege[i].haendler, belege[i].kategorie ?? '', belege[i].betrag == null ? '' : _euro(belege[i].betrag!)],
+        ],
+        cellStyle: const pw.TextStyle(fontSize: 9),
+        headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+        cellAlignments: {4: pw.Alignment.centerRight},
+      ),
+    ],
+  ));
+  for (var i = 0; i < belege.length; i++) {
+    final b = belege[i];
+    if (b.bild == null) continue;
+    final f = File(b.bild!);
+    if (!f.existsSync()) continue;
+    final bild = pw.MemoryImage(await f.readAsBytes());
+    doc.addPage(pw.Page(
+      pageFormat: PdfPageFormat.a4,
+      build: (c) => pw.Column(children: [
+        pw.Text('Beleg ${i + 1}: ${b.haendler}, ${_d(b.datum)}${b.betrag == null ? '' : ', ${_euro(b.betrag!)}'}',
+            style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 8),
+        pw.Expanded(child: pw.Image(bild, fit: pw.BoxFit.contain)),
+      ]),
+    ));
+  }
+  return _speichern(doc, titel);
+}

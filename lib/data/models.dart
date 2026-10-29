@@ -627,3 +627,17 @@ const ausgabenKategorien = [
   'Wohnen',
   'Sonstiges',
 ];
+
+const betriebsKategorien = [
+  'Wareneinkauf und Material',
+  'Büro und Software',
+  'Telefon und Internet',
+  'Fahrzeug und Fahrten',
+  'Reisekosten',
+  'Werbung',
+  'Fortbildung',
+  'Versicherungen und Beiträge',
+  'Miete und Raumkosten',
+  'Fremdleistungen',
+  'Sonstige Betriebsausgaben',
+];

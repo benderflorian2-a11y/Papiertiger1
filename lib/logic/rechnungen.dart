@@ -147,3 +147,81 @@ String zahlungserinnerungText(Rechnung r, Firma f, Kunde k, Summen s) {
       'Sollte sich Ihre Zahlung mit diesem Schreiben überschnitten haben, betrachten Sie es bitte als gegenstandslos.\n\n'
       'Mit freundlichen Grüßen\n\n${f.name}';
 }
+
+// ---------------------------------------------------------------- Wiederkehrende Rechnungen
+
+/// Wann die nächste Rechnung einer wiederkehrenden Rechnung fällig ist (null = einmalig
+/// oder die Folgerechnung gibt es schon).
+DateTime? naechsteWiederholung(Rechnung r, List<Rechnung> alle) {
+  if (r.wiederholungMonate <= 0 || r.storniert || r.istAngebot) return null;
+  final naechste = DateTime(r.datum.year, r.datum.month + r.wiederholungMonate, r.datum.day);
+  final schonDa = alle.any((x) =>
+      x.id != r.id && !x.istAngebot && x.kundeId == r.kundeId && x.wiederholungMonate == r.wiederholungMonate && x.datum.isAfter(r.datum));
+  return schonDa ? null : naechste;
+}
+
+/// Erstellt die Folgerechnung: gleiche Positionen, neue Nummer, neues Datum und Leistungszeitraum.
+Rechnung folgeRechnung(Rechnung r, List<Rechnung> alle, {required String id, required DateTime datum}) {
+  DateTime? plus(DateTime? d) => d == null ? null : DateTime(d.year, d.month + r.wiederholungMonate, d.day);
+  return Rechnung(
+    id: id,
+    art: 'rechnung',
+    nummer: naechsteNummer(alle, art: 'rechnung', jahr: datum.year),
+    kundeId: r.kundeId,
+    datum: datum,
+    leistungVon: plus(r.leistungVon),
+    leistungBis: plus(r.leistungBis),
+    positionen: [for (final p in r.positionen) Position.fromJson(p.toJson())],
+    zahlungszielTage: r.zahlungszielTage,
+    notiz: r.notiz,
+    wiederholungMonate: r.wiederholungMonate,
+    projektId: r.projektId,
+  );
+}
+
+// ---------------------------------------------------------------- Rücklagen und Lücken
+
+class Ruecklage {
+  Ruecklage({required this.umsatzsteuer, required this.einkommensteuer});
+
+  /// Eingenommene Umsatzsteuer, die ans Finanzamt geht.
+  final double umsatzsteuer;
+
+  /// Grobe Rücklage für Einkommensteuer (Anteil vom Überschuss).
+  final double einkommensteuer;
+
+  double get gesamt => umsatzsteuer + einkommensteuer;
+}
+
+/// Grobe Rücklage: Umsatzsteuer komplett plus [anteil] (Standard 30 %) vom Überschuss.
+/// Nur eine Faustregel, keine Steuerberechnung.
+Ruecklage ruecklageVorschlag(Ueberschuss u, {double anteil = 0.30}) => Ruecklage(
+      umsatzsteuer: u.ustEingenommen,
+      einkommensteuer: u.gewinnVorSteuer <= 0 ? 0 : ((u.gewinnVorSteuer * anteil) * 100).round() / 100,
+    );
+
+/// Was für die Buchhaltung noch fehlt: Belege ohne Foto, Ausgaben ohne Kategorie,
+/// Rechnungen ohne Kunde, lange offene Rechnungen.
+List<String> buchhaltungsLuecken({
+  required Zeitraum z,
+  required List<Beleg> belege,
+  required List<Rechnung> rechnungen,
+  required DateTime heute,
+}) {
+  final out = <String>[];
+  final ausgaben = belege.where((b) => b.geschaeftlich && z.enthaelt(b.datum));
+  final ohneFoto = ausgaben.where((b) => b.bild == null).length;
+  if (ohneFoto > 0) out.add('$ohneFoto geschäftliche ${ohneFoto == 1 ? 'Ausgabe hat' : 'Ausgaben haben'} kein Belegfoto.');
+  final ohneKat = ausgaben.where((b) => b.kategorie == null || !betriebsKategorien.contains(b.kategorie)).length;
+  if (ohneKat > 0) out.add('$ohneKat geschäftliche ${ohneKat == 1 ? 'Ausgabe hat' : 'Ausgaben haben'} keine Betriebsausgaben-Kategorie.');
+  final ohneBetrag = ausgaben.where((b) => b.betrag == null).length;
+  if (ohneBetrag > 0) out.add('$ohneBetrag ${ohneBetrag == 1 ? 'Beleg' : 'Belege'} ohne Betrag.');
+  for (final r in rechnungen.where((r) => !r.istAngebot && !r.storniert && z.enthaelt(r.datum))) {
+    if (r.kundeId.isEmpty) out.add('Rechnung ${r.nummer} hat keinen Kunden.');
+    if (r.positionen.isEmpty) out.add('Rechnung ${r.nummer} hat keine Positionen.');
+    if (istOffen(r) && heute.difference(faelligAm(r)).inDays > 30) {
+      out.add('Rechnung ${r.nummer} ist seit über 30 Tagen überfällig – Zahlung prüfen oder mahnen.');
+    }
+  }
+  return out;
+}

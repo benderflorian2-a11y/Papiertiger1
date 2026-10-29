@@ -332,7 +332,7 @@ class _BelegFormularState extends State<BelegFormular> {
           const Text('Kategorie', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: [
-            for (final k in ausgabenKategorien)
+            for (final k in _geschaeftlich ? betriebsKategorien : ausgabenKategorien)
               ChoiceChip(label: Text(k), selected: _kategorie == k, onSelected: (_) => setState(() => _kategorie = k)),
           ]),
           const SizedBox(height: 16),
