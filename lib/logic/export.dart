@@ -569,3 +569,128 @@ Future<File> belegeAlsPdf(String titel, List<Beleg> belege) async {
   }
   return _speichern(doc, titel);
 }
+
+/// Regiebericht oder Abnahmeprotokoll mit Unterschrift des Kunden.
+Future<File> berichtAlsPdf(Baubericht b, Projekt p, Firma f, Kunde? k) async {
+  final doc = pw.Document(title: '${b.titel} ${p.name}', author: f.name);
+  const normal = pw.TextStyle(fontSize: 10);
+  final fett = pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold);
+  pw.MemoryImage? unterschrift;
+  if (b.unterschrift != null && File(b.unterschrift!).existsSync()) {
+    unterschrift = pw.MemoryImage(await File(b.unterschrift!).readAsBytes());
+  }
+  pw.Widget feld(String titel, String text) => text.trim().isEmpty
+      ? pw.SizedBox()
+      : pw.Padding(
+          padding: const pw.EdgeInsets.only(bottom: 8),
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text(titel, style: fett),
+            pw.Text(text, style: normal),
+          ]),
+        );
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.all(40),
+    build: (c) => [
+      pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Expanded(child: pw.Text(b.titel, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold))),
+        pw.Text('${f.name}\n${f.adresse}', textAlign: pw.TextAlign.right, style: const pw.TextStyle(fontSize: 9)),
+      ]),
+      pw.SizedBox(height: 12),
+      pw.TableHelper.fromTextArray(
+        data: [
+          ['Projekt', p.name],
+          if (p.adresse.isNotEmpty) ['Ort', p.adresse],
+          ['Auftraggeber', [k?.name ?? '', k?.adresse ?? ''].where((x) => x.isNotEmpty).join(', ')],
+          ['Datum', _d(b.datum)],
+          if (b.art == 'regie' && b.stunden > 0) ['Arbeitszeit', '${_menge(b.stunden)} Std.'],
+          if (b.personen.isNotEmpty) ['Ausgeführt von', b.personen],
+        ],
+        cellStyle: normal,
+        border: pw.TableBorder.all(color: PdfColors.grey400, width: 0.5),
+        columnWidths: {0: const pw.FixedColumnWidth(110)},
+      ),
+      pw.SizedBox(height: 12),
+      if (b.art == 'regie') ...[
+        feld('Ausgeführte Zusatzarbeiten', b.text),
+        feld('Verwendetes Material', b.material),
+        pw.Text('Die oben genannten Arbeiten wurden zusätzlich zum Auftrag ausgeführt und werden nach Aufwand berechnet.',
+            style: normal),
+      ] else ...[
+        feld('Abgenommene Leistung', b.text),
+        pw.Text(b.maengel.trim().isEmpty ? 'Die Leistung wurde ohne Mängel abgenommen.' : 'Die Leistung wurde mit folgenden Mängeln abgenommen:',
+            style: fett),
+        if (b.maengel.trim().isNotEmpty) pw.Text(b.maengel, style: normal),
+        pw.SizedBox(height: 6),
+        pw.Text('Mit der Abnahme beginnt die Gewährleistungsfrist.', style: normal),
+      ],
+      pw.SizedBox(height: 30),
+      pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+        pw.Expanded(
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('${p.adresse.isEmpty ? '' : '${p.adresse.split(',').last.trim()}, '}${_d(b.unterschriebenAm ?? b.datum)}', style: normal),
+            pw.Divider(thickness: 0.5),
+            pw.Text('Ort, Datum', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+          ]),
+        ),
+        pw.SizedBox(width: 20),
+        pw.Expanded(
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            if (unterschrift != null) pw.Image(unterschrift, height: 45) else pw.SizedBox(height: 45),
+            pw.Divider(thickness: 0.5),
+            pw.Text('Unterschrift Auftraggeber${b.unterschriftName.isEmpty ? '' : ' (${b.unterschriftName})'}',
+                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+          ]),
+        ),
+      ]),
+    ],
+  ));
+  return _speichern(doc, '${b.titel} ${p.name} ${_d(b.datum)}');
+}
+
+/// Bautagebuch mit Fotos des jeweiligen Tages.
+Future<File> bautagebuchAlsPdf(Projekt p, Firma f, Kunde? k) async {
+  final doc = pw.Document(title: 'Bautagebuch ${p.name}', author: f.name);
+  const normal = pw.TextStyle(fontSize: 10);
+  final fett = pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold);
+  final tage = [...p.tagebuch]..sort((a, b) => a.datum.compareTo(b.datum));
+  bool gleicherTag(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+  final bilder = <Baufoto, pw.MemoryImage>{};
+  for (final foto in p.fotos) {
+    final datei = File(foto.pfad);
+    if (datei.existsSync()) bilder[foto] = pw.MemoryImage(await datei.readAsBytes());
+  }
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.all(40),
+    footer: (c) => pw.Text('${f.name} · Bautagebuch ${p.name} · Seite ${c.pageNumber}/${c.pagesCount}',
+        style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
+    build: (c) => [
+      pw.Text('Bautagebuch', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+      pw.Text('${p.name}${p.adresse.isEmpty ? '' : ' · ${p.adresse}'}${k == null ? '' : ' · ${k.name}'}', style: normal),
+      pw.SizedBox(height: 10),
+      for (final t in tage) ...[
+        pw.Container(
+          color: PdfColors.grey200,
+          padding: const pw.EdgeInsets.all(4),
+          child: pw.Text('${_d(t.datum)}${t.wetter.isEmpty ? '' : '  ·  Wetter: ${t.wetter}'}', style: fett),
+        ),
+        pw.SizedBox(height: 4),
+        if (t.personen.isNotEmpty) pw.Text('Anwesend: ${t.personen}', style: normal),
+        if (t.arbeiten.isNotEmpty) pw.Text('Arbeiten: ${t.arbeiten}', style: normal),
+        if (t.material.isNotEmpty) pw.Text('Material: ${t.material}', style: normal),
+        if (t.besonderheiten.isNotEmpty) pw.Text('Besonderheiten: ${t.besonderheiten}', style: normal),
+        pw.Wrap(spacing: 6, runSpacing: 6, children: [
+          for (final e in bilder.entries)
+            if (gleicherTag(e.key.datum, t.datum))
+              pw.Column(children: [
+                pw.Image(e.value, width: 160, height: 120, fit: pw.BoxFit.cover),
+                if (e.key.text.isNotEmpty) pw.Text(e.key.text, style: const pw.TextStyle(fontSize: 8)),
+              ]),
+        ]),
+        pw.SizedBox(height: 10),
+      ],
+    ],
+  ));
+  return _speichern(doc, 'Bautagebuch ${p.name}');
+}

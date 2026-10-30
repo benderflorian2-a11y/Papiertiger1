@@ -162,3 +162,42 @@ const standardVorlagen = <String, List<String>>{
     'Rücklage für Steuern überweisen',
   ],
 };
+
+// ---------------------------------------------------------------- Baustelle
+
+/// Regieberichte, die noch nicht abgerechnet sind.
+List<Baubericht> offeneRegieberichte(Projekt p) =>
+    p.berichte.where((b) => b.art == 'regie' && !b.abgerechnet).toList()..sort((a, b) => a.datum.compareTo(b.datum));
+
+/// Rechnungspositionen aus Regieberichten: Stunden zum Stundensatz, Material als eigene Zeile (Preis von dir).
+List<Position> regiePositionen(List<Baubericht> berichte, {required double stundensatz, int ustSatz = 19}) => [
+      for (final b in berichte) ...[
+        if (b.stunden > 0)
+          Position(
+            text: 'Regiearbeiten ${_d(b.datum)}: ${b.text.trim().split('\n').first}',
+            menge: b.stunden,
+            einheit: 'Std.',
+            preis: stundensatz,
+            ustSatz: ustSatz,
+          ),
+        if (b.material.trim().isNotEmpty)
+          Position(text: 'Material Regie ${_d(b.datum)}: ${b.material.trim()}', einheit: 'pauschal', ustSatz: ustSatz),
+      ],
+    ];
+
+/// Bautagebuch als Text für einen Zeitraum.
+String bautagebuchText(Projekt p, {DateTime? von, DateTime? bis}) {
+  final l = p.tagebuch
+      .where((t) => (von == null || !t.datum.isBefore(von)) && (bis == null || !t.datum.isAfter(_tagesende(bis))))
+      .toList()
+    ..sort((a, b) => a.datum.compareTo(b.datum));
+  final z = StringBuffer('Bautagebuch ${p.name}${p.adresse.isEmpty ? '' : ' – ${p.adresse}'}\n');
+  for (final t in l) {
+    z.write('\n${_d(t.datum)}${t.wetter.isEmpty ? '' : ' · Wetter: ${t.wetter}'}\n');
+    if (t.personen.isNotEmpty) z.write('Anwesend: ${t.personen}\n');
+    if (t.arbeiten.isNotEmpty) z.write('Arbeiten: ${t.arbeiten}\n');
+    if (t.material.isNotEmpty) z.write('Material: ${t.material}\n');
+    if (t.besonderheiten.isNotEmpty) z.write('Besonderheiten: ${t.besonderheiten}\n');
+  }
+  return z.toString();
+}

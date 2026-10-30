@@ -368,6 +368,132 @@ class Rechnung {
       );
 }
 
+
+// ---------------------------------------------------------------- Baustelle
+
+class Baufoto {
+  Baufoto({required this.pfad, required this.datum, this.text = ''});
+
+  final String pfad;
+  final DateTime datum;
+  String text;
+
+  Map<String, dynamic> toJson() => {'pfad': pfad, 'datum': datum.toIso8601String(), 'text': text};
+
+  factory Baufoto.fromJson(Map<String, dynamic> j) =>
+      Baufoto(pfad: j['pfad'] as String? ?? '', datum: _datum(j['datum']) ?? DateTime.now(), text: j['text'] as String? ?? '');
+}
+
+/// Ein Tag im Bautagebuch.
+class Tagesbericht {
+  Tagesbericht({
+    required this.datum,
+    this.wetter = '',
+    this.personen = '',
+    this.arbeiten = '',
+    this.material = '',
+    this.besonderheiten = '',
+  });
+
+  DateTime datum;
+  String wetter;
+  String personen;
+  String arbeiten;
+  String material;
+  String besonderheiten;
+
+  Map<String, dynamic> toJson() => {
+        'datum': datum.toIso8601String(),
+        'wetter': wetter,
+        'personen': personen,
+        'arbeiten': arbeiten,
+        'material': material,
+        'besonderheiten': besonderheiten,
+      };
+
+  factory Tagesbericht.fromJson(Map<String, dynamic> j) => Tagesbericht(
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        wetter: j['wetter'] as String? ?? '',
+        personen: j['personen'] as String? ?? '',
+        arbeiten: j['arbeiten'] as String? ?? '',
+        material: j['material'] as String? ?? '',
+        besonderheiten: j['besonderheiten'] as String? ?? '',
+      );
+}
+
+/// Regiebericht (Zusatzarbeiten) oder Abnahmeprotokoll, auf Wunsch vom Kunden unterschrieben.
+class Baubericht {
+  Baubericht({
+    required this.id,
+    required this.art,
+    required this.datum,
+    this.text = '',
+    this.stunden = 0,
+    this.personen = '',
+    this.material = '',
+    this.maengel = '',
+    this.unterschrift,
+    this.unterschriftName = '',
+    this.unterschriebenAm,
+    this.abgerechnet = false,
+  });
+
+  final String id;
+
+  /// 'regie' oder 'abnahme'
+  final String art;
+  DateTime datum;
+
+  /// Regie: ausgeführte Zusatzarbeiten. Abnahme: abgenommene Leistung.
+  String text;
+  double stunden;
+  String personen;
+  String material;
+
+  /// Abnahme: festgestellte Mängel (leer = keine).
+  String maengel;
+
+  /// Bild der Unterschrift (PNG).
+  String? unterschrift;
+  String unterschriftName;
+  DateTime? unterschriebenAm;
+
+  /// Regie: schon in eine Rechnung übernommen.
+  bool abgerechnet;
+
+  String get titel => art == 'abnahme' ? 'Abnahmeprotokoll' : 'Regiebericht';
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'art': art,
+        'datum': datum.toIso8601String(),
+        'text': text,
+        'stunden': stunden,
+        'personen': personen,
+        'material': material,
+        'maengel': maengel,
+        'unterschrift': unterschrift,
+        'unterschriftName': unterschriftName,
+        'unterschriebenAm': unterschriebenAm?.toIso8601String(),
+        'abgerechnet': abgerechnet,
+      };
+
+  factory Baubericht.fromJson(Map<String, dynamic> j) => Baubericht(
+        id: j['id'] as String,
+        art: j['art'] as String? ?? 'regie',
+        datum: _datum(j['datum']) ?? DateTime.now(),
+        text: j['text'] as String? ?? '',
+        stunden: _zahl(j['stunden']),
+        personen: j['personen'] as String? ?? '',
+        material: j['material'] as String? ?? '',
+        maengel: j['maengel'] as String? ?? '',
+        unterschrift: j['unterschrift'] as String?,
+        unterschriftName: j['unterschriftName'] as String? ?? '',
+        unterschriebenAm: _datum(j['unterschriebenAm']),
+        abgerechnet: j['abgerechnet'] == true,
+      );
+}
+
 // ---------------------------------------------------------------- Projekte
 
 const projektStatus = ['Anfrage', 'Angebot', 'Auftrag', 'In Arbeit', 'Fertig', 'Abgerechnet'];
@@ -465,7 +591,14 @@ class Projekt {
     List<Materialposten>? material,
     List<ProjektAufgabe>? aufgaben,
     List<Protokoll>? protokolle,
-  })  : erstellt = erstellt ?? DateTime.now(),
+    List<Baufoto>? fotos,
+    List<Tagesbericht>? tagebuch,
+    List<Baubericht>? berichte,
+    this.adresse = '',
+  })  : fotos = fotos ?? [],
+        tagebuch = tagebuch ?? [],
+        berichte = berichte ?? [],
+        erstellt = erstellt ?? DateTime.now(),
         zeiten = zeiten ?? [],
         material = material ?? [],
         aufgaben = aufgaben ?? [],
@@ -485,6 +618,12 @@ class Projekt {
   List<Materialposten> material;
   List<ProjektAufgabe> aufgaben;
   List<Protokoll> protokolle;
+  List<Baufoto> fotos;
+  List<Tagesbericht> tagebuch;
+  List<Baubericht> berichte;
+
+  /// Adresse der Baustelle bzw. des Einsatzorts.
+  String adresse;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -499,6 +638,10 @@ class Projekt {
         'material': material.map((m) => m.toJson()).toList(),
         'aufgaben': aufgaben.map((a) => a.toJson()).toList(),
         'protokolle': protokolle.map((p) => p.toJson()).toList(),
+        'fotos': fotos.map((f) => f.toJson()).toList(),
+        'tagebuch': tagebuch.map((t) => t.toJson()).toList(),
+        'berichte': berichte.map((b) => b.toJson()).toList(),
+        'adresse': adresse,
       };
 
   factory Projekt.fromJson(Map<String, dynamic> j) => Projekt(
@@ -514,5 +657,9 @@ class Projekt {
         material: _liste(j['material'], Materialposten.fromJson),
         aufgaben: _liste(j['aufgaben'], ProjektAufgabe.fromJson),
         protokolle: _liste(j['protokolle'], Protokoll.fromJson),
+        fotos: _liste(j['fotos'], Baufoto.fromJson),
+        tagebuch: _liste(j['tagebuch'], Tagesbericht.fromJson),
+        berichte: _liste(j['berichte'], Baubericht.fromJson),
+        adresse: j['adresse'] as String? ?? '',
       );
 }

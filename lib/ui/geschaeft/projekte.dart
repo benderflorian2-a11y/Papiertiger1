@@ -9,6 +9,7 @@ import '../app.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 import 'geschaeft.dart';
+import 'baustelle.dart';
 
 double? _zahl(String s) => double.tryParse(s.replaceAll('.', '').replaceAll(',', '.').replaceAll('€', '').trim());
 String _h(double h) => h.toStringAsFixed(h == h.roundToDouble() ? 0 : 2).replaceAll('.', ',');
@@ -174,7 +175,7 @@ class ProjektDetail extends StatelessWidget {
     final nk = nachkalkulation(p, store.rechnungen);
     final angebote = store.rechnungen.where((r) => r.istAngebot && (p.kundeId.isEmpty || r.kundeId == p.kundeId)).toList();
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Text(p.name),
@@ -193,6 +194,7 @@ class ProjektDetail extends StatelessWidget {
             Tab(text: 'Zeiten'),
             Tab(text: 'Material'),
             Tab(text: 'Aufgaben'),
+            Tab(text: 'Baustelle'),
           ]),
         ),
         body: TabBarView(children: [
@@ -390,6 +392,7 @@ class ProjektDetail extends StatelessWidget {
                 },
               ),
           ]),
+          BaustelleTab(projekt: p),
         ]),
       ),
     );
