@@ -187,6 +187,8 @@ const pruefungen = [
   Pruefung('vertrag', 'Vertrag verständlich zusammenfassen', 'Kosten, Laufzeit, Haken',
       'Fasse diesen Vertrag verständlich zusammen. Antworte im Format:\nKOSTEN:\n- <alle Kosten>\nLAUFZEIT UND KÜNDIGUNG:\n- <Mindestlaufzeit, Frist, Verlängerung>\n'
           'WICHTIGE BEDINGUNGEN:\n- <Pflichten, Preisanpassungen, Sonderregeln>\nWORAUF ACHTEN:\n- <mögliche Haken>'),
+  Pruefung('gehalt', 'Gehaltsabrechnung prüfen', 'Stimmen Steuer, Abzüge und Netto?',
+      'Prüfe die Lohn- bzw. Gehaltsabrechnung unten auf Plausibilität. Antworte im Format:\nBRUTTO: <Betrag>\nABZÜGE: <Lohnsteuer, Soli, Kirchensteuer, Renten-, Kranken-, Pflege-, Arbeitslosenversicherung mit Beträgen>\nNETTO: <Betrag>\nAUFFÄLLIG:\n- <z. B. falsche Steuerklasse, fehlende Zuschläge, Rechenfehler, ungewöhnlich hohe Abzüge>\nWAS PRÜFEN: <1 bis 3 Punkte>\nRechne Summen nach, wenn die Zahlen dafür da sind. Erfinde keine Beträge. Keine Steuerberatung.'),
   Pruefung('termin', 'Termin bei der Behörde vorbereiten', 'Was mitnehmen, was fragen?',
       'Hilf bei der Vorbereitung auf den Termin, um den es in diesem Schreiben geht. Antworte im Format:\n'
           'TERMIN: <wann, wo, bei wem – nur wenn im Text>\nMITBRINGEN:\n- <Dokumente und Nachweise>\nFRAGEN, DIE DU STELLEN KANNST:\n- <3 bis 5 Fragen>\n'
@@ -202,6 +204,7 @@ List<Pruefung> pruefungenFuer(Brief b) {
     if (b.typ == 'bescheid' || b.typ.startsWith('renten') || t.contains('bescheid')) 'bescheid',
     if (b.typ == 'mahnung' || b.kategorie == 'inkasso' || t.contains('mahngebühr')) 'mahnung',
     if (t.contains('vertragsbedingungen') || t.contains('mindestlaufzeit') || t.contains('vertragsbestätigung')) 'vertrag',
+    if (t.contains('entgeltabrechnung') || t.contains('lohnabrechnung') || t.contains('gehaltsabrechnung') || (t.contains('brutto') && t.contains('netto') && t.contains('lohnsteuer'))) 'gehalt',
     if (t.contains('termin') && (t.contains('vorsprache') || t.contains('einladung') || t.contains('eingeladen') || t.contains('erscheinen'))) 'termin',
   ];
   return [for (final k in keys) pruefungen.firstWhere((p) => p.key == k)];

@@ -10,6 +10,7 @@ import '../../logic/karriere.dart';
 import '../../logic/ordnung.dart';
 import '../../logic/texterkennung.dart';
 import '../app.dart';
+import '../brief_detail.dart';
 import '../ki_text.dart';
 import '../module/profil.dart';
 import '../theme.dart';
@@ -71,6 +72,8 @@ class KarriereScreen extends StatelessWidget {
                 ? 'Anzeige auswerten, Anschreiben, Unterlagen prüfen'
                 : '$offen laufend${nachfassen == 0 ? '' : ' · $nachfassen zum Nachfassen'}',
             const BewerbungenScreen()),
+        _kachel(context, Icons.payments_outlined, 'Gehaltsabrechnungen',
+            'Netto im Verlauf, Auffälligkeiten, Prüfung per KI', const GehaltScreen()),
         _kachel(context, Icons.workspace_premium_outlined, 'Arbeitszeugnis verstehen', 'Zeugnissprache in Klartext',
             const ZeugnisScreen()),
         _kachel(context, Icons.school_outlined, 'Weiterbildung',
@@ -907,5 +910,43 @@ class WeiterbildungScreen extends StatelessWidget {
       return;
     }
     await store.geaendert();
+  }
+}
+
+
+// ---------------------------------------------------------------- Gehaltsabrechnungen
+
+class GehaltScreen extends StatelessWidget {
+  const GehaltScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final store = StoreScope.of(context);
+    final l = gehaltsVerlauf(store.briefe);
+    final auff = gehaltsAuffaelligkeiten(l);
+    String e(double? x) => x == null ? '–' : euro(x);
+    return Scaffold(
+      appBar: AppBar(title: const Text('Gehaltsabrechnungen')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        if (l.isEmpty)
+          const LeerHinweis(
+            icon: Icons.payments_outlined,
+            text: 'Scanne deine Lohn- oder Gehaltsabrechnungen wie einen Brief – der Tiger zeigt dann Brutto und Netto im Verlauf.',
+          ),
+        for (final a in auff) PTKarte(farbe: PT.gelbHell, child: Text(a)),
+        for (final g in l.reversed)
+          PTKarte(
+            padding: const EdgeInsets.all(12),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BriefDetail(briefId: g.brief.id))),
+            child: Row(children: [
+              Expanded(child: Text('${g.monat.month}/${g.monat.year}', style: const TextStyle(fontWeight: FontWeight.w700))),
+              Text('Brutto ${e(g.brutto)}\nNetto ${e(g.netto)}', textAlign: TextAlign.right),
+            ]),
+          ),
+        if (l.isNotEmpty)
+          const Text('Tipp: In der Abrechnung unter „Genauer prüfen“ rechnet die KI Steuer und Abzüge nach.',
+              style: TextStyle(color: PT.grau, fontSize: 12)),
+      ]),
+    );
   }
 }

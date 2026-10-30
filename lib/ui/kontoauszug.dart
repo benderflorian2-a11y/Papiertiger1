@@ -19,17 +19,17 @@ class KontoauszugScreen extends StatefulWidget {
 }
 
 /// Auswahl der Quelle: Kontoauszüge aus dem Archiv und/oder eingefügter Text.
-mixin _AuszugQuelle<T extends StatefulWidget> on State<T> {
-  final Set<String> _gewaehlt = {};
-  String _eingefuegt = '';
+mixin AuszugQuelle<T extends StatefulWidget> on State<T> {
+  final Set<String> gewaehlt = {};
+  String eingefuegt = '';
 
-  bool get _hatQuelle => _gewaehlt.isNotEmpty || _eingefuegt.isNotEmpty;
+  bool get hatQuelle => gewaehlt.isNotEmpty || eingefuegt.isNotEmpty;
 
-  String _text(List<Brief> briefe) =>
-      [for (final b in briefe) if (_gewaehlt.contains(b.id)) b.text, _eingefuegt].join('\n');
+  String auszugText(List<Brief> briefe) =>
+      [for (final b in briefe) if (gewaehlt.contains(b.id)) b.text, eingefuegt].join('\n');
 
-  Future<void> _einfuegen() async {
-    final c = TextEditingController(text: _eingefuegt);
+  Future<void> umsaetzeEinfuegen() async {
+    final c = TextEditingController(text: eingefuegt);
     final ok = await showDialog<bool>(
       context: context,
       builder: (d) => AlertDialog(
@@ -46,11 +46,11 @@ mixin _AuszugQuelle<T extends StatefulWidget> on State<T> {
         ],
       ),
     );
-    if (ok == true) setState(() => _eingefuegt = c.text);
+    if (ok == true) setState(() => eingefuegt = c.text);
     c.dispose();
   }
 
-  List<Widget> _quelleAuswahl(List<Brief> briefe) {
+  List<Widget> quelleAuswahl(List<Brief> briefe) {
     final auszuege = briefe
         .where((b) => RegExp(r'kontoauszug|umsätze|umsatzliste|kontostand', caseSensitive: false)
             .hasMatch('${b.titel ?? ''} ${b.kiArt ?? ''} ${b.text.length > 600 ? b.text.substring(0, 600) : b.text}'))
@@ -65,25 +65,25 @@ mixin _AuszugQuelle<T extends StatefulWidget> on State<T> {
       for (final b in auszuege)
         CheckboxListTile(
           contentPadding: EdgeInsets.zero,
-          value: _gewaehlt.contains(b.id),
+          value: gewaehlt.contains(b.id),
           title: Text(titelVon(b)),
           subtitle: Text(datumKurz(b.briefDatum ?? b.erstellt)),
-          onChanged: (v) => setState(() => v == true ? _gewaehlt.add(b.id) : _gewaehlt.remove(b.id)),
+          onChanged: (v) => setState(() => v == true ? gewaehlt.add(b.id) : gewaehlt.remove(b.id)),
         ),
       TextButton.icon(
-        onPressed: _einfuegen,
+        onPressed: umsaetzeEinfuegen,
         icon: const Icon(Icons.content_paste),
-        label: Text(_eingefuegt.isEmpty ? 'Umsätze einfügen' : 'Eingefügte Umsätze bearbeiten'),
+        label: Text(eingefuegt.isEmpty ? 'Umsätze einfügen' : 'Eingefügte Umsätze bearbeiten'),
       ),
     ];
   }
 }
 
-class _KontoauszugScreenState extends State<KontoauszugScreen> with _AuszugQuelle<KontoauszugScreen> {
+class _KontoauszugScreenState extends State<KontoauszugScreen> with AuszugQuelle<KontoauszugScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final buchungen = abbuchungenLesen(_text(store.briefe));
+    final buchungen = abbuchungenLesen(auszugText(store.briefe));
     final wieder = wiederkehrendeAbbuchungen(buchungen, vertraege: store.vertraege);
     final doppelt = doppelteAbbuchungen(buchungen);
     final proMonat = wieder.fold(0.0, (s, w) => s + w.proMonat);
@@ -97,8 +97,8 @@ class _KontoauszugScreenState extends State<KontoauszugScreen> with _AuszugQuell
             'Online-Banking ein. Der Tiger liest nur – er hat keinen Zugang zu deinem Konto.',
             style: TextStyle(color: PT.grau),
           ),
-          ..._quelleAuswahl(store.briefe),
-          if (_hatQuelle) ...[
+          ...quelleAuswahl(store.briefe),
+          if (hatQuelle) ...[
             Text('${buchungen.length} Abbuchungen gelesen', style: const TextStyle(color: PT.grau, fontSize: 13)),
             if (doppelt.isNotEmpty) ...[
               const Abschnitt('Vielleicht doppelt abgebucht'),
@@ -163,11 +163,11 @@ class ZahlungseingaengeScreen extends StatefulWidget {
   State<ZahlungseingaengeScreen> createState() => _ZahlungseingaengeScreenState();
 }
 
-class _ZahlungseingaengeScreenState extends State<ZahlungseingaengeScreen> with _AuszugQuelle<ZahlungseingaengeScreen> {
+class _ZahlungseingaengeScreenState extends State<ZahlungseingaengeScreen> with AuszugQuelle<ZahlungseingaengeScreen> {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
-    final eingaenge = gutschriftenLesen(_text(store.briefe));
+    final eingaenge = gutschriftenLesen(auszugText(store.briefe));
     final treffer = zahlungenZuordnen(store.rechnungen, eingaenge, kleinunternehmer: store.firma.kleinunternehmer);
     final offen = store.rechnungen.where(istOffen).length;
     return Scaffold(
@@ -178,8 +178,8 @@ class _ZahlungseingaengeScreenState extends State<ZahlungseingaengeScreen> with 
           Text('$offen offene Rechnungen. Der Tiger sucht im Kontoauszug nach der Rechnungsnummer oder dem genauen Betrag. '
               'Du bestätigst jede Zahlung selbst.',
               style: const TextStyle(color: PT.grau)),
-          ..._quelleAuswahl(store.briefe),
-          if (_hatQuelle) ...[
+          ...quelleAuswahl(store.briefe),
+          if (hatQuelle) ...[
             Text('${eingaenge.length} Zahlungseingänge gelesen', style: const TextStyle(color: PT.grau, fontSize: 13)),
             Abschnitt(treffer.isEmpty ? 'Keine passenden Zahlungen' : 'Passt zusammen'),
             for (final (r, g, grund) in treffer)

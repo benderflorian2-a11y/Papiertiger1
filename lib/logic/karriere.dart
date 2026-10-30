@@ -282,3 +282,54 @@ const foerderHinweise = [
   ('Bildungsurlaub', 'In fast allen Bundesländern (nicht in Bayern und Sachsen) meist 5 Tage bezahlte Freistellung im Jahr für anerkannte Kurse.'),
   ('Steuer', 'Selbst bezahlte berufliche Fortbildung kannst du als Werbungskosten absetzen.'),
 ];
+
+// ---------------------------------------------------------------- Gehaltsabrechnungen
+
+class Gehalt {
+  Gehalt({required this.brief, required this.monat, this.brutto, this.netto});
+
+  final Brief brief;
+  final DateTime monat;
+  final double? brutto;
+  final double? netto;
+}
+
+bool istGehaltsabrechnung(Brief b) =>
+    RegExp(r'entgeltabrechnung|lohnabrechnung|gehaltsabrechnung|verdienstabrechnung|bezügemitteilung', caseSensitive: false)
+        .hasMatch('${b.titel ?? ''} ${b.kiArt ?? ''} ${b.text}');
+
+double? _betragNach(String text, String muster) {
+  final m = RegExp('(?:$muster)[^\\d\\n]{0,40}?(\\d{1,3}(?:\\.\\d{3})*,\\d{2})', caseSensitive: false).firstMatch(text);
+  return m == null ? null : double.parse(m.group(1)!.replaceAll('.', '').replaceAll(',', '.'));
+}
+
+/// Gehaltsabrechnungen aus dem Archiv mit Brutto und Netto, älteste zuerst.
+List<Gehalt> gehaltsVerlauf(List<Brief> briefe) {
+  final l = <Gehalt>[];
+  for (final b in briefe.where(istGehaltsabrechnung)) {
+    final d = b.briefDatum ?? b.erstellt;
+    l.add(Gehalt(
+      brief: b,
+      monat: DateTime(d.year, d.month),
+      brutto: _betragNach(b.text, r'gesamt-?brutto|bruttoentgelt|bruttoverdienst|brutto'),
+      netto: _betragNach(b.text, r'auszahlungsbetrag|auszahlung|nettobetrag|nettoverdienst|nettoentgelt|netto'),
+    ));
+  }
+  l.sort((a, b) => a.monat.compareTo(b.monat));
+  return l;
+}
+
+/// Auffällige Änderungen beim Netto (mehr als [prozent] % zum Vormonat).
+List<String> gehaltsAuffaelligkeiten(List<Gehalt> l, {double prozent = 5}) {
+  final out = <String>[];
+  for (var i = 1; i < l.length; i++) {
+    final a = l[i - 1].netto, b = l[i].netto;
+    if (a == null || b == null || a == 0) continue;
+    final diff = (b - a) / a * 100;
+    if (diff.abs() >= prozent) {
+      out.add('${l[i].monat.month}/${l[i].monat.year}: Netto ${diff > 0 ? '+' : ''}${diff.toStringAsFixed(0)} % '
+          '(${b.toStringAsFixed(2).replaceAll('.', ',')} € statt ${a.toStringAsFixed(2).replaceAll('.', ',')} €)');
+    }
+  }
+  return out;
+}

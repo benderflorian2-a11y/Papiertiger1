@@ -102,4 +102,18 @@ void main() {
     expect(k2.weiterbildungen.single.kosten, 4200);
     expect(Karriere.fromJson({}).bewerbungen, isEmpty);
   });
+
+  test('Gehaltsabrechnungen im Verlauf', () {
+    Brief b(String id, DateTime d, String text) =>
+        Brief(id: id, erstellt: d, briefDatum: d, kategorie: 'sonstiges', typ: 'schreiben', text: text, erklaerung: '');
+    final l = gehaltsVerlauf([
+      b('2', DateTime(2026, 10, 28), 'Entgeltabrechnung Oktober\nGesamtbrutto 3.200,00\nAuszahlungsbetrag 2.050,50'),
+      b('1', DateTime(2026, 9, 28), 'Entgeltabrechnung September\nGesamtbrutto 3.200,00\nAuszahlungsbetrag 2.180,00'),
+      b('x', DateTime(2026, 9, 1), 'Stromrechnung 80,00'),
+    ]);
+    expect(l.map((g) => g.brief.id), ['1', '2']);
+    expect(l.last.brutto, 3200);
+    expect(l.last.netto, 2050.5);
+    expect(gehaltsAuffaelligkeiten(l).single, startsWith('10/2026: Netto -6 %'));
+  });
 }

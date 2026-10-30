@@ -5,6 +5,7 @@ import '../finanzen.dart';
 import '../geschaeft/geschaeft.dart';
 import '../familie/familie.dart';
 import '../haushalt/haushalt.dart';
+import '../vermietung/vermietung.dart';
 import '../karriere/karriere.dart';
 import '../theme.dart';
 import '../../logic/lebenslage.dart';
@@ -48,6 +49,8 @@ final module = <ModulInfo>[
   ModulInfo('Kinder', 'Untersuchungen, Kita, Kindergeld', Icons.child_care, () => const KinderScreen(), key: 'kinder'),
   ModulInfo('Vorsorgemappe', 'Notfallblatt für Angehörige', Icons.health_and_safety_outlined,
       () => const VorsorgeScreen(), key: 'vorsorge'),
+  ModulInfo('Vermietung', 'Mieter, Mieteingänge, Nebenkosten', Icons.apartment_outlined,
+      () => const VermietungScreen(), key: 'vermietung'),
   ModulInfo('Behördengänge', 'Ummelden, Gewerbe, Ausweis', Icons.account_balance_outlined,
       () => const BehoerdengaengeScreen()),
 ];
