@@ -258,3 +258,19 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Vorstellungsgespräch vorbereiten (zusätzlich)
 - ✅ Arbeitszeugnis verstehen (zusätzlich)
 - ✅ Weiterbildungen mit Kosten, Fristen und Förderhinweisen (zusätzlich)
+
+## Erweiterungen für alle Zielgruppen (Ideen vom 30.10.2026)
+- ✅ Verschlüsselte Datensicherung und Zurückspielen auf neuem Handy
+- ✅ Lebenslagen statt Bereichsschalter – App zeigt nur Passendes
+- ✅ Startseite „Heute erledigen“
+- ✅ Posteingang mit einem Tipp je Brief (Bezahlen, Widerspruch, Ablegen …)
+- ✅ Große Schrift
+- ✅ Sprachbefehle auf der Startseite
+- ✅ Briefe in der eigenen Sprache erklären
+- ✅ Kinder-Akte mit U-Untersuchungen und Kindergeld-Hinweis
+- ✅ Vorsorgemappe mit Notfallblatt für Angehörige
+- ✅ Gehaltsabrechnungen im Verlauf und Prüfung
+- ✅ Vermietung: Mieter, Mieteingänge, Mieterhöhung, Nebenkostenabrechnung
+- ✅ Freiberufler-Modus ohne Handwerksfunktionen, Steuer-Rücklage je Zahlungseingang
+- ✅ Startbildschirm-Widget
+- 🔒 Familie/Angehörige/Team auf mehreren Handys – braucht Server (Entscheidung offen)
