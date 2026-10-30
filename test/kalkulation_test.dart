@@ -93,4 +93,29 @@ void main() {
     expect(a, contains('- Bodenfliesen verlegen (m²)'));
     expect(a, contains('Bad 2,5 x 3 m'));
   });
+
+  test('DATANORM vom Großhändler', () {
+    const dn = 'V 4.0;Großhandel Muster;Preisliste\n'
+        'A;N;100200;00;Fliesenkleber flexibel;25 kg Sack;1;0;Sack;2490;R1;FLI;\n'
+        'A;N;100300;00;Silikon sanitär weiß;;2;0;Stck;6,90;R1;FLI;\n'
+        'A;N;100400;00;Schraube 4x40;;2;2;Stck;350;R2;BEF;\n'
+        'A;L;100500;00;gelöscht;;2;0;Stck;100;;;\n'
+        'P;A;100300;2;720;;;;\n';
+    expect(istDatanorm(dn), isTrue);
+    expect(istDatanorm('Nummer;Bezeichnung\n1;x'), isFalse);
+    final l = katalogAusDatanorm(dn, neueId: _id, rabattProzent: 20, aufschlag: 15);
+    expect(l.map((a) => a.nummer), ['100200', '100300', '100400']);
+    expect(l[0].text, 'Fliesenkleber flexibel 25 kg Sack');
+    expect(l[0].einkauf, 19.92); // 24,90 Listenpreis − 20 %
+    expect(l[0].gruppe, 'FLI');
+    expect(l[1].einkauf, 7.2); // Nettopreis, per P-Satz geändert
+    expect(l[2].einkauf, 0.035); // 3,50 je 100 Stück
+    expect(l[0].aufschlagProzent, 15);
+  });
+
+  test('Text aus Bytes: UTF-8 und DOS-Zeichensatz', () {
+    expect(textAusBytes([0x47, 0x72, 0xC3, 0xB6, 0xC3, 0x9F, 0x65]), 'Größe');
+    expect(textAusBytes([0x47, 0x72, 0x94, 0xE1, 0x65]), 'Größe');
+    expect(textAusBytes([0x47, 0x72, 0xF6, 0xDF, 0x65]), 'Größe'); // Latin-1
+  });
 }

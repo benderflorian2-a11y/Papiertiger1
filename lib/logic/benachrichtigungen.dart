@@ -6,6 +6,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../data/store.dart';
 import 'zeitplan.dart';
+import 'arbeitszeit.dart';
 
 /// Plant Push-Erinnerungen auf dem Handy, offline und ohne Server.
 class Benachrichtigungen {
@@ -56,6 +57,38 @@ class Benachrichtigungen {
     try {
       await starten();
       await _plugin.cancelAll();
+      // Stempeluhr: unabhängig von den übrigen Erinnerungen
+      if (store.bereichAktiv('selbststaendig')) {
+        for (final (id, zeit, titel, text) in stempelErinnerungen(store.stempel, DateTime.now())) {
+          await _plugin.zonedSchedule(
+            id: id,
+            scheduledDate: tz.TZDateTime.from(zeit, tz.local),
+            notificationDetails: _details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            title: titel,
+            body: text,
+          );
+        }
+        final stunde = int.tryParse(store.notizen['stempel:erinnerung'] ?? '');
+        if (stunde != null) {
+          final jetzt = DateTime.now();
+          for (var tag = 1; tag <= 5; tag++) {
+            var t = DateTime(jetzt.year, jetzt.month, jetzt.day, stunde);
+            while (t.weekday != tag || !t.isAfter(jetzt)) {
+              t = t.add(const Duration(days: 1));
+            }
+            await _plugin.zonedSchedule(
+              id: 800000 + tag,
+              scheduledDate: tz.TZDateTime.from(t, tz.local),
+              notificationDetails: _details,
+              androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+              title: 'Einstempeln nicht vergessen',
+              body: 'Tippe hier und starte die Stempeluhr.',
+              matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+            );
+          }
+        }
+      }
       final e = store.erinnerungen;
       if (!e.aktiv) return;
       final jetzt = DateTime.now();

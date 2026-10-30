@@ -2,6 +2,8 @@
 /// Aufschlag und Arbeitszeit, Aufmaß und Angebotsentwurf per KI. Reines Dart, testbar.
 library;
 
+import 'dart:convert';
+
 import '../data/geschaeft.dart';
 
 double _rund(double x) => (x * 100).round() / 100;
@@ -179,4 +181,76 @@ List<Position> angebotLesen(String antwort, List<Artikel> katalog, {required dou
     }
   }
   return out;
+}
+
+// ---------------------------------------------------------------- DATANORM
+
+/// Sieht der Text wie eine DATANORM-Datei vom Großhändler aus (Version 4 oder 5)?
+bool istDatanorm(String text) => text
+    .split('\n')
+    .take(50)
+    .any((z) => RegExp(r'^\s*A;[NLA];').hasMatch(z));
+
+const _preisEinheit = {'0': 1, '1': 10, '2': 100, '3': 1000};
+
+/// Artikel aus DATANORM-A-Sätzen: A;N;Artikelnr;Textkz;Kurztext1;Kurztext2;Preiskz;Preiseinheit;Mengeneinheit;Preis;…
+/// Preise ohne Komma sind in Cent angegeben. Preiskennzeichen 1 = Listenpreis: davon wird [rabattProzent]
+/// (dein Einkaufsrabatt beim Großhändler) abgezogen. P-Sätze (Preisänderungen) werden übernommen.
+List<Artikel> katalogAusDatanorm(String text,
+    {required String Function() neueId, double rabattProzent = 0, double aufschlag = 0}) {
+  final artikel = <String, Artikel>{};
+  final reihenfolge = <String>[];
+  double? preis(String roh, String kz, String pe) {
+    final t = roh.trim();
+    if (t.isEmpty) return null;
+    final wert = t.contains(',') || t.contains('.')
+        ? double.tryParse(t.replaceAll('.', '').replaceAll(',', '.'))
+        : (int.tryParse(t) ?? 0) / 100;
+    if (wert == null) return null;
+    final je = wert / (_preisEinheit[pe.trim()] ?? 1);
+    final ek = kz.trim() == '1' ? je * (1 - rabattProzent / 100) : je;
+    return (ek * 10000).round() / 10000;
+  }
+
+  for (final roh in text.split('\n')) {
+    final f = roh.trimRight().split(';');
+    if (f.length < 5) continue;
+    if (f[0].trim() == 'A' && f[1].trim() != 'L' && f.length >= 10) {
+      final nr = f[2].trim();
+      if (nr.isEmpty) continue;
+      final name = '${f[4].trim()} ${f[5].trim()}'.trim();
+      if (name.isEmpty) continue;
+      final a = Artikel(
+        id: artikel[nr]?.id ?? neueId(),
+        text: name,
+        nummer: nr,
+        einheit: f[8].trim().isEmpty ? 'Stück' : f[8].trim(),
+        einkauf: preis(f[9], f[6], f[7]) ?? 0,
+        aufschlagProzent: aufschlag,
+        gruppe: f.length > 11 ? f[11].trim() : '',
+      );
+      if (!artikel.containsKey(nr)) reihenfolge.add(nr);
+      artikel[nr] = a;
+    } else if (f[0].trim() == 'P' && f[1].trim() == 'A') {
+      // P;A;Artikelnr;Preiskz;Preis;… – es wird nur der erste Artikel des Satzes gelesen
+      final a = artikel[f[2].trim()];
+      final p = preis(f[4], f[3], '0');
+      if (a != null && p != null) a.einkauf = p;
+    }
+  }
+  return [for (final nr in reihenfolge) artikel[nr]!];
+}
+
+/// Text aus Bytes: UTF-8, sonst DOS-Zeichensatz (CP850, typisch für DATANORM), sonst Latin-1.
+String textAusBytes(List<int> bytes) {
+  try {
+    return utf8.decode(bytes);
+  } on FormatException {
+    // kein UTF-8
+  }
+  const cp850 = {0x81: 'ü', 0x84: 'ä', 0x94: 'ö', 0x8E: 'Ä', 0x99: 'Ö', 0x9A: 'Ü', 0xE1: 'ß', 0x82: 'é', 0xF8: '°', 0xFD: '²'};
+  final dos = bytes.any((b) => b == 0x81 || b == 0x84 || b == 0x94 || b == 0xE1);
+  return String.fromCharCodes([
+    for (final b in bytes) ...(dos && cp850.containsKey(b) ? cp850[b]!.codeUnits : [b]),
+  ]);
 }

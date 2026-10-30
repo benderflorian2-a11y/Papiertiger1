@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/geschaeft.dart';
 import '../../logic/arbeitszeit.dart';
+import '../../logic/benachrichtigungen.dart';
 import '../../logic/export.dart';
 import '../../logic/plantafel.dart';
 import '../app.dart';
@@ -190,9 +191,31 @@ class _StempeluhrScreenState extends State<StempeluhrScreen> {
               ]),
             );
           }),
+        Builder(builder: (_) {
+          final stunde = int.tryParse(store.notizen['stempel:erinnerung'] ?? '');
+          return Wrap(spacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
+            const Text('Werktags ans Einstempeln erinnern:'),
+            for (final h in const [null, 6, 7, 8])
+              ChoiceChip(
+                label: Text(h == null ? 'aus' : '$h:00'),
+                selected: stunde == h,
+                onSelected: (_) async {
+                  if (h == null) {
+                    store.notizen.remove('stempel:erinnerung');
+                  } else {
+                    await Benachrichtigungen.erlaubnisAnfragen();
+                    store.notizen['stempel:erinnerung'] = '$h';
+                  }
+                  await store.geaendert();
+                },
+              ),
+          ]);
+        }),
+        const SizedBox(height: 8),
         const Text(
           'Die Zeiten landen im Projekt (Reiter „Zeiten“) und zählen für Nachkalkulation, Tätigkeitsnachweis und Rechnung. '
-          'Die Stundenliste oben rechts kannst du deiner Lohnabrechnung geben.',
+          'Die Stundenliste oben rechts kannst du deiner Lohnabrechnung geben. Läuft die Uhr 6 Stunden ohne Pause '
+          'oder 10 Stunden insgesamt, meldet sich der Tiger.',
           style: TextStyle(color: PT.grau, fontSize: 12),
         ),
       ]),

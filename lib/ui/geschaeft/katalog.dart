@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
@@ -36,8 +34,8 @@ class _KatalogScreenState extends State<KatalogScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.file_open_outlined),
-            title: const Text('CSV-Datei wählen'),
-            subtitle: const Text('Aus Excel „Speichern unter → CSV“ oder vom Großhändler'),
+            title: const Text('Datei wählen'),
+            subtitle: const Text('DATANORM vom Großhändler oder CSV aus Excel'),
             onTap: () => Navigator.pop(c, 'datei'),
           ),
           ListTile(
@@ -51,15 +49,10 @@ class _KatalogScreenState extends State<KatalogScreen> {
     );
     if (wahl == 'datei') {
       final f = await openFile(acceptedTypeGroups: [
-        const XTypeGroup(label: 'Tabelle', extensions: ['csv', 'txt'])
+        const XTypeGroup(label: 'Tabelle oder DATANORM', extensions: ['csv', 'txt', '001', '002', '003', 'dat', 'wrg'])
       ]);
       if (f == null) return;
-      final bytes = await f.readAsBytes();
-      try {
-        text = utf8.decode(bytes);
-      } catch (_) {
-        text = latin1.decode(bytes); // ältere Excel- und Großhändler-Dateien
-      }
+      text = textAusBytes(await f.readAsBytes());
     } else if (wahl == 'text') {
       if (!mounted) return;
       final c = TextEditingController();
@@ -82,12 +75,50 @@ class _KatalogScreenState extends State<KatalogScreen> {
       c.dispose();
     }
     if (text == null || text.trim().isEmpty || !mounted) return;
+    final datanorm = istDatanorm(text);
+    var rabatt = 0.0;
+    if (datanorm) {
+      final r = await _zahlFragen('Dein Rabatt beim Großhändler', 'auf den Listenpreis', '0');
+      if (r == null) return;
+      rabatt = r;
+    }
     final aufschlag = await _aufschlagFragen();
     if (aufschlag == null) return;
-    final neu = katalogAusCsv(text, neueId: neueId, aufschlag: aufschlag);
+    final neu = datanorm
+        ? katalogAusDatanorm(text, neueId: neueId, rabattProzent: rabatt, aufschlag: aufschlag)
+        : katalogAusCsv(text, neueId: neueId, aufschlag: aufschlag);
+    // gleiche Artikelnummer: vorhandenen Artikel aktualisieren statt doppelt anlegen
+    for (final a in neu.where((a) => a.nummer.isNotEmpty)) {
+      final alt = store.artikel.where((x) => x.nummer == a.nummer).firstOrNull;
+      if (alt != null) {
+        alt
+          ..text = a.text
+          ..einkauf = a.einkauf
+          ..einheit = a.einheit;
+      }
+    }
+    neu.removeWhere((a) => a.nummer.isNotEmpty && store.artikel.any((x) => x.nummer == a.nummer));
     store.artikel.addAll(neu);
     await store.geaendert();
     if (mounted) zeigeHinweis(context, '${neu.length} Artikel importiert');
+  }
+
+  Future<double?> _zahlFragen(String titel, String label, String start) async {
+    final c = TextEditingController(text: start);
+    final x = await showDialog<double>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: Text(titel),
+        content: TextField(
+          controller: c,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: feld(labelText: label, suffixText: '%'),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(d, _zahl(c.text) ?? 0), child: const Text('OK'))],
+      ),
+    );
+    c.dispose();
+    return x;
   }
 
   Future<double?> _aufschlagFragen() async {

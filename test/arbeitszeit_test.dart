@@ -50,4 +50,15 @@ void main() {
     expect(csv, contains('Anna;;;;;;7,00;0,50;'));
     expect(csv, isNot(contains('Ben')));
   });
+
+  test('Erinnerungen der Stempeluhr', () {
+    final s = Stempel(person: 'Anna', projektId: 'p', start: DateTime(2026, 11, 2, 7));
+    final e = stempelErinnerungen([s], DateTime(2026, 11, 2, 9));
+    expect(e.map((x) => x.$2), [DateTime(2026, 11, 2, 13), DateTime(2026, 11, 2, 17)]);
+    expect(e.first.$3, 'Pause für Anna?');
+    s.pauseMinuten = 30;
+    final nach = stempelErinnerungen([s], DateTime(2026, 11, 2, 14));
+    expect(nach.single.$2, DateTime(2026, 11, 2, 17, 30));
+    expect(stempelErinnerungen([s], DateTime(2026, 11, 2, 18)), isEmpty);
+  });
 }

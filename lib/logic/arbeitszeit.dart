@@ -89,3 +89,20 @@ String stundenliste(List<Projekt> projekte, {required int jahr, required int mon
   }
   return b.toString();
 }
+
+/// Erinnerungen für laufende Stempeluhren: nach 6 Stunden ohne Pause, nach 10 Stunden „noch eingestempelt?“.
+List<(int, DateTime, String, String)> stempelErinnerungen(List<Stempel> laufend, DateTime jetzt) {
+  final out = <(int, DateTime, String, String)>[];
+  for (var i = 0; i < laufend.length; i++) {
+    final s = laufend[i];
+    final sechs = s.start.add(Duration(hours: 6, minutes: s.pauseMinuten));
+    if (s.pauseMinuten < 30 && sechs.isAfter(jetzt)) {
+      out.add((900000 + i * 2, sechs, 'Pause für ${s.person}?', 'Nach 6 Stunden Arbeit sind 30 Minuten Pause vorgeschrieben.'));
+    }
+    final zehn = s.start.add(Duration(hours: 10, minutes: s.pauseMinuten));
+    if (zehn.isAfter(jetzt)) {
+      out.add((900001 + i * 2, zehn, '${s.person} noch eingestempelt?', 'Die Stempeluhr läuft seit 10 Stunden – Feierabend vergessen?'));
+    }
+  }
+  return out;
+}
