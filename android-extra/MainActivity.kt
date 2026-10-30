@@ -41,6 +41,18 @@ class MainActivity : FlutterActivity() {
                     )
                 )
                 "appOeffnen" -> result.success(appOeffnen(call.argument<List<String>>("pakete") ?: emptyList()))
+                "widget" -> {
+                    val mgr = android.appwidget.AppWidgetManager.getInstance(this)
+                    val ids = mgr.getAppWidgetIds(android.content.ComponentName(this, PapiertigerWidget::class.java))
+                    if (ids.isNotEmpty()) {
+                        sendBroadcast(
+                            Intent(this, PapiertigerWidget::class.java)
+                                .setAction(android.appwidget.AppWidgetManager.ACTION_APPWIDGET_UPDATE)
+                                .putExtra(android.appwidget.AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+                        )
+                    }
+                    result.success(ids.size)
+                }
                 else -> result.notImplemented()
             }
         }

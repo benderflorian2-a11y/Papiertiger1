@@ -434,6 +434,10 @@ class RechnungDetail extends StatelessWidget {
                     final d = await datumWaehlen(context, start: DateTime.now());
                     if (d == null) return;
                     r.bezahltAm = d;
+                    final rl = ruecklageFuer(r, store.rechnungen, kleinunternehmer: f.kleinunternehmer);
+                    if (context.mounted && rl > 0) {
+                      zeigeHinweis(context, 'Bezahlt! Leg davon etwa ${euro(rl)} für die Steuer zurück (Faustregel).');
+                    }
                   } else {
                     r.bezahltAm = null;
                   }

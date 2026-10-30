@@ -90,3 +90,10 @@ Future<bool> bankingAppOeffnen() async {
     return false;
   }
 }
+
+/// Startbildschirm-Widget neu zeichnen (Text steht in den Einstellungen „widget_titel“/„widget_text“).
+Future<void> widgetAktualisieren() async {
+  try {
+    await const MethodChannel('papiertiger/android').invokeMethod<int>('widget');
+  } catch (_) {}
+}

@@ -85,6 +85,12 @@ class AppStore extends ChangeNotifier {
     return AppStore(prefs);
   }
 
+  /// Text fürs Startbildschirm-Widget (liest die Android-Seite direkt).
+  Future<void> widgetSetzen(String titel, String text) async {
+    await _prefs.setString('widget_titel', titel);
+    await _prefs.setString('widget_text', text);
+  }
+
   /// Alle gespeicherten Werte (für die Datensicherung).
   Map<String, Object?> alleWerte() => {for (final k in _prefs.getKeys()) k: _prefs.get(k)};
 

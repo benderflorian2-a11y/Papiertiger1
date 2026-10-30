@@ -433,3 +433,10 @@ String begleitText(Rechnung r, Firma f, Kunde? k, Summen zahlen) {
   };
   return '$anrede,\n\n$kern\n\nMit freundlichen Grüßen\n${f.name}${f.telefon.isEmpty ? '' : '\n${f.telefon}'}';
 }
+
+/// Grobe Rücklage für einen Zahlungseingang: Umsatzsteuer komplett plus [anteil] vom Netto
+/// (Einkommensteuer, ohne Abzug von Ausgaben). Nur eine Faustregel.
+double ruecklageFuer(Rechnung r, List<Rechnung> alle, {required bool kleinunternehmer, double anteil = 0.30}) {
+  final s = zuZahlen(r, alle, kleinunternehmer: kleinunternehmer);
+  return _rund(s.ustGesamt + s.netto * anteil);
+}

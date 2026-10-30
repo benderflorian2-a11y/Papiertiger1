@@ -6,7 +6,10 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../data/store.dart';
 import 'zeitplan.dart';
+import 'android_kanal.dart';
 import 'arbeitszeit.dart';
+import 'finanzen.dart';
+import 'widget_text.dart';
 
 /// Plant Push-Erinnerungen auf dem Handy, offline und ohne Server.
 class Benachrichtigungen {
@@ -52,6 +55,20 @@ class Benachrichtigungen {
     _verzoegerung = Timer(const Duration(seconds: 2), () => planen(store));
   }
 
+  /// Startbildschirm-Widget mit den nächsten Fälligkeiten füttern.
+  static Future<void> _widget(AppStore store) async {
+    final f = faelligkeiten(
+        briefe: store.briefe,
+        vertraege: store.vertraege,
+        belege: store.belege,
+        termine: store.termine,
+        rechnungen: store.bereichAktiv('selbststaendig') ? store.rechnungen : const []);
+    final z = offeneZahlungen(store.briefe);
+    final (titel, text) = widgetTexte(f, offeneZahlungen: z.length, summe: euroText(summe(z)), heute: DateTime.now());
+    await store.widgetSetzen(titel, text);
+    await widgetAktualisieren();
+  }
+
   static Future<void> planen(AppStore store) async {
     if (deaktiviert) return;
     try {
@@ -89,6 +106,7 @@ class Benachrichtigungen {
           }
         }
       }
+      await _widget(store);
       final e = store.erinnerungen;
       if (!e.aktiv) return;
       final jetzt = DateTime.now();
@@ -130,3 +148,6 @@ class Benachrichtigungen {
     }
   }
 }
+
+
+String euroText(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
