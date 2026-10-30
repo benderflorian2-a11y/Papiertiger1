@@ -226,6 +226,18 @@ class BriefDetail extends StatelessWidget {
               ],
             ),
           ),
+          if ((store.notizen['ansicht:sprache'] ?? '').isNotEmpty)
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => KiTextScreen(
+                  titel: store.notizen['ansicht:sprache']!,
+                  anfrage: erklaerungAnfrage(b, store.notizen['ansicht:sprache']!),
+                  hinweis: 'Maschinelle Erklärung. Maßgeblich ist immer das deutsche Original.',
+                ),
+              )),
+              icon: const Icon(Icons.translate),
+              label: Text('In meiner Sprache erklären (${store.notizen['ansicht:sprache']})'),
+            ),
           KiKarte(brief: b),
 
           if (b.fakten.isNotEmpty) ...[

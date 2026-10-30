@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
+import '../logic/alltag.dart';
+import '../logic/android_kanal.dart';
 import '../logic/eingang.dart';
+import '../logic/sprachbefehl.dart';
 import '../logic/finanzen.dart';
 import '../logic/zahlung.dart';
 import '../logic/heute.dart';
 import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
 import 'app.dart';
+import 'archiv.dart';
 import 'brief_detail.dart';
 import 'finanzen.dart';
 import 'fristen.dart';
@@ -74,6 +78,12 @@ class HomeScreen extends StatelessWidget {
                         style: TextStyle(color: PT.grau, fontSize: 15)),
                   ],
                 ),
+              ),
+              IconButton.filledTonal(
+                tooltip: 'Sag dem Tiger, was du willst',
+                iconSize: 28,
+                onPressed: () => _sprechen(context, zuTab),
+                icon: const Icon(Icons.mic),
               ),
             ],
           ),
@@ -271,6 +281,40 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Sprachbefehl: z. B. „Milch und Eier auf die Einkaufsliste“, „Was muss ich bezahlen?“, „Such Mietvertrag“.
+Future<void> _sprechen(BuildContext context, void Function(int) zuTab) async {
+  final store = StoreScope.of(context);
+  String? text;
+  try {
+    text = await diktieren();
+  } on StateError catch (e) {
+    if (context.mounted) zeigeHinweis(context, e.message);
+    return;
+  }
+  if (text == null || text.trim().isEmpty || !context.mounted) return;
+  final b = befehlVerstehen(text);
+  void oeffne(Widget w) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
+  switch (b.art) {
+    case BefehlArt.einkauf:
+      final neu = einkaufAusText(b.rest, vorhanden: store.alltag.einkauf);
+      store.alltag.einkauf.addAll(neu);
+      await store.geaendert();
+      if (context.mounted) zeigeHinweis(context, '${neu.map((e) => e.text).join(', ')} auf der Einkaufsliste');
+    case BefehlArt.zahlungen:
+      final z = offeneZahlungen(store.briefe);
+      zeigeHinweis(context, z.isEmpty ? 'Keine offenen Zahlungen.' : '${z.length} offen, zusammen ${euro(summe(z))}.');
+      oeffne(const FinanzenScreen());
+    case BefehlArt.fristen || BefehlArt.termine:
+      zuTab(1);
+    case BefehlArt.suche:
+      oeffne(ArchivScreen(startSuche: b.rest));
+    case BefehlArt.scannen:
+      oeffne(const ScanScreen(mitKamera: true));
+    case BefehlArt.unbekannt:
+      zeigeHinweis(context, '„$text“ – das habe ich nicht verstanden. Versuch z. B. „Was muss ich bezahlen?“');
   }
 }
 

@@ -139,6 +139,21 @@ ${_kuerzen(b.text, 5000)}
 """
 ''';
 
+/// Brief in einfachen Worten in der Sprache des Nutzers erklären (Antworten schreibt der Tiger weiter auf Deutsch).
+String erklaerungAnfrage(Brief b, String sprache) => '''
+Erkläre das deutsche Schreiben unten in einfachen Worten auf $sprache. Antworte NUR auf $sprache, im Format:
+1. Wer schreibt und worum geht es? (2 Sätze)
+2. Was muss ich tun? (Stichpunkte)
+3. Bis wann? Wie viel Geld? (falls im Schreiben genannt)
+4. Was passiert, wenn ich nichts tue?
+Übernimm Beträge, Daten und Aktenzeichen genau. Erfinde nichts. Fachwörter auf Deutsch in Klammern dazuschreiben.
+
+Schreiben:
+"""
+${_kuerzen(b.text, 5000)}
+"""
+''';
+
 /// Gezielte KI-Prüfungen je nach Art des Schreibens.
 class Pruefung {
   const Pruefung(this.key, this.titel, this.beschreibung, this.auftrag);

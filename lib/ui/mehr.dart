@@ -93,6 +93,29 @@ class MehrScreen extends StatelessWidget {
           PTKarte(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(children: [
+              ListTile(
+                leading: const Icon(Icons.translate, color: PT.orangeDunkel),
+                title: const Text('Meine Sprache', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: Text((store.notizen['ansicht:sprache'] ?? '').isEmpty
+                    ? 'Briefe nur auf Deutsch erklären'
+                    : 'Briefe zusätzlich auf ${store.notizen['ansicht:sprache']} erklären'),
+                onTap: () async {
+                  final x = await showDialog<String>(
+                    context: context,
+                    builder: (d) => SimpleDialog(title: const Text('Erklärungen zusätzlich auf …'), children: [
+                      for (final sp in const ['nur Deutsch', 'Englisch', 'Türkisch', 'Arabisch', 'Ukrainisch', 'Russisch', 'Polnisch', 'Rumänisch', 'Persisch'])
+                        SimpleDialogOption(onPressed: () => Navigator.pop(d, sp), child: Text(sp)),
+                    ]),
+                  );
+                  if (x == null) return;
+                  if (x == 'nur Deutsch') {
+                    store.notizen.remove('ansicht:sprache');
+                  } else {
+                    store.notizen['ansicht:sprache'] = x;
+                  }
+                  await store.geaendert();
+                },
+              ),
               SwitchListTile(
                 secondary: const Icon(Icons.text_increase, color: PT.orangeDunkel),
                 title: const Text('Große Schrift', style: TextStyle(fontWeight: FontWeight.w700)),

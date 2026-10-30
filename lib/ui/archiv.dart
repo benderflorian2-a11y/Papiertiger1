@@ -14,16 +14,26 @@ import 'widgets/common.dart';
 enum _Ansicht { ordner, vorgaenge, alle }
 
 class ArchivScreen extends StatefulWidget {
-  const ArchivScreen({super.key});
+  const ArchivScreen({super.key, this.startSuche = ''});
+
+  /// Suchbegriff beim Öffnen (z. B. per Sprachbefehl).
+  final String startSuche;
 
   @override
   State<ArchivScreen> createState() => _ArchivScreenState();
 }
 
 class _ArchivScreenState extends State<ArchivScreen> {
-  String _suche = '';
+  late String _suche = widget.startSuche;
+  late final _sucheFeld = TextEditingController(text: widget.startSuche);
   _Ansicht _ansicht = _Ansicht.ordner;
   String? _person;
+
+  @override
+  void dispose() {
+    _sucheFeld.dispose();
+    super.dispose();
+  }
 
   void _oeffne(Widget seite) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => seite));
@@ -69,6 +79,7 @@ class _ArchivScreenState extends State<ArchivScreen> {
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
           TextField(
+            controller: _sucheFeld,
             decoration: feld(prefixIcon: const Icon(Icons.search), hintText: 'Alle Dokumente durchsuchen'),
             onChanged: (v) => setState(() => _suche = v),
           ),
