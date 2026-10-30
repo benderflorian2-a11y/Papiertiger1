@@ -663,3 +663,55 @@ class Projekt {
         adresse: j['adresse'] as String? ?? '',
       );
 }
+
+
+// ---------------------------------------------------------------- Plantafel
+
+/// Einsatz von Mitarbeitern auf einem Projekt – oder Abwesenheit (Urlaub, krank, Schlechtwetter).
+class Einsatz {
+  Einsatz({
+    required this.id,
+    required this.von,
+    required this.bis,
+    List<String>? personen,
+    this.projektId,
+    this.art = 'Projekt',
+    this.notiz = '',
+  }) : personen = personen ?? [];
+
+  final String id;
+
+  /// Erster und letzter Tag (einschließlich).
+  DateTime von;
+  DateTime bis;
+  List<String> personen;
+
+  /// Leer bei Abwesenheit.
+  String? projektId;
+
+  /// 'Projekt', 'Urlaub', 'Krank', 'Schlechtwetter', 'Schule'
+  String art;
+  String notiz;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'von': von.toIso8601String(),
+        'bis': bis.toIso8601String(),
+        'personen': personen,
+        'projektId': projektId,
+        'art': art,
+        'notiz': notiz,
+      };
+
+  factory Einsatz.fromJson(Map<String, dynamic> j) => Einsatz(
+        id: j['id'] as String,
+        von: _datum(j['von']) ?? DateTime.now(),
+        bis: _datum(j['bis']) ?? DateTime.now(),
+        personen: (j['personen'] as List?)?.whereType<String>().toList(),
+        projektId: j['projektId'] as String?,
+        art: j['art'] as String? ?? 'Projekt',
+        notiz: j['notiz'] as String? ?? '',
+      );
+}
+
+const einsatzArten = ['Projekt', 'Urlaub', 'Krank', 'Schlechtwetter', 'Schule'];

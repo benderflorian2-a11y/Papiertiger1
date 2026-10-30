@@ -235,6 +235,7 @@ class _BelegFormularState extends State<BelegFormular> {
   late bool _geschaeftlich = widget.beleg.geschaeftlich;
   late String _kategorie = belegKategorie(widget.beleg);
   late DateTime? _rueckgabe = widget.beleg.rueckgabeBis;
+  late String? _projekt = widget.beleg.projektId;
 
   @override
   void dispose() {
@@ -255,6 +256,7 @@ class _BelegFormularState extends State<BelegFormular> {
       ..geschaeftlich = _geschaeftlich
       ..kategorie = _kategorie
       ..rueckgabeBis = _rueckgabe
+      ..projektId = _geschaeftlich ? _projekt : null
       ..notiz = _notiz.text.trim();
     await store.belegSpeichern(b);
     if (mounted) Navigator.of(context).pop();
@@ -361,6 +363,16 @@ class _BelegFormularState extends State<BelegFormular> {
               subtitle: const Text('Zählt in Einnahmen & Ausgaben deines Gewerbes'),
               value: _geschaeftlich,
               onChanged: (v) => setState(() => _geschaeftlich = v),
+            ),
+          if (_geschaeftlich && StoreScope.of(context).projekte.isNotEmpty)
+            DropdownButtonFormField<String?>(
+              value: StoreScope.of(context).projekte.any((x) => x.id == _projekt) ? _projekt : null,
+              decoration: feld(labelText: 'Für Projekt (Nachkalkulation)'),
+              items: [
+                const DropdownMenuItem<String?>(value: null, child: Text('kein Projekt')),
+                for (final x in StoreScope.of(context).projekte) DropdownMenuItem<String?>(value: x.id, child: Text(x.name)),
+              ],
+              onChanged: (v) => setState(() => _projekt = v),
             ),
           const SizedBox(height: 12),
           TextField(

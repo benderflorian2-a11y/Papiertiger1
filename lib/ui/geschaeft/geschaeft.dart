@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../data/geschaeft.dart';
 import '../../data/models.dart';
 import '../../logic/android_kanal.dart';
+import '../../logic/datev.dart';
 import '../../logic/export.dart';
 import '../../logic/kalkulation.dart';
 import '../../logic/kommunikation.dart';
@@ -14,6 +15,7 @@ import '../vorlage_screen.dart';
 import '../widgets/common.dart';
 import 'katalog.dart';
 import 'marketing.dart';
+import 'plantafel.dart';
 import 'projekte.dart';
 import '../ki_text.dart';
 import '../kontoauszug.dart';
@@ -123,6 +125,10 @@ class GeschaeftScreen extends StatelessWidget {
                 avatar: const Icon(Icons.work_outline, size: 18),
                 label: const Text('Projekte'),
                 onPressed: () => oeffne(const ProjekteScreen())),
+            ActionChip(
+                avatar: const Icon(Icons.calendar_view_week_outlined, size: 18),
+                label: const Text('Plantafel'),
+                onPressed: () => oeffne(const PlantafelScreen())),
             ActionChip(
                 avatar: const Icon(Icons.menu_book_outlined, size: 18),
                 label: const Text('Katalog'),
@@ -1372,6 +1378,19 @@ class _EuerScreenState extends State<EuerScreen> {
             icon: const Icon(Icons.table_chart_outlined),
             label: const Text('Als Tabelle für die Steuerberatung'),
           ),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final d = await textDatei(
+                  'Buchungsliste DATEV ${z.name}.csv',
+                  datevBuchungsliste(
+                      z: z, rechnungen: store.rechnungen, belege: store.belege, kleinunternehmer: f.kleinunternehmer));
+              await dateiTeilen(d.path, mimeType: 'text/csv');
+            },
+            icon: const Icon(Icons.account_balance_outlined),
+            label: const Text('Buchungsliste im DATEV-Format (SKR03)'),
+          ),
+          const Text('Konten sind ein Vorschlag nach SKR03 – deine Steuerberatung prüft sie beim Import.',
+              style: TextStyle(color: PT.grau, fontSize: 12)),
           if (einnahmen.isNotEmpty) ...[
             const Abschnitt('Einnahmen'),
             for (final r in einnahmen) RechnungZeile(r),

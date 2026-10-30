@@ -172,7 +172,7 @@ class ProjektDetail extends StatelessWidget {
     final store = StoreScope.of(context);
     final p = store.projekte.where((x) => x.id == projektId).firstOrNull;
     if (p == null) return Scaffold(appBar: AppBar(), body: const LeerHinweis(icon: Icons.work_outline, text: 'Gelöscht.'));
-    final nk = nachkalkulation(p, store.rechnungen);
+    final nk = nachkalkulation(p, store.rechnungen, belege: store.belege, kleinunternehmer: store.firma.kleinunternehmer);
     final angebote = store.rechnungen.where((r) => r.istAngebot && (p.kundeId.isEmpty || r.kundeId == p.kundeId)).toList();
     return DefaultTabController(
       length: 5,
@@ -254,6 +254,8 @@ class ProjektDetail extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(children: [Expanded(child: Text('Zeit (${_h(stundenVon(p))} Std.)')), Text(euro(nk.zeit))]),
                 Row(children: [const Expanded(child: Text('Material')), Text(euro(nk.material))]),
+                if (nk.eingang > 0)
+                  Row(children: [const Expanded(child: Text('Eingangsrechnungen (netto)')), Text(euro(nk.eingang))]),
                 const Divider(),
                 Row(children: [
                   const Expanded(child: Text('Kosten bisher', style: TextStyle(fontWeight: FontWeight.w800))),

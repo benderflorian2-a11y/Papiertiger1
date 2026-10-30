@@ -3,6 +3,7 @@
 library;
 
 import '../data/geschaeft.dart';
+import '../data/models.dart';
 import 'rechnungen.dart';
 
 double _rund(double x) => (x * 100).round() / 100;
@@ -14,7 +15,10 @@ double stundenVon(Projekt p, {DateTime? von, DateTime? bis}) => p.zeiten
     .fold(0.0, (s, z) => s + z.stunden);
 
 class Nachkalkulation {
-  Nachkalkulation({required this.zeit, required this.material, this.angebot});
+  Nachkalkulation({required this.zeit, required this.material, this.angebot, this.eingang = 0});
+
+  /// Eingangsrechnungen bzw. Belege, die dem Projekt zugeordnet sind (netto).
+  final double eingang;
 
   /// Stunden × Stundensatz.
   final double zeit;
@@ -23,14 +27,16 @@ class Nachkalkulation {
   /// Angebotssumme netto, falls ein Angebot verknüpft ist.
   final double? angebot;
 
-  double get kosten => zeit + material;
+  double get kosten => _rund(zeit + material + eingang);
 
   /// Positiv: teurer als angeboten.
   double? get abweichung => angebot == null ? null : _rund(kosten - angebot!);
   double? get abweichungProzent => angebot == null || angebot == 0 ? null : _rund((kosten - angebot!) / angebot! * 100);
 }
 
-Nachkalkulation nachkalkulation(Projekt p, List<Rechnung> rechnungen) {
+/// [belege]: Eingangsrechnungen mit projektId. Ohne Kleinunternehmer wird die Vorsteuer
+/// (19 % angenommen) herausgerechnet, weil sie vom Finanzamt zurückkommt.
+Nachkalkulation nachkalkulation(Projekt p, List<Rechnung> rechnungen, {List<Beleg> belege = const [], bool kleinunternehmer = true}) {
   Rechnung? angebot;
   for (final r in rechnungen) {
     if (r.id == p.angebotId) angebot = r;
@@ -39,6 +45,9 @@ Nachkalkulation nachkalkulation(Projekt p, List<Rechnung> rechnungen) {
     zeit: _rund(stundenVon(p) * p.stundensatz),
     material: _rund(p.material.fold(0.0, (s, m) => s + m.summe)),
     angebot: angebot == null ? null : summenVon(angebot, kleinunternehmer: true).netto,
+    eingang: _rund(belege
+        .where((b) => b.projektId == p.id && b.betrag != null)
+        .fold(0.0, (s, b) => s + (kleinunternehmer ? b.betrag! : b.betrag! / 1.19))),
   );
 }
 

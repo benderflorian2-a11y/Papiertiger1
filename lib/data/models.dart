@@ -375,7 +375,11 @@ class Beleg {
     this.geschaeftlich = false,
     this.kategorie,
     this.rueckgabeBis,
+    this.projektId,
   });
+
+  /// Eingangsrechnung bzw. Ausgabe für ein Projekt (Nachkalkulation).
+  String? projektId;
 
   /// Bis wann die Ware zurückgegeben werden kann (Rückgaberecht des Händlers oder Widerruf).
   DateTime? rueckgabeBis;
@@ -410,6 +414,7 @@ class Beleg {
         'geschaeftlich': geschaeftlich,
         'kategorie': kategorie,
         'rueckgabeBis': rueckgabeBis?.toIso8601String(),
+        'projektId': projektId,
       };
 
   factory Beleg.fromJson(Map<String, dynamic> j) => Beleg(
@@ -424,6 +429,7 @@ class Beleg {
         geschaeftlich: j['geschaeftlich'] == true,
         kategorie: j['kategorie'] as String?,
         rueckgabeBis: _datum(j['rueckgabeBis']),
+        projektId: j['projektId'] as String?,
       );
 }
 
