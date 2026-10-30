@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../data/models.dart';
+import '../logic/eingang.dart';
 import '../logic/finanzen.dart';
+import '../logic/zahlung.dart';
 import '../logic/heute.dart';
 import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
@@ -16,6 +19,7 @@ import 'module/module_liste.dart';
 import 'scan.dart';
 import 'sicherung.dart';
 import 'theme.dart';
+import 'ueberweisung.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
 import 'widgets/tiger.dart';
@@ -45,6 +49,7 @@ class HomeScreen extends StatelessWidget {
       hatDaten: store.briefe.isNotEmpty || store.rechnungen.isNotEmpty || store.vertraege.isNotEmpty,
       jetzt: jetzt,
     );
+    final eingang = posteingang(store.briefe, heute: jetzt);
     final heuteZahl = fristen.where((f) => !f.datum.isAfter(in3)).length + hinweise.length;
 
     void oeffne(Widget seite) =>
@@ -210,6 +215,32 @@ class HomeScreen extends StatelessWidget {
               ]),
             ),
 
+          if (eingang.isNotEmpty) ...[
+            const Abschnitt('Neue Post – ein Tipp genügt'),
+            for (final b in eingang.take(3))
+              Builder(builder: (context) {
+                final sch = naechsterSchritt(b);
+                return PTKarte(
+                  padding: const EdgeInsets.all(12),
+                  onTap: () => oeffne(BriefDetail(briefId: b.id)),
+                  child: Row(children: [
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(titelVon(b), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        Text(sch.text, style: const TextStyle(color: PT.grau, fontSize: 13)),
+                      ]),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonal(
+                      onPressed: () => _schrittAusfuehren(context, b, sch),
+                      child: Text(sch.label),
+                    ),
+                  ]),
+                );
+              }),
+            if (eingang.length > 3)
+              TextButton(onPressed: () => zuTab(2), child: Text('${eingang.length - 3} weitere im Archiv')),
+          ],
           Row(
             children: [
               const Expanded(child: Abschnitt('Deine Post')),
@@ -240,6 +271,46 @@ class HomeScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Führt den vorgeschlagenen Schritt aus: Bezahlen öffnet die Überweisung, Ablegen erledigt sofort.
+void _schrittAusfuehren(BuildContext context, Brief b, Schritt sch) {
+  final store = StoreScope.of(context);
+  switch (sch.art) {
+    case 'bezahlen':
+      final u = ueberweisungFinden(b.text, empfaenger: b.absenderName, betrag: b.betrag, eigeneIban: store.profil.extra['iban']);
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => UeberweisungScreen(
+          auftrag: Zahlauftrag(
+            empfaenger: u.empfaenger ?? b.absenderName ?? '',
+            iban: u.iban ?? '',
+            bic: u.bic ?? '',
+            betrag: b.betrag,
+            zweck: u.zweck ?? b.aktenzeichen ?? '',
+          ),
+          beiFreigabe: (am) {
+            alsBezahltMarkieren(b, am);
+            store.geaendert();
+          },
+        ),
+      ));
+    case 'ablegen':
+      b.erledigt = true;
+      store.geaendert();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text('„${titelVon(b)}“ abgelegt'),
+        action: SnackBarAction(
+          label: 'Rückgängig',
+          onPressed: () {
+            b.erledigt = false;
+            store.geaendert();
+          },
+        ),
+      ));
+    default:
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => BriefDetail(briefId: b.id)));
   }
 }
 
