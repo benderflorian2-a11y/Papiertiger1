@@ -32,6 +32,15 @@ class MainActivity : FlutterActivity() {
                 }
                 "oeffnen" -> result.success(oeffnen(call.argument<String>("uri") ?: ""))
                 "diktieren" -> diktieren(result)
+                "mailSenden" -> result.success(
+                    mailSenden(
+                        call.argument<String>("an") ?: "",
+                        call.argument<String>("betreff") ?: "",
+                        call.argument<String>("text") ?: "",
+                        call.argument<List<String>>("pfade") ?: emptyList(),
+                    )
+                )
+                "appOeffnen" -> result.success(appOeffnen(call.argument<List<String>>("pakete") ?: emptyList()))
                 else -> result.notImplemented()
             }
         }
@@ -154,6 +163,61 @@ class MainActivity : FlutterActivity() {
             false
         }
     }
+    /**
+     * E-Mail mit Anhängen: öffnet nur E-Mail-Apps, Empfänger, Betreff, Text und Dateien sind
+     * eingetragen. Verschickt wird erst, wenn du dort auf Senden tippst.
+     */
+    private fun mailSenden(an: String, betreff: String, text: String, pfade: List<String>): Boolean {
+        val ordner = File(cacheDir, "senden")
+        ordner.mkdirs()
+        val uris = ArrayList<Uri>()
+        for (p in pfade) {
+            val quelle = File(p)
+            if (!quelle.exists()) continue
+            val ziel = File(ordner, quelle.name)
+            quelle.copyTo(ziel, overwrite = true)
+            uris.add(androidx.core.content.FileProvider.getUriForFile(this, "$packageName.dateien", ziel))
+        }
+        val intent = if (uris.size > 1) {
+            Intent(Intent.ACTION_SEND_MULTIPLE).apply { putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris) }
+        } else {
+            Intent(Intent.ACTION_SEND).apply { if (uris.isNotEmpty()) putExtra(Intent.EXTRA_STREAM, uris[0]) }
+        }
+        intent.type = if (uris.isEmpty()) "text/plain" else "application/pdf"
+        if (an.isNotBlank()) intent.putExtra(Intent.EXTRA_EMAIL, arrayOf(an))
+        intent.putExtra(Intent.EXTRA_SUBJECT, betreff)
+        intent.putExtra(Intent.EXTRA_TEXT, text)
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (uris.isNotEmpty()) {
+            val clip = android.content.ClipData.newUri(contentResolver, "Anhang", uris[0])
+            for (u in uris.drop(1)) clip.addItem(android.content.ClipData.Item(u))
+            intent.clipData = clip
+        }
+        // Nur E-Mail-Apps anbieten
+        intent.selector = Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:"))
+        return try {
+            startActivity(Intent.createChooser(intent, "E-Mail senden mit …").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** Öffnet die erste installierte App aus der Liste (z. B. Sparkasse). */
+    private fun appOeffnen(pakete: List<String>): Boolean {
+        for (p in pakete) {
+            val i = packageManager.getLaunchIntentForPackage(p) ?: continue
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            return try {
+                startActivity(i)
+                true
+            } catch (e: Exception) {
+                false
+            }
+        }
+        return false
+    }
+
     /** Spracheingabe des Systems: zeigt das Mikrofon-Fenster, liefert den erkannten Text (oder null). */
     private fun diktieren(result: MethodChannel.Result) {
         diktatErgebnis?.success(null)

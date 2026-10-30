@@ -67,3 +67,26 @@ Future<String?> diktieren() async {
     throw StateError('Spracheingabe gibt es nur in der Android-App.');
   }
 }
+
+/// E-Mail mit PDF-Anhängen in der E-Mail-App vorbereiten. Senden musst du dort selbst.
+Future<bool> mailMitAnhang({required String an, required String betreff, required String text, List<String> pfade = const []}) async {
+  try {
+    return await const MethodChannel('papiertiger/android')
+            .invokeMethod<bool>('mailSenden', {'an': an, 'betreff': betreff, 'text': text, 'pfade': pfade}) ??
+        false;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Sparkassen-App (bzw. S-pushTAN) öffnen, falls installiert.
+Future<bool> bankingAppOeffnen() async {
+  try {
+    return await const MethodChannel('papiertiger/android').invokeMethod<bool>('appOeffnen', {
+          'pakete': ['com.starfinanz.smob.android.sfinanzstatus', 'com.starfinanz.mobile.android.pushtan'],
+        }) ??
+        false;
+  } catch (_) {
+    return false;
+  }
+}

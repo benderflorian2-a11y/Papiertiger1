@@ -121,7 +121,7 @@ List<(Rechnung, Gutschrift, String)> zahlungenZuordnen(List<Rechnung> rechnungen
     offen.remove(r);
   }
   for (final r in offen) {
-    int cent(Rechnung x) => (summenVon(x, kleinunternehmer: kleinunternehmer).brutto * 100).round();
+    int cent(Rechnung x) => (zuZahlen(x, rechnungen, kleinunternehmer: kleinunternehmer).brutto * 100).round();
     final brutto = cent(r);
     final gleich = offen.where((x) => cent(x) == brutto).length;
     final passend = frei.where((g) => (g.betrag * 100).round() == brutto && !g.datum.isBefore(r.datum)).toList();

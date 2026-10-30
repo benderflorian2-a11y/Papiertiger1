@@ -14,6 +14,7 @@ import '../widgets/common.dart';
 import 'marketing.dart';
 import 'projekte.dart';
 import '../kontoauszug.dart';
+import '../ueberweisung.dart';
 
 Rechnung? _rechnung(List<Rechnung> l, String id) {
   for (final r in l) {
@@ -176,10 +177,10 @@ class RechnungZeile extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final k = store.kundeMitId(r.kundeId);
-    final s = summenVon(r, kleinunternehmer: store.firma.kleinunternehmer);
+    final s = zuZahlen(r, store.rechnungen, kleinunternehmer: store.firma.kleinunternehmer);
     final (text, farbe, grund) = r.storniert
         ? ('storniert', PT.grau, PT.sand)
-        : r.istAngebot
+        : !r.istRechnung
             ? (r.artName, PT.orangeDunkel, PT.orangeHell)
             : r.bezahltAm != null
                 ? ('bezahlt', PT.gruen, PT.gruenHell)
@@ -190,7 +191,7 @@ class RechnungZeile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => RechnungDetail(rechnungId: r.id))),
       child: Row(children: [
-        IconKachel(r.istAngebot ? Icons.request_quote_outlined : Icons.receipt_outlined),
+        IconKachel(r.istRechnung ? Icons.receipt_outlined : Icons.request_quote_outlined),
         const SizedBox(width: 14),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -218,13 +219,76 @@ class RechnungDetail extends StatelessWidget {
     final f = store.firma;
     final k = store.kundeMitId(r.kundeId);
     final s = summenVon(r, kleinunternehmer: f.kleinunternehmer);
+    final zahlen = zuZahlen(r, store.rechnungen, kleinunternehmer: f.kleinunternehmer);
+    final abschlaege = r.art == 'schluss' ? abschlaegeZu(r, store.rechnungen) : <Rechnung>[];
     final fehlt = fehlendeAngaben(r, f, k);
     final titel = r.artName;
+    final qr = r.istRechnung && zahlen.brutto > 0
+        ? giroCode(name: f.name, iban: f.iban, bic: f.bic, betrag: zahlen.brutto, zweck: '$titel ${r.nummer}')
+        : '';
 
     Future<void> pdfTeilen() async {
-      final datei = await rechnungAlsPdf(r, f, k);
+      final datei = await rechnungAlsPdf(r, f, k, alle: store.rechnungen);
       await dateiTeilen(datei.path,
-          mimeType: 'application/pdf', text: '$titel ${r.nummer} über ${euro(s.brutto)}');
+          mimeType: 'application/pdf', text: '$titel ${r.nummer} über ${euro(zahlen.brutto)}');
+    }
+
+    Future<void> senden() async {
+      final datei = await rechnungAlsPdf(r, f, k, alle: store.rechnungen);
+      final ok = await mailMitAnhang(
+        an: k?.email ?? '',
+        betreff: '$titel ${r.nummer}${f.name.isEmpty ? '' : ' – ${f.name}'}',
+        text: begleitText(r, f, k, zahlen),
+        pfade: [datei.path],
+      );
+      if (!context.mounted) return;
+      if (!ok) {
+        zeigeHinweis(context, 'Keine E-Mail-App gefunden – das PDF wird zum Teilen angeboten.');
+        await pdfTeilen();
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 15),
+        content: const Text('In der E-Mail-App abgeschickt?'),
+        action: SnackBarAction(
+          label: 'Ja, vermerken',
+          onPressed: () {
+            r.versendetAm = DateTime.now();
+            store.geaendert();
+          },
+        ),
+      ));
+    }
+
+    Future<void> neuerBeleg(Rechnung neu) async {
+      await store.rechnungSpeichern(neu);
+      if (context.mounted) {
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => RechnungFormular(art: neu.art, rechnung: neu)));
+      }
+    }
+
+    Future<void> abschlagErstellen() async {
+      final c = TextEditingController(text: '30');
+      final pz = await showDialog<double>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: const Text('Abschlagsrechnung'),
+          content: TextField(
+            controller: c,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: feld(labelText: 'Wie viel Prozent der Auftragssumme?', suffixText: '%'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
+            TextButton(onPressed: () => Navigator.pop(d, double.tryParse(c.text.replaceAll(',', '.'))), child: const Text('Erstellen')),
+          ],
+        ),
+      );
+      c.dispose();
+      if (pz == null || pz <= 0 || pz > 100) return;
+      await neuerBeleg(abschlagAus(r, store.rechnungen,
+          id: neueId(), datum: DateTime.now(), prozent: pz, zahlungszielTage: f.zahlungszielTage));
     }
 
     return Scaffold(
@@ -247,6 +311,8 @@ class RechnungDetail extends StatelessWidget {
                   'datum': DateTime.now().toIso8601String(),
                   'bezahltAm': null,
                   'gemahntAm': null,
+                  'mahnstufe': 0,
+                  'versendetAm': null,
                   'storniert': false,
                 });
                 await store.rechnungSpeichern(neu);
@@ -263,8 +329,8 @@ class RechnungDetail extends StatelessWidget {
               }
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(value: 'kopie', child: Text('Kopie als neue Rechnung')),
-              if (!r.istAngebot)
+              PopupMenuItem(value: 'kopie', child: Text('Kopie als neue(s) $titel')),
+              if (r.istRechnung)
                 PopupMenuItem(value: 'storno', child: Text(r.storniert ? 'Storno aufheben' : 'Stornieren')),
               const PopupMenuItem(value: 'loeschen', child: Text('Löschen')),
             ],
@@ -285,7 +351,7 @@ class RechnungDetail extends StatelessWidget {
           PTKarte(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(k?.name ?? 'Kein Kunde gewählt', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-              Text('Datum ${datumKurz(r.datum)}${r.istAngebot ? '' : ' · fällig ${datumKurz(faelligAm(r))}'}',
+              Text('Datum ${datumKurz(r.datum)}${!r.istRechnung ? '' : ' · fällig ${datumKurz(faelligAm(r))}'}',
                   style: const TextStyle(color: PT.grau)),
               const Divider(),
               for (final p in r.positionen)
@@ -297,6 +363,10 @@ class RechnungDetail extends StatelessWidget {
                   ]),
                 ),
               const Divider(),
+              if (s.rabatt > 0) ...[
+                Row(children: [const Expanded(child: Text('Zwischensumme')), Text(euro(s.zwischensumme))]),
+                Row(children: [const Expanded(child: Text('Rabatt')), Text('-${euro(s.rabatt)}')]),
+              ],
               if (!f.kleinunternehmer) ...[
                 Row(children: [const Expanded(child: Text('Netto')), Text(euro(s.netto))]),
                 for (final e in s.ust.entries)
@@ -306,9 +376,24 @@ class RechnungDetail extends StatelessWidget {
                 const Expanded(child: Text('Gesamt', style: TextStyle(fontWeight: FontWeight.w800))),
                 Text(euro(s.brutto), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               ]),
+              for (final a in abschlaege)
+                Row(children: [
+                  Expanded(child: Text('abzgl. Abschlag ${a.nummer}${a.bezahltAm == null ? ' (noch offen)' : ''}')),
+                  Text('-${euro(summenVon(a, kleinunternehmer: f.kleinunternehmer).brutto)}'),
+                ]),
+              if (abschlaege.isNotEmpty)
+                Row(children: [
+                  const Expanded(child: Text('Noch zu zahlen', style: TextStyle(fontWeight: FontWeight.w800))),
+                  Text(euro(zahlen.brutto), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                ]),
+              if (r.versendetAm != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text('Verschickt am ${datumKurz(r.versendetAm!)}', style: const TextStyle(color: PT.gruen)),
+                ),
             ]),
           ),
-          if (!r.istAngebot && !r.storniert)
+          if (r.istRechnung && !r.storniert)
             PTKarte(
               farbe: r.bezahltAm != null ? PT.gruenHell : (ueberfaellig(r) ? PT.rotHell : Colors.white),
               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -351,21 +436,77 @@ class RechnungDetail extends StatelessWidget {
               ]),
             ),
           FilledButton.icon(
-            onPressed: pdfTeilen,
-            icon: const Icon(Icons.picture_as_pdf_outlined),
-            label: Text('$titel als PDF teilen'),
+            onPressed: senden,
+            icon: const Icon(Icons.send_outlined),
+            label: Text(k != null && k.email.isNotEmpty ? '$titel per E-Mail senden' : '$titel per E-Mail senden (Adresse fehlt)'),
           ),
           const SizedBox(height: 8),
-          if (k != null && k.email.isNotEmpty)
-            OutlinedButton.icon(
-              onPressed: () => AndroidKanal.oeffnen(mailtoLink(
-                  an: k.email,
-                  betreff: '$titel ${r.nummer}',
-                  text: 'Guten Tag,\n\nanbei erhalten Sie ${r.istAngebot ? 'mein Angebot' : 'meine Rechnung'} ${r.nummer} '
-                      'über ${euro(s.brutto)}.\n\nMit freundlichen Grüßen\n${f.name}')),
-              icon: const Icon(Icons.alternate_email),
-              label: const Text('E-Mail vorbereiten (PDF dann anhängen)'),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: pdfTeilen,
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                label: const Text('PDF teilen'),
+              ),
             ),
+            if (qr.isNotEmpty && istOffen(r)) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => giroCodeZeigen(context, qr, 'Jetzt bezahlen: ${euro(zahlen.brutto)}'),
+                  icon: const Icon(Icons.qr_code_2),
+                  label: const Text('GiroCode zeigen'),
+                ),
+              ),
+            ],
+          ]),
+          if (r.istRechnung && f.iban.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: Text('Trag in den Firmendaten deine IBAN ein, dann kommt ein GiroCode auf die Rechnung.',
+                  style: TextStyle(color: PT.grau, fontSize: 12)),
+            ),
+          const SizedBox(height: 8),
+          if (!r.storniert && r.art != 'lieferschein') ...[
+            const Abschnitt('Weiter mit …'),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              if (r.istAngebot)
+                ActionChip(
+                  avatar: const Icon(Icons.handshake_outlined, size: 18),
+                  label: const Text('Auftragsbestätigung'),
+                  onPressed: () => neuerBeleg(umwandeln(r, store.rechnungen,
+                      art: 'auftragsbestaetigung', id: neueId(), datum: DateTime.now(), zahlungszielTage: f.zahlungszielTage)),
+                ),
+              if (!r.istRechnung)
+                ActionChip(
+                  avatar: const Icon(Icons.local_shipping_outlined, size: 18),
+                  label: const Text('Lieferschein'),
+                  onPressed: () => neuerBeleg(umwandeln(r, store.rechnungen,
+                      art: 'lieferschein', id: neueId(), datum: DateTime.now(), zahlungszielTage: f.zahlungszielTage)),
+                ),
+              if (!r.istRechnung)
+                ActionChip(
+                  avatar: const Icon(Icons.percent, size: 18),
+                  label: const Text('Abschlagsrechnung'),
+                  onPressed: abschlagErstellen,
+                ),
+              if (!r.istRechnung)
+                ActionChip(
+                  avatar: const Icon(Icons.receipt_outlined, size: 18),
+                  label: Text(store.rechnungen.any((x) => x.art == 'abschlag' && x.bezugId == (r.bezugId ?? r.id))
+                      ? 'Schlussrechnung'
+                      : 'Rechnung'),
+                  onPressed: () {
+                    final hatAbschlag = store.rechnungen.any((x) => x.art == 'abschlag' && x.bezugId == (r.bezugId ?? r.id) && !x.storniert);
+                    neuerBeleg(hatAbschlag
+                        ? schlussAus(r, store.rechnungen, id: neueId(), datum: DateTime.now(), zahlungszielTage: f.zahlungszielTage)
+                        : umwandeln(r, store.rechnungen,
+                            art: 'rechnung', id: neueId(), datum: DateTime.now(), zahlungszielTage: f.zahlungszielTage));
+                  },
+                ),
+            ]),
+            const SizedBox(height: 8),
+          ],
           if (k != null && k.email.isNotEmpty && r.bezahltAm != null)
             OutlinedButton.icon(
               onPressed: () => AndroidKanal.oeffnen(
@@ -373,36 +514,63 @@ class RechnungDetail extends StatelessWidget {
               icon: const Icon(Icons.star_outline),
               label: const Text('Um eine Bewertung bitten'),
             ),
-          if (r.istAngebot)
-            OutlinedButton.icon(
-              onPressed: () async {
-                final neu = Rechnung.fromJson({
-                  ...r.toJson(),
-                  'id': neueId(),
-                  'art': 'rechnung',
-                  'nummer': naechsteNummer(store.rechnungen, art: 'rechnung', jahr: DateTime.now().year),
-                  'datum': DateTime.now().toIso8601String(),
-                  'zahlungszielTage': f.zahlungszielTage,
-                });
-                await store.rechnungSpeichern(neu);
-                if (context.mounted) {
-                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => RechnungFormular(art: 'rechnung', rechnung: neu)));
-                }
-              },
-              icon: const Icon(Icons.transform),
-              label: Text('${r.artName} angenommen – Rechnung erstellen'),
-            ),
           if (k != null && istOffen(r) && ueberfaellig(r))
-            OutlinedButton.icon(
-              onPressed: () async {
-                r.gemahntAm = DateTime.now();
-                await store.geaendert();
-                if (!context.mounted) return;
-                Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => VorlageScreen(titel: 'Zahlungserinnerung', text: zahlungserinnerungText(r, f, k, s))));
-              },
-              icon: const Icon(Icons.notification_important_outlined),
-              label: Text(r.gemahntAm == null ? 'Zahlungserinnerung schreiben' : 'Erinnert am ${datumKurz(r.gemahntAm!)} – nochmal'),
+            PTKarte(
+              farbe: PT.rotHell,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                    r.mahnstufe == 0
+                        ? 'Überfällig seit ${datumKurz(faelligAm(r))}'
+                        : 'Zuletzt: ${mahnstufenNamen[r.mahnstufe.clamp(1, 3)]} am ${r.gemahntAm == null ? '?' : datumKurz(r.gemahntAm!)}',
+                    style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  for (var stufe = 1; stufe <= 3; stufe++)
+                    if (stufe >= r.mahnstufe)
+                      OutlinedButton(
+                        onPressed: () async {
+                          var gebuehr = 0.0;
+                          if (stufe >= 2) {
+                            final c = TextEditingController(text: '5,00');
+                            final g = await showDialog<double>(
+                              context: context,
+                              builder: (d) => AlertDialog(
+                                title: const Text('Mahngebühr'),
+                                content: Column(mainAxisSize: MainAxisSize.min, children: [
+                                  TextField(
+                                      controller: c,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: feld(labelText: 'Betrag (0 = keine)', suffixText: '€')),
+                                  const SizedBox(height: 8),
+                                  const Text('Mahngebühren dürfen nur die tatsächlichen Kosten decken (Porto, Papier). '
+                                      'Allgemeine Info, keine Rechtsberatung.',
+                                      style: TextStyle(color: PT.grau, fontSize: 12)),
+                                ]),
+                                actions: [
+                                  TextButton(
+                                      onPressed: () => Navigator.pop(d, double.tryParse(c.text.replaceAll(',', '.')) ?? 0),
+                                      child: const Text('Weiter')),
+                                ],
+                              ),
+                            );
+                            c.dispose();
+                            if (g == null) return;
+                            gebuehr = g;
+                          }
+                          r
+                            ..mahnstufe = stufe
+                            ..gemahntAm = DateTime.now();
+                          await store.geaendert();
+                          if (!context.mounted) return;
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => VorlageScreen(
+                                  titel: mahnstufenNamen[stufe],
+                                  text: mahnText(r, f, k, zahlen, stufe: stufe, gebuehr: gebuehr))));
+                        },
+                        child: Text(mahnstufenNamen[stufe]),
+                      ),
+                ]),
+              ]),
             ),
         ],
       ),
@@ -453,8 +621,12 @@ class _RechnungFormularState extends State<RechnungFormular> {
   late int _ziel;
   int _wiederholung = 0;
   final _notiz = TextEditingController();
+  final _rabattPz = TextEditingController();
+  final _rabattEur = TextEditingController();
   final _pos = <_PosFelder>[];
   bool _bereit = false;
+
+  bool get _istRechnung => const ['rechnung', 'abschlag', 'schluss'].contains(widget.art);
 
   @override
   void didChangeDependencies() {
@@ -465,7 +637,9 @@ class _RechnungFormularState extends State<RechnungFormular> {
     final r = widget.rechnung;
     _kundeId = r?.kundeId.isEmpty ?? true ? null : r!.kundeId;
     _datum = r?.datum ?? DateTime.now();
-    _von = r?.leistungVon ?? (widget.art == 'rechnung' ? DateTime.now() : null);
+    _von = r?.leistungVon ?? (_istRechnung ? DateTime.now() : null);
+    _rabattPz.text = (r?.rabattProzent ?? 0) == 0 ? '' : _feld(r!.rabattProzent);
+    _rabattEur.text = (r?.rabattBetrag ?? 0) == 0 ? '' : r!.rabattBetrag.toStringAsFixed(2).replaceAll('.', ',');
     _bis = r?.leistungBis;
     _ziel = r?.zahlungszielTage ?? store.firma.zahlungszielTage;
     _wiederholung = r?.wiederholungMonate ?? 0;
@@ -478,6 +652,8 @@ class _RechnungFormularState extends State<RechnungFormular> {
   @override
   void dispose() {
     _notiz.dispose();
+    _rabattPz.dispose();
+    _rabattEur.dispose();
     for (final p in _pos) {
       p.dispose();
     }
@@ -502,6 +678,8 @@ class _RechnungFormularState extends State<RechnungFormular> {
       ..zahlungszielTage = _ziel
       ..wiederholungMonate = widget.art == 'rechnung' ? _wiederholung : 0
       ..notiz = _notiz.text.trim()
+      ..rabattProzent = _zahl(_rabattPz.text) ?? 0
+      ..rabattBetrag = _zahl(_rabattEur.text) ?? 0
       ..positionen = [for (final p in _pos) if (p.text.text.trim().isNotEmpty || (_zahl(p.preis.text) ?? 0) > 0) p.position];
     await store.rechnungSpeichern(r);
     if (!mounted) return;
@@ -526,13 +704,13 @@ class _RechnungFormularState extends State<RechnungFormular> {
         nummer: '',
         kundeId: '',
         datum: _datum,
+        rabattProzent: _zahl(_rabattPz.text) ?? 0,
+        rabattBetrag: _zahl(_rabattEur.text) ?? 0,
         positionen: [for (final p in _pos) p.position]);
     final s = summenVon(vorschau, kleinunternehmer: ku);
-    final titel = switch (widget.art) { 'angebot' => 'Angebot', 'kostenvoranschlag' => 'Kostenvoranschlag', _ => 'Rechnung' };
+    final titel = belegArtName(widget.art);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.rechnung == null
-              ? switch (widget.art) { 'angebot' => 'Neues Angebot', 'kostenvoranschlag' => 'Neuer Kostenvoranschlag', _ => 'Neue Rechnung' }
-              : '$titel ${widget.rechnung!.nummer}')),
+      appBar: AppBar(title: Text(widget.rechnung == null ? '$titel (neu)' : '$titel ${widget.rechnung!.nummer}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -560,7 +738,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
               if (d != null) setState(() => _datum = d);
             },
           ),
-          if (widget.art == 'rechnung')
+          if (_istRechnung)
             ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Leistung erbracht'),
@@ -645,9 +823,31 @@ class _RechnungFormularState extends State<RechnungFormular> {
             icon: const Icon(Icons.add),
             label: const Text('Position hinzufügen'),
           ),
+          if (widget.art != 'lieferschein')
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _rabattPz,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: feld(labelText: 'Rabatt', suffixText: '%'),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _rabattEur,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: feld(labelText: 'oder pauschal', suffixText: '€'),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ]),
+          const SizedBox(height: 12),
           PTKarte(
             farbe: PT.orangeHell,
             child: Column(children: [
+              if (s.rabatt > 0) Row(children: [const Expanded(child: Text('Rabatt')), Text('-${euro(s.rabatt)}')]),
               if (!ku) Row(children: [const Expanded(child: Text('Netto')), Text(euro(s.netto))]),
               if (!ku)
                 for (final e in s.ust.entries) Row(children: [Expanded(child: Text('USt ${e.key} %')), Text(euro(e.value))]),
@@ -658,20 +858,22 @@ class _RechnungFormularState extends State<RechnungFormular> {
               if (ku) const Text(kleinunternehmerHinweis, style: TextStyle(fontSize: 12, color: PT.grau)),
             ]),
           ),
-          if (widget.art == 'rechnung') ...[
+          if (_istRechnung) ...[
             const Text('Zahlungsziel', style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Wrap(spacing: 8, children: [
               for (final t in {7, 14, 30, _ziel})
                 ChoiceChip(label: Text('$t Tage'), selected: _ziel == t, onSelected: (_) => setState(() => _ziel = t)),
             ]),
-            const SizedBox(height: 12),
-            const Text('Wiederholen', style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              for (final (m, t) in const [(0, 'Einmalig'), (1, 'Monatlich'), (3, 'Vierteljährlich'), (12, 'Jährlich')])
-                ChoiceChip(label: Text(t), selected: _wiederholung == m, onSelected: (_) => setState(() => _wiederholung = m)),
-            ]),
+            if (widget.art == 'rechnung') ...[
+              const SizedBox(height: 12),
+              const Text('Wiederholen', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, children: [
+                for (final (m, t) in const [(0, 'Einmalig'), (1, 'Monatlich'), (3, 'Vierteljährlich'), (12, 'Jährlich')])
+                  ChoiceChip(label: Text(t), selected: _wiederholung == m, onSelected: (_) => setState(() => _wiederholung = m)),
+              ]),
+            ],
             const SizedBox(height: 12),
           ],
           TextField(
@@ -711,8 +913,8 @@ class KundenScreen extends StatelessWidget {
           if (kunden.isEmpty) const LeerHinweis(icon: Icons.people_outline, text: 'Noch keine Kunden.'),
           for (final k in kunden)
             Builder(builder: (context) {
-              final rs = store.rechnungen.where((r) => r.kundeId == k.id && !r.istAngebot && !r.storniert);
-              final umsatz = rs.fold(0.0, (s, r) => s + summenVon(r, kleinunternehmer: store.firma.kleinunternehmer).brutto);
+              final rs = store.rechnungen.where((r) => r.kundeId == k.id && r.istRechnung && !r.storniert);
+              final umsatz = rs.fold(0.0, (s, r) => s + zuZahlen(r, store.rechnungen, kleinunternehmer: store.firma.kleinunternehmer).brutto);
               return PTKarte(
                 padding: const EdgeInsets.all(14),
                 onTap: () =>
@@ -938,7 +1140,7 @@ class _EuerScreenState extends State<EuerScreen> {
     final ausgaben = store.belege.where((b) => b.geschaeftlich && z.enthaelt(b.datum)).toList()
       ..sort((a, b) => a.datum.compareTo(b.datum));
     final einnahmen = store.rechnungen
-        .where((r) => !r.istAngebot && !r.storniert && r.bezahltAm != null && z.enthaelt(r.bezahltAm!))
+        .where((r) => r.istRechnung && !r.storniert && r.bezahltAm != null && z.enthaelt(r.bezahltAm!))
         .toList()
       ..sort((a, b) => a.bezahltAm!.compareTo(b.bezahltAm!));
 
@@ -946,8 +1148,8 @@ class _EuerScreenState extends State<EuerScreen> {
       final b = StringBuffer('﻿Datum;Art;Beschreibung;Netto;USt;Brutto\n');
       String e(double x) => x.toStringAsFixed(2).replaceAll('.', ',');
       for (final r in einnahmen) {
-        final s = summenVon(r, kleinunternehmer: f.kleinunternehmer);
-        b.writeln('${datumKurz(r.bezahltAm!)};Einnahme;"Rechnung ${r.nummer} ${store.kundeMitId(r.kundeId)?.name ?? ''}";'
+        final s = zuZahlen(r, store.rechnungen, kleinunternehmer: f.kleinunternehmer);
+        b.writeln('${datumKurz(r.bezahltAm!)};Einnahme;"${r.artName} ${r.nummer} ${store.kundeMitId(r.kundeId)?.name ?? ''}";'
             '${e(s.netto)};${e(s.ustGesamt)};${e(s.brutto)}');
       }
       for (final a in ausgaben) {

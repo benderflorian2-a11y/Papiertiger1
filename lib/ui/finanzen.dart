@@ -8,11 +8,13 @@ import '../logic/export.dart';
 import '../logic/finanzen.dart';
 import '../logic/texterkennung.dart';
 import '../logic/vorlagen.dart';
+import '../logic/zahlung.dart';
 import 'app.dart';
 import 'brief_detail.dart';
 import 'kontoauszug.dart';
 import 'module/vertraege.dart';
 import 'theme.dart';
+import 'ueberweisung.dart';
 import 'vorlage_screen.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
@@ -110,7 +112,7 @@ class ZahlungKarte extends StatelessWidget {
             ),
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Text('Kopiere die Angaben in deine Banking-App und prüfe sie dort. Der Tiger bezahlt nie selbst.',
+            child: Text('Der Tiger bereitet die Überweisung vor – freigeben musst du sie in deiner Banking-App. Er bezahlt nie selbst.',
                 style: TextStyle(color: PT.grau, fontSize: 12)),
           ),
           Padding(
@@ -125,6 +127,25 @@ class ZahlungKarte extends StatelessWidget {
                 },
                 icon: const Icon(Icons.check, size: 18),
                 label: const Text('Bezahlt'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => UeberweisungScreen(
+                    auftrag: Zahlauftrag(
+                      empfaenger: u.empfaenger ?? b.absenderName ?? '',
+                      iban: u.iban ?? '',
+                      bic: u.bic ?? '',
+                      betrag: b.betrag,
+                      zweck: u.zweck ?? b.aktenzeichen ?? '',
+                    ),
+                    beiFreigabe: (am) {
+                      alsBezahltMarkieren(b, am);
+                      store.geaendert();
+                    },
+                  ),
+                )),
+                icon: const Icon(Icons.lock_outline, size: 18),
+                label: const Text('Überweisen (mit Freigabe)'),
               ),
               OutlinedButton.icon(
                 onPressed: () => Navigator.of(context)

@@ -258,8 +258,14 @@ Future<File> textDatei(String name, String inhalt) async {
 String _menge(double m) => m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(2).replaceAll('.', ',');
 
 /// Rechnung oder Angebot als PDF mit Fenster-Anschrift, Positionen und Summen.
-Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k) async {
+Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle = const []}) async {
   final s = summenVon(r, kleinunternehmer: f.kleinunternehmer);
+  final zahlen = zuZahlen(r, alle, kleinunternehmer: f.kleinunternehmer);
+  final abschlaege = r.art == 'schluss' ? abschlaegeZu(r, alle) : <Rechnung>[];
+  final ohnePreise = r.art == 'lieferschein';
+  final qr = r.istRechnung && zahlen.brutto > 0
+      ? giroCode(name: f.name, iban: f.iban, bic: f.bic, betrag: zahlen.brutto, zweck: '${r.artName} ${r.nummer}')
+      : '';
   final titel = r.artName;
   final doc = pw.Document(title: '$titel ${r.nummer}', author: f.name);
   final mm = PdfPageFormat.mm;
@@ -318,58 +324,118 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k) async {
       pw.SizedBox(height: 6 * mm),
       pw.Text(titel, style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
       pw.SizedBox(height: 4 * mm),
-      pw.TableHelper.fromTextArray(
-        headers: ['Pos.', 'Beschreibung', 'Menge', 'Einzelpreis', if (!f.kleinunternehmer) 'USt', 'Gesamt'],
-        data: [
-          for (var i = 0; i < r.positionen.length; i++)
-            [
-              '${i + 1}',
-              r.positionen[i].text,
-              '${_menge(r.positionen[i].menge)} ${r.positionen[i].einheit}',
-              _euro(r.positionen[i].preis),
-              if (!f.kleinunternehmer) '${r.positionen[i].ustSatz} %',
-              _euro(r.positionen[i].netto),
-            ],
-        ],
-        headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-        cellStyle: const pw.TextStyle(fontSize: 9),
-        headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-        cellAlignments: {
-          0: pw.Alignment.centerLeft,
-          2: pw.Alignment.centerRight,
-          3: pw.Alignment.centerRight,
-          4: pw.Alignment.centerRight,
-          5: pw.Alignment.centerRight,
-        },
-        columnWidths: {1: const pw.FlexColumnWidth(3)},
-      ),
-      pw.SizedBox(height: 4 * mm),
-      pw.Align(
-        alignment: pw.Alignment.centerRight,
-        child: pw.SizedBox(
-          width: 75 * mm,
-          child: pw.Column(children: [
-            _summenZeile(f.kleinunternehmer ? 'Gesamtbetrag' : 'Summe netto', _euro(s.netto), normal),
-            if (!f.kleinunternehmer)
-              for (final e in s.ust.entries) _summenZeile('zzgl. ${e.key} % USt', _euro(e.value), normal),
-            if (!f.kleinunternehmer) _summenZeile('Gesamtbetrag', _euro(s.brutto), fett),
-          ]),
+      if (ohnePreise)
+        pw.TableHelper.fromTextArray(
+          headers: ['Pos.', 'Beschreibung', 'Menge'],
+          data: [
+            for (var i = 0; i < r.positionen.length; i++)
+              ['${i + 1}', r.positionen[i].text, '${_menge(r.positionen[i].menge)} ${r.positionen[i].einheit}'],
+          ],
+          headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 9),
+          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+          cellAlignments: {0: pw.Alignment.centerLeft, 2: pw.Alignment.centerRight},
+          columnWidths: {1: const pw.FlexColumnWidth(3)},
+        )
+      else
+        pw.TableHelper.fromTextArray(
+          headers: ['Pos.', 'Beschreibung', 'Menge', 'Einzelpreis', if (!f.kleinunternehmer) 'USt', 'Gesamt'],
+          data: [
+            for (var i = 0; i < r.positionen.length; i++)
+              [
+                '${i + 1}',
+                r.positionen[i].text,
+                '${_menge(r.positionen[i].menge)} ${r.positionen[i].einheit}',
+                _euro(r.positionen[i].preis),
+                if (!f.kleinunternehmer) '${r.positionen[i].ustSatz} %',
+                _euro(r.positionen[i].netto),
+              ],
+          ],
+          headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+          cellStyle: const pw.TextStyle(fontSize: 9),
+          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
+          cellAlignments: {
+            0: pw.Alignment.centerLeft,
+            2: pw.Alignment.centerRight,
+            3: pw.Alignment.centerRight,
+            4: pw.Alignment.centerRight,
+            5: pw.Alignment.centerRight,
+          },
+          columnWidths: {1: const pw.FlexColumnWidth(3)},
         ),
-      ),
+      pw.SizedBox(height: 4 * mm),
+      if (!ohnePreise)
+        pw.Align(
+          alignment: pw.Alignment.centerRight,
+          child: pw.SizedBox(
+            width: 80 * mm,
+            child: pw.Column(children: [
+              if (s.rabatt > 0) ...[
+                _summenZeile('Zwischensumme', _euro(s.zwischensumme), normal),
+                _summenZeile(
+                    r.rabattProzent > 0 && r.rabattBetrag == 0
+                        ? 'abzgl. ${_menge(r.rabattProzent)} % Rabatt'
+                        : 'abzgl. Rabatt',
+                    '-${_euro(s.rabatt)}',
+                    normal),
+              ],
+              _summenZeile(f.kleinunternehmer ? 'Gesamtbetrag' : 'Summe netto', _euro(s.netto), normal),
+              if (!f.kleinunternehmer)
+                for (final e in s.ust.entries) _summenZeile('zzgl. ${e.key} % USt', _euro(e.value), normal),
+              if (!f.kleinunternehmer) _summenZeile('Gesamtbetrag', _euro(s.brutto), fett),
+              for (final a in abschlaege)
+                _summenZeile('abzgl. Abschlagsrechnung ${a.nummer}',
+                    '-${_euro(summenVon(a, kleinunternehmer: f.kleinunternehmer).brutto)}', normal),
+              if (abschlaege.isNotEmpty) _summenZeile('Noch zu zahlen', _euro(zahlen.brutto), fett),
+            ]),
+          ),
+        ),
       pw.SizedBox(height: 6 * mm),
       if (f.kleinunternehmer) pw.Text(kleinunternehmerHinweis, style: normal),
       if (r.art == 'kostenvoranschlag')
         pw.Text('Unverbindlicher Kostenvoranschlag. Abweichungen von mehr als 15 % teile ich Ihnen vorher mit.', style: normal)
       else if (r.istAngebot)
         pw.Text('Dieses Angebot gilt 30 Tage ab dem ${_d(r.datum)}.', style: normal)
+      else if (r.art == 'auftragsbestaetigung')
+        pw.Text('Vielen Dank für Ihren Auftrag. Hiermit bestätige ich die Ausführung der oben genannten Leistungen '
+            'zu den genannten Preisen.', style: normal)
+      else if (r.art == 'lieferschein') ...[
+        pw.Text('Ware bzw. Leistung vollständig und in einwandfreiem Zustand erhalten:', style: normal),
+        pw.SizedBox(height: 14 * mm),
+        pw.Row(children: [
+          pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Divider(thickness: 0.5),
+            pw.Text('Ort, Datum', style: klein),
+          ])),
+          pw.SizedBox(width: 10 * mm),
+          pw.Expanded(child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Divider(thickness: 0.5),
+            pw.Text('Unterschrift Empfänger', style: klein),
+          ])),
+        ]),
+      ] else if (zahlen.brutto <= 0)
+        pw.Text('Der Betrag ist durch die Abschlagszahlungen bereits beglichen.', style: normal)
       else
-        pw.Text(
-            'Bitte überweisen Sie den Betrag bis zum ${_d(faelligAm(r))}${f.iban.isEmpty ? '' : ' auf das Konto ${f.iban}'} '
-            'unter Angabe der Rechnungsnummer ${r.nummer}.',
-            style: normal),
+        pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Expanded(
+            child: pw.Text(
+                'Bitte überweisen Sie ${_euro(zahlen.brutto)} bis zum ${_d(faelligAm(r))}'
+                '${f.iban.isEmpty ? '' : ' auf das Konto ${f.iban}'} unter Angabe der Rechnungsnummer ${r.nummer}.'
+                '${qr.isEmpty ? '' : '\n\nBequem bezahlen: Den GiroCode mit Ihrer Banking-App scannen.'}',
+                style: normal),
+          ),
+          if (qr.isNotEmpty) ...[
+            pw.SizedBox(width: 6 * mm),
+            pw.Column(children: [
+              pw.BarcodeWidget(barcode: pw.Barcode.qrCode(), data: qr, width: 28 * mm, height: 28 * mm),
+              pw.SizedBox(height: 1 * mm),
+              pw.Text('GiroCode', style: klein),
+            ]),
+          ],
+        ]),
       if (r.notiz.isNotEmpty) ...[pw.SizedBox(height: 4 * mm), pw.Text(r.notiz, style: normal)],
       pw.SizedBox(height: 6 * mm),
-      pw.Text('Vielen Dank für Ihren Auftrag!', style: normal),
+      if (r.art != 'lieferschein' && r.art != 'auftragsbestaetigung') pw.Text('Vielen Dank für Ihren Auftrag!', style: normal),
     ],
   ));
   return _speichern(doc, '$titel ${r.nummer} ${k?.name ?? ''}');

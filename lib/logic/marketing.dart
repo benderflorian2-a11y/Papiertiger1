@@ -107,7 +107,7 @@ List<(Kunde, DateTime)> wiederAnsprechen(List<Kunde> kunden, List<Rechnung> rech
   for (final k in kunden) {
     DateTime? letzte;
     for (final r in rechnungen) {
-      if (r.kundeId != k.id || r.istAngebot || r.storniert) continue;
+      if (r.kundeId != k.id || !r.istRechnung || r.storniert) continue;
       if (letzte == null || r.datum.isAfter(letzte)) letzte = r.datum;
     }
     if (letzte != null && heute.difference(letzte).inDays >= abTagen) out.add((k, letzte));
@@ -125,7 +125,7 @@ List<Rechnung> angeboteNachfassen(List<Rechnung> rechnungen, {required DateTime 
           heute.difference(r.datum).inDays >= abTagen &&
           heute.difference(r.datum).inDays <= 60 &&
           r.kundeId.isNotEmpty &&
-          !rechnungen.any((x) => !x.istAngebot && x.kundeId == r.kundeId && !x.datum.isBefore(r.datum)))
+          !rechnungen.any((x) => x.istRechnung && x.kundeId == r.kundeId && !x.datum.isBefore(r.datum)))
       .toList()
     ..sort((a, b) => a.datum.compareTo(b.datum));
 }

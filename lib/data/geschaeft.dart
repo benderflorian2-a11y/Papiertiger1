@@ -13,6 +13,7 @@ class Firma {
     this.kleinunternehmer = false,
     this.iban = '',
     this.bank = '',
+    this.bic = '',
     this.email = '',
     this.telefon = '',
     this.zahlungszielTage = 14,
@@ -27,6 +28,7 @@ class Firma {
   bool kleinunternehmer;
   String iban;
   String bank;
+  String bic;
   String email;
   String telefon;
   int zahlungszielTage;
@@ -41,6 +43,7 @@ class Firma {
         'kleinunternehmer': kleinunternehmer,
         'iban': iban,
         'bank': bank,
+        'bic': bic,
         'email': email,
         'telefon': telefon,
         'zahlungszielTage': zahlungszielTage,
@@ -54,6 +57,7 @@ class Firma {
         kleinunternehmer: j['kleinunternehmer'] == true,
         iban: j['iban'] as String? ?? '',
         bank: j['bank'] as String? ?? '',
+        bic: j['bic'] as String? ?? '',
         email: j['email'] as String? ?? '',
         telefon: j['telefon'] as String? ?? '',
         zahlungszielTage: (j['zahlungszielTage'] as num?)?.toInt() ?? 14,
@@ -107,7 +111,20 @@ class Position {
       );
 }
 
-/// Rechnung oder Angebot.
+/// Alle Belegarten im Gewerbe.
+const belegArten = ['angebot', 'kostenvoranschlag', 'auftragsbestaetigung', 'lieferschein', 'abschlag', 'rechnung', 'schluss'];
+
+String belegArtName(String art) => switch (art) {
+      'angebot' => 'Angebot',
+      'kostenvoranschlag' => 'Kostenvoranschlag',
+      'auftragsbestaetigung' => 'Auftragsbestätigung',
+      'lieferschein' => 'Lieferschein',
+      'abschlag' => 'Abschlagsrechnung',
+      'schluss' => 'Schlussrechnung',
+      _ => 'Rechnung',
+    };
+
+/// Rechnung, Angebot oder ein anderer Beleg aus [belegArten].
 class Rechnung {
   Rechnung({
     required this.id,
@@ -125,7 +142,25 @@ class Rechnung {
     this.storniert = false,
     this.wiederholungMonate = 0,
     this.projektId,
+    this.rabattProzent = 0,
+    this.rabattBetrag = 0,
+    this.bezugId,
+    this.mahnstufe = 0,
+    this.versendetAm,
   }) : positionen = positionen ?? [];
+
+  /// Rabatt auf die Zwischensumme (netto): Prozent und/oder fester Betrag.
+  double rabattProzent;
+  double rabattBetrag;
+
+  /// Auftrag bzw. Angebot, auf das sich Abschlags- und Schlussrechnungen beziehen.
+  String? bezugId;
+
+  /// 0 = nicht gemahnt, 1 = Zahlungserinnerung, 2 = 1. Mahnung, 3 = letzte Mahnung.
+  int mahnstufe;
+
+  /// Wann an den Kunden verschickt (von dir vermerkt).
+  DateTime? versendetAm;
 
   /// Wiederkehrende Rechnung: alle n Monate neu (0 = einmalig).
   int wiederholungMonate;
@@ -135,7 +170,7 @@ class Rechnung {
 
   final String id;
 
-  /// 'rechnung', 'angebot' oder 'kostenvoranschlag'
+  /// Siehe [belegArten].
   String art;
   String nummer;
   String kundeId;
@@ -152,7 +187,10 @@ class Rechnung {
   /// Angebot oder Kostenvoranschlag (noch keine Rechnung).
   bool get istAngebot => art == 'angebot' || art == 'kostenvoranschlag';
 
-  String get artName => switch (art) { 'angebot' => 'Angebot', 'kostenvoranschlag' => 'Kostenvoranschlag', _ => 'Rechnung' };
+  /// Zahlbare Rechnung (normale, Abschlags- oder Schlussrechnung).
+  bool get istRechnung => art == 'rechnung' || art == 'abschlag' || art == 'schluss';
+
+  String get artName => belegArtName(art);
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -170,6 +208,11 @@ class Rechnung {
         'storniert': storniert,
         'wiederholungMonate': wiederholungMonate,
         'projektId': projektId,
+        'rabattProzent': rabattProzent,
+        'rabattBetrag': rabattBetrag,
+        'bezugId': bezugId,
+        'mahnstufe': mahnstufe,
+        'versendetAm': versendetAm?.toIso8601String(),
       };
 
   factory Rechnung.fromJson(Map<String, dynamic> j) => Rechnung(
@@ -192,6 +235,11 @@ class Rechnung {
         storniert: j['storniert'] == true,
         wiederholungMonate: (j['wiederholungMonate'] as num?)?.toInt() ?? 0,
         projektId: j['projektId'] as String?,
+        rabattProzent: _zahl(j['rabattProzent']),
+        rabattBetrag: _zahl(j['rabattBetrag']),
+        bezugId: j['bezugId'] as String?,
+        mahnstufe: (j['mahnstufe'] as num?)?.toInt() ?? (j['gemahntAm'] != null ? 1 : 0),
+        versendetAm: _datum(j['versendetAm']),
       );
 }
 
