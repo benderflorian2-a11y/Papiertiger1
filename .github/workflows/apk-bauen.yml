@@ -176,6 +176,27 @@ jobs:
           if flutter test 2>&1 | tee tests.txt; then echo "TESTS OK" > tests_status.txt; else echo "TESTS FEHLGESCHLAGEN" > tests_status.txt; fi
           cat tests_status.txt
 
+      - name: E-Rechnung pruefen (KoSIT-Validator)
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p kosit && cd kosit
+          gh release download -R itplr-kosit/validator -p '*.zip' || true
+          gh release download -R itplr-kosit/validator-configuration-xrechnung -p '*.zip' || true
+          for z in *.zip; do unzip -o -q "$z"; done
+          jar=$(find . -name '*standalone*.jar' | head -1)
+          szen=$(find . -name 'scenarios.xml' | head -1)
+          echo "Validator: $jar / $szen" > ../erechnung.txt
+          java -jar "$jar" -s "$szen" -r "$(dirname "$szen")" -o ergebnis ../build/erechnung_*.xml >> ../erechnung.txt 2>&1 || true
+          for f in ergebnis/*.xml; do
+            echo "== $f" >> ../erechnung.txt
+            grep -o 'valid="[a-z]*"' "$f" | head -1 >> ../erechnung.txt
+            grep -o '<svrl:failed-assert[^>]*>' "$f" | grep -o 'id="[^"]*"' | head -20 >> ../erechnung.txt
+            grep -o '<svrl:text>[^<]*' "$f" | head -20 >> ../erechnung.txt
+          done
+          cat ../erechnung.txt
+
       - name: APK bauen
         run: |
           set -o pipefail
@@ -200,6 +221,10 @@ jobs:
             grep -n -A 25 -E "❌|\[E\]|Some tests failed|Error:|error:" tests.txt 2>/dev/null | head -n 80
             echo '---'
             tail -n 60 tests.txt 2>/dev/null | grep -v '^\s*$' | tail -n 20
+            echo '```'
+            echo "## E-Rechnung (KoSIT)"
+            echo '```'
+            grep -iE "valid=|accept|reject|id=|svrl:text|==|Validator|error|exception" erechnung.txt 2>/dev/null | head -n 60
             echo '```'
             echo "## Bau"
             echo '```'

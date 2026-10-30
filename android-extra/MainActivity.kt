@@ -183,7 +183,11 @@ class MainActivity : FlutterActivity() {
         } else {
             Intent(Intent.ACTION_SEND).apply { if (uris.isNotEmpty()) putExtra(Intent.EXTRA_STREAM, uris[0]) }
         }
-        intent.type = if (uris.isEmpty()) "text/plain" else "application/pdf"
+        intent.type = when {
+            uris.isEmpty() -> "text/plain"
+            uris.size == 1 && pfade.firstOrNull()?.endsWith(".pdf") == true -> "application/pdf"
+            else -> "*/*"
+        }
         if (an.isNotBlank()) intent.putExtra(Intent.EXTRA_EMAIL, arrayOf(an))
         intent.putExtra(Intent.EXTRA_SUBJECT, betreff)
         intent.putExtra(Intent.EXTRA_TEXT, text)

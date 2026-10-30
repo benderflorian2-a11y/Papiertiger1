@@ -4,6 +4,7 @@ import '../../data/geschaeft.dart';
 import '../../data/models.dart';
 import '../../logic/android_kanal.dart';
 import '../../logic/datev.dart';
+import '../../logic/erechnung.dart';
 import '../../logic/export.dart';
 import '../../logic/kalkulation.dart';
 import '../../logic/kommunikation.dart';
@@ -246,13 +247,18 @@ class RechnungDetail extends StatelessWidget {
           mimeType: 'application/pdf', text: '$titel ${r.nummer} über ${euro(zahlen.brutto)}');
     }
 
+    final eFehlt = eRechnungFehlt(r, f, k);
+
+    Future<String> xmlDatei() async =>
+        (await textDatei('XRechnung ${r.nummer}.xml', xRechnung(r, f, k!, alle: store.rechnungen))).path;
+
     Future<void> senden() async {
       final datei = await rechnungAlsPdf(r, f, k, alle: store.rechnungen);
       final ok = await mailMitAnhang(
         an: k?.email ?? '',
         betreff: '$titel ${r.nummer}${f.name.isEmpty ? '' : ' – ${f.name}'}',
         text: begleitText(r, f, k, zahlen),
-        pfade: [datei.path],
+        pfade: [datei.path, if (r.istRechnung && eFehlt.isEmpty) await xmlDatei()],
       );
       if (!context.mounted) return;
       if (!ok) {
@@ -473,6 +479,32 @@ class RechnungDetail extends StatelessWidget {
               ),
             ],
           ]),
+          if (r.istRechnung && !r.storniert)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: eFehlt.isEmpty
+                  ? Row(children: [
+                      const Icon(Icons.verified_outlined, color: PT.gruen, size: 18),
+                      const SizedBox(width: 6),
+                      const Expanded(child: Text('E-Rechnung (XRechnung) wird mitgeschickt.', style: TextStyle(fontSize: 13))),
+                      TextButton(
+                        onPressed: () async => dateiTeilen(await xmlDatei(), mimeType: 'application/xml'),
+                        child: const Text('XML teilen'),
+                      ),
+                    ])
+                  : ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('E-Rechnung noch nicht möglich', style: TextStyle(fontSize: 14)),
+                      subtitle: Text('Es fehlen ${eFehlt.length} Angaben', style: const TextStyle(fontSize: 12, color: PT.grau)),
+                      children: [
+                        for (final x in eFehlt)
+                          Align(alignment: Alignment.centerLeft, child: Text('• $x', style: const TextStyle(fontSize: 13))),
+                        const SizedBox(height: 4),
+                        const Text('Zwischen Firmen wird die E-Rechnung ab 2027/2028 schrittweise Pflicht. An Privatkunden reicht das PDF.',
+                            style: TextStyle(color: PT.grau, fontSize: 12)),
+                      ],
+                    ),
+            ),
           if (r.istRechnung && f.iban.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 4),
@@ -1082,10 +1114,11 @@ class _KundeFormularState extends State<KundeFormular> {
   late final _adresse = TextEditingController(text: widget.kunde?.adresse ?? '');
   late final _email = TextEditingController(text: widget.kunde?.email ?? '');
   late final _notiz = TextEditingController(text: widget.kunde?.notiz ?? '');
+  late final _leitweg = TextEditingController(text: widget.kunde?.leitwegId ?? '');
 
   @override
   void dispose() {
-    for (final c in [_name, _adresse, _email, _notiz]) {
+    for (final c in [_name, _adresse, _email, _notiz, _leitweg]) {
       c.dispose();
     }
     super.dispose();
@@ -1116,6 +1149,10 @@ class _KundeFormularState extends State<KundeFormular> {
               decoration: feld(labelText: 'E-Mail (optional)')),
           const SizedBox(height: 12),
           TextField(controller: _notiz, minLines: 2, maxLines: 4, decoration: feld(labelText: 'Notiz (optional)')),
+          const SizedBox(height: 12),
+          TextField(
+              controller: _leitweg,
+              decoration: feld(labelText: 'Leitweg-ID (nur bei Behörden, für die E-Rechnung)')),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -1132,7 +1169,8 @@ class _KundeFormularState extends State<KundeFormular> {
                 ..name = _name.text.trim()
                 ..adresse = _adresse.text.trim()
                 ..email = _email.text.trim()
-                ..notiz = _notiz.text.trim();
+                ..notiz = _notiz.text.trim()
+                ..leitwegId = _leitweg.text.trim();
               await store.kundeSpeichern(k);
               if (context.mounted) Navigator.of(context).pop(k);
             },

@@ -24,17 +24,35 @@ class Summen {
 
 double _rund(double x) => (x * 100).round() / 100;
 
-/// Netto je Steuersatz nach Rabatt (Rabatt anteilig auf alle Sätze verteilt).
+/// Netto je Steuersatz nach Rabatt, auf Cent gerundet. Der Rabatt wird anteilig verteilt;
+/// der letzte Satz bekommt den Rundungsrest, damit die Summe genau stimmt (wie in der E-Rechnung).
 Map<int, double> nettoProSatz(Rechnung r) {
+  final roh = <int, double>{};
+  for (final p in r.positionen) {
+    roh[p.ustSatz] = _rund((roh[p.ustSatz] ?? 0) + p.netto);
+  }
+  final abzug = rabattAufteilen(r);
+  return {for (final e in roh.entries) e.key: _rund(e.value - (abzug[e.key] ?? 0))};
+}
+
+/// Rabatt je Steuersatz in Euro (für die E-Rechnung als Nachlass je Steuersatz).
+Map<int, double> rabattAufteilen(Rechnung r) {
   final roh = <int, double>{};
   for (final p in r.positionen) {
     roh[p.ustSatz] = (roh[p.ustSatz] ?? 0) + p.netto;
   }
   final summe = roh.values.fold(0.0, (a, b) => a + b);
   final rabatt = rabattVon(r);
-  if (summe <= 0 || rabatt <= 0) return roh;
-  final faktor = (summe - rabatt) / summe;
-  return {for (final e in roh.entries) e.key: e.value * faktor};
+  if (summe <= 0 || rabatt <= 0) return {};
+  final out = <int, double>{};
+  var rest = rabatt;
+  final saetze = roh.keys.toList();
+  for (var i = 0; i < saetze.length; i++) {
+    final x = i == saetze.length - 1 ? _rund(rest) : _rund(rabatt * roh[saetze[i]]! / summe);
+    out[saetze[i]] = x;
+    rest -= x;
+  }
+  return out;
 }
 
 /// Rabatt in Euro (netto), höchstens die Zwischensumme.

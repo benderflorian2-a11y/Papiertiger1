@@ -71,7 +71,7 @@ class Firma {
 }
 
 class Kunde {
-  Kunde({required this.id, required this.name, this.adresse = '', this.email = '', this.notiz = ''});
+  Kunde({required this.id, required this.name, this.adresse = '', this.email = '', this.notiz = '', this.leitwegId = ''});
 
   final String id;
   String name;
@@ -79,7 +79,11 @@ class Kunde {
   String email;
   String notiz;
 
-  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'adresse': adresse, 'email': email, 'notiz': notiz};
+  /// Leitweg-ID für E-Rechnungen an Behörden (sonst leer).
+  String leitwegId;
+
+  Map<String, dynamic> toJson() =>
+      {'id': id, 'name': name, 'adresse': adresse, 'email': email, 'notiz': notiz, 'leitwegId': leitwegId};
 
   factory Kunde.fromJson(Map<String, dynamic> j) => Kunde(
         id: j['id'] as String,
@@ -87,6 +91,7 @@ class Kunde {
         adresse: j['adresse'] as String? ?? '',
         email: j['email'] as String? ?? '',
         notiz: j['notiz'] as String? ?? '',
+        leitwegId: j['leitwegId'] as String? ?? '',
       );
 }
 
