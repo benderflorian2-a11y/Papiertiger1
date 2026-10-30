@@ -142,7 +142,8 @@ String xRechnung(Rechnung r, Firma f, Kunde k, {List<Rechnung> alle = const []})
 
   x.write('<ram:ApplicableHeaderTradeAgreement>'
       '<ram:BuyerReference>${_x(k.leitwegId.isNotEmpty ? k.leitwegId : r.nummer)}</ram:BuyerReference>'
-      '<ram:SellerTradeParty><ram:Name>${_x(f.name)}</ram:Name>'
+      // BR-CO-26: ohne USt-IdNr. braucht es eine Verkäuferkennung (BT-29) – hier die Steuernummer
+      '<ram:SellerTradeParty>${f.ustId.trim().isEmpty ? '<ram:ID>${_x(f.steuernummer.trim())}</ram:ID>' : ''}<ram:Name>${_x(f.name)}</ram:Name>'
       '<ram:DefinedTradeContact><ram:PersonName>${_x(f.name)}</ram:PersonName>'
       '<ram:TelephoneUniversalCommunication><ram:CompleteNumber>${_x(f.telefon)}</ram:CompleteNumber></ram:TelephoneUniversalCommunication>'
       '<ram:EmailURIUniversalCommunication><ram:URIID>${_x(f.email)}</ram:URIID></ram:EmailURIUniversalCommunication></ram:DefinedTradeContact>'
