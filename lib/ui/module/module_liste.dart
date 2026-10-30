@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app.dart';
 import '../finanzen.dart';
 import '../geschaeft/geschaeft.dart';
+import '../familie/familie.dart';
 import '../haushalt/haushalt.dart';
 import '../karriere/karriere.dart';
 import '../theme.dart';
@@ -44,6 +45,9 @@ final module = <ModulInfo>[
       () => const AntraegeScreen()),
   ModulInfo('Job & Karriere', 'Lebenslauf, Bewerbungen, Weiterbildung', Icons.work_outline,
       () => const KarriereScreen(), key: 'karriere'),
+  ModulInfo('Kinder', 'Untersuchungen, Kita, Kindergeld', Icons.child_care, () => const KinderScreen(), key: 'kinder'),
+  ModulInfo('Vorsorgemappe', 'Notfallblatt für Angehörige', Icons.health_and_safety_outlined,
+      () => const VorsorgeScreen(), key: 'vorsorge'),
   ModulInfo('Behördengänge', 'Ummelden, Gewerbe, Ausweis', Icons.account_balance_outlined,
       () => const BehoerdengaengeScreen()),
 ];

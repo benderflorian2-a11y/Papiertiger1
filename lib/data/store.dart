@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../logic/ordnung.dart';
 import 'alltag.dart';
+import 'familie.dart';
 import 'karriere.dart';
 import 'geschaeft.dart';
 import 'haushalt.dart';
@@ -49,6 +50,7 @@ class AppStore extends ChangeNotifier {
   List<Gegenstand> inventar = [];
   Alltag alltag = Alltag();
   Karriere karriere = Karriere();
+  Familie familie = Familie();
 
   /// Zuschaltbare Bereichsgruppen: 'selbststaendig', 'haushalt'.
   bool bereichAktiv(String gruppe) => checklisten['bereich:$gruppe'] == true;
@@ -136,6 +138,12 @@ class AppStore extends ChangeNotifier {
         alltag = Alltag.fromJson(jsonDecode(a) as Map<String, dynamic>);
       } catch (_) {}
     }
+    final fa = _prefs.getString('familie');
+    if (fa != null) {
+      try {
+        familie = Familie.fromJson(jsonDecode(fa) as Map<String, dynamic>);
+      } catch (_) {}
+    }
     final kr = _prefs.getString('karriere');
     if (kr != null) {
       try {
@@ -206,6 +214,7 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
     await _prefs.setString('alltag', jsonEncode(alltag.toJson()));
     await _prefs.setString('karriere', jsonEncode(karriere.toJson()));
+    await _prefs.setString('familie', jsonEncode(familie.toJson()));
     await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
     await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
@@ -349,6 +358,7 @@ class AppStore extends ChangeNotifier {
     sparziele = [];
     alltag = Alltag();
     karriere = Karriere();
+    familie = Familie();
     onboardingFertig = false;
   }
 
