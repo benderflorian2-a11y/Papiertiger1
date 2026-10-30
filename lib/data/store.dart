@@ -59,6 +59,31 @@ class AppStore extends ChangeNotifier {
     return AppStore(prefs);
   }
 
+  /// Alle gespeicherten Werte (für die Datensicherung).
+  Map<String, Object?> alleWerte() => {for (final k in _prefs.getKeys()) k: _prefs.get(k)};
+
+  /// Ersetzt alle gespeicherten Werte (Datensicherung zurückspielen) und lädt neu.
+  Future<void> werteErsetzen(Map<String, Object?> werte) async {
+    await _prefs.clear();
+    for (final e in werte.entries) {
+      final v = e.value;
+      if (v is String) {
+        await _prefs.setString(e.key, v);
+      } else if (v is bool) {
+        await _prefs.setBool(e.key, v);
+      } else if (v is int) {
+        await _prefs.setInt(e.key, v);
+      } else if (v is double) {
+        await _prefs.setDouble(e.key, v);
+      } else if (v is List) {
+        await _prefs.setStringList(e.key, [for (final x in v) '$x']);
+      }
+    }
+    _leeren();
+    _laden();
+    notifyListeners();
+  }
+
   List<Map<String, dynamic>> _liste(String key) {
     final roh = _prefs.getString(key);
     if (roh == null) return [];
@@ -280,13 +305,7 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Löscht alle Daten und Bilder der App.
-  Future<void> allesLoeschen() async {
-    for (final b in briefe) {
-      _dateienLoeschen([...b.bilder, if (b.pdfPfad != null) b.pdfPfad!]);
-    }
-    for (final b in belege) {
-      if (b.bild != null) _dateienLoeschen([b.bild!]);
-    }
+  void _leeren() {
     briefe = [];
     vertraege = [];
     belege = [];
@@ -299,9 +318,6 @@ class AppStore extends ChangeNotifier {
     kunden = [];
     rechnungen = [];
     projekte = [];
-    for (final g in inventar) {
-      if (g.bild != null) _dateienLoeschen([g.bild!]);
-    }
     zaehler = [];
     artikel = [];
     einsaetze = [];
@@ -312,6 +328,19 @@ class AppStore extends ChangeNotifier {
     alltag = Alltag();
     karriere = Karriere();
     onboardingFertig = false;
+  }
+
+  Future<void> allesLoeschen() async {
+    for (final b in briefe) {
+      _dateienLoeschen([...b.bilder, if (b.pdfPfad != null) b.pdfPfad!]);
+    }
+    for (final b in belege) {
+      if (b.bild != null) _dateienLoeschen([b.bild!]);
+    }
+    for (final g in inventar) {
+      if (g.bild != null) _dateienLoeschen([g.bild!]);
+    }
+    _leeren();
     await _prefs.clear();
     notifyListeners();
   }

@@ -8,6 +8,7 @@ import 'kommunikation.dart';
 import 'ki_einstellungen.dart';
 import 'termine.dart';
 import 'module/profil.dart';
+import 'sicherung.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 import 'widgets/tiger.dart';
@@ -226,11 +227,30 @@ class MehrScreen extends StatelessWidget {
             ),
           ),
           const Abschnitt('Datenschutz'),
+          PTKarte(
+            onTap: () => oeffne(const SicherungScreen()),
+            child: Row(children: [
+              const IconKachel(Icons.cloud_upload_outlined),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Datensicherung', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    letzteSicherung(store.notizen) == null
+                        ? 'Noch nie gesichert – jetzt verschlüsselt sichern'
+                        : 'Zuletzt ${datumKurz(letzteSicherung(store.notizen)!)}',
+                    style: const TextStyle(color: PT.grau, fontSize: 13),
+                  ),
+                ]),
+              ),
+              const Icon(Icons.chevron_right, color: PT.grau),
+            ]),
+          ),
           const PTKarte(
             child: Text(
               'Texterkennung, KI und Speicherung laufen nur auf deinem Handy. '
               'Briefe, Fotos und Angaben werden nicht ins Internet geschickt. '
-              'Wenn du die App löschst, sind auch alle Daten weg.',
+              'Wenn du die App löschst, sind die Daten weg – außer du hast eine Datensicherung.',
               style: TextStyle(height: 1.45),
             ),
           ),
