@@ -25,7 +25,7 @@ void main() {
       AufmassZeile(text: 'Fenster', laenge: 1.2, hoehe: 1.4, abzug: true),
     ];
     expect(aufmassMenge(l), 23.82); // 10,5 + 15 − 1,68
-    expect(aufmassText(l), 'Wand Nord 4,20 × 2,50 · Wand Süd 2 × 3 × 2,50 · − Fenster 1,20 × 1,40');
+    expect(aufmassText(l), 'Wand Nord 4,20 × 2,50 · Wand Süd 2 × 3 × 2,50 · - Fenster 1,20 × 1,40');
     expect(aufmassMenge([AufmassZeile(laenge: 1, abzug: true)]), 0);
   });
 

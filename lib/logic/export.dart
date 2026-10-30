@@ -694,3 +694,59 @@ Future<File> bautagebuchAlsPdf(Projekt p, Firma f, Kunde? k) async {
   ));
   return _speichern(doc, 'Bautagebuch ${p.name}');
 }
+
+/// Arbeitsauftrag für Mitarbeiter: wo, wann, wer, was – ohne Preise.
+Future<File> arbeitsauftragAlsPdf(Projekt p, Firma f, Kunde? k, {List<Einsatz> einsaetze = const [], Rechnung? auftrag}) async {
+  final doc = pw.Document(title: 'Arbeitsauftrag ${p.name}', author: f.name);
+  const normal = pw.TextStyle(fontSize: 10);
+  final fett = pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold);
+  final plan = einsaetze.where((e) => e.projektId == p.id).toList()..sort((a, b) => a.von.compareTo(b.von));
+  final offen = p.aufgaben.where((a) => !a.erledigt).toList();
+  pw.Widget titel(String t) => pw.Padding(padding: const pw.EdgeInsets.only(top: 12, bottom: 4), child: pw.Text(t, style: fett));
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.all(40),
+    build: (c) => [
+      pw.Row(children: [
+        pw.Expanded(child: pw.Text('Arbeitsauftrag', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold))),
+        pw.Text(f.name, style: normal),
+      ]),
+      pw.SizedBox(height: 8),
+      pw.Text(p.name, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold)),
+      if (p.adresse.isNotEmpty) pw.Text('Ort: ${p.adresse}', style: normal),
+      if (k != null) pw.Text('Kunde: ${k.name}${k.email.isEmpty ? '' : ' · ${k.email}'}', style: normal),
+      if (p.notiz.isNotEmpty) pw.Text(p.notiz, style: normal),
+      if (plan.isNotEmpty) ...[
+        titel('Einsatz'),
+        for (final e in plan)
+          pw.Text('${_d(e.von)}${e.bis.isAfter(e.von) ? ' – ${_d(e.bis)}' : ''}: ${e.personen.join(', ')}${e.notiz.isEmpty ? '' : ' (${e.notiz})'}',
+              style: normal),
+      ],
+      if (auftrag != null && auftrag.positionen.isNotEmpty) ...[
+        titel('Leistungen'),
+        pw.TableHelper.fromTextArray(
+          headers: ['', 'Leistung', 'Menge'],
+          data: [
+            for (final x in auftrag.positionen)
+              ['[ ]', x.aufmass.isEmpty ? x.text : '${x.text}\nAufmaß: ${aufmassText(x.aufmass)}', '${_menge(x.menge)} ${x.einheit}'],
+          ],
+          cellStyle: normal,
+          headerStyle: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+          columnWidths: {0: const pw.FixedColumnWidth(18), 1: const pw.FlexColumnWidth(4), 2: const pw.FlexColumnWidth(1)},
+        ),
+      ],
+      if (p.material.isNotEmpty) ...[
+        titel('Material'),
+        for (final m in p.material)
+          pw.Text('[ ] ${_menge(m.menge)} ${m.einheit} ${m.text}${m.bestellt ? '' : '  (noch nicht bestellt)'}', style: normal),
+      ],
+      if (offen.isNotEmpty) ...[
+        titel('Aufgaben'),
+        for (final a in offen) pw.Text('[ ] ${a.text}${a.person.isEmpty ? '' : ' -> ${a.person}'}', style: normal),
+      ],
+      titel('Rückmeldung'),
+      pw.Text('Arbeitszeit, Material und Besonderheiten bitte in der Stempeluhr bzw. im Bautagebuch erfassen.', style: normal),
+    ],
+  ));
+  return _speichern(doc, 'Arbeitsauftrag ${p.name}');
+}

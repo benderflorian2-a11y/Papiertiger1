@@ -504,20 +504,82 @@ class Baubericht {
 const projektStatus = ['Anfrage', 'Angebot', 'Auftrag', 'In Arbeit', 'Fertig', 'Abgerechnet'];
 
 class Zeiteintrag {
-  Zeiteintrag({required this.datum, required this.stunden, this.person = '', this.text = ''});
+  Zeiteintrag({
+    required this.datum,
+    required this.stunden,
+    this.person = '',
+    this.text = '',
+    this.beginn,
+    this.ende,
+    this.pauseMinuten = 0,
+    this.fahrt = false,
+  });
 
   final DateTime datum;
+
+  /// Arbeitszeit ohne Pause.
   final double stunden;
   final String person;
   final String text;
 
-  Map<String, dynamic> toJson() => {'datum': datum.toIso8601String(), 'stunden': stunden, 'person': person, 'text': text};
+  /// Von der Stempeluhr: Beginn, Ende und Pause.
+  final DateTime? beginn;
+  final DateTime? ende;
+  final int pauseMinuten;
+
+  /// Fahrtzeit statt Arbeitszeit auf der Baustelle.
+  final bool fahrt;
+
+  Map<String, dynamic> toJson() => {
+        'datum': datum.toIso8601String(),
+        'stunden': stunden,
+        'person': person,
+        'text': text,
+        if (beginn != null) 'beginn': beginn!.toIso8601String(),
+        if (ende != null) 'ende': ende!.toIso8601String(),
+        if (pauseMinuten != 0) 'pauseMinuten': pauseMinuten,
+        if (fahrt) 'fahrt': true,
+      };
 
   factory Zeiteintrag.fromJson(Map<String, dynamic> j) => Zeiteintrag(
         datum: _datum(j['datum']) ?? DateTime.now(),
         stunden: _zahl(j['stunden']),
         person: j['person'] as String? ?? '',
         text: j['text'] as String? ?? '',
+        beginn: _datum(j['beginn']),
+        ende: _datum(j['ende']),
+        pauseMinuten: (j['pauseMinuten'] as num?)?.toInt() ?? 0,
+        fahrt: j['fahrt'] == true,
+      );
+}
+
+/// Laufende Zeit auf der Stempeluhr.
+class Stempel {
+  Stempel({required this.person, required this.projektId, required this.start, this.fahrt = false, this.pauseMinuten = 0, this.pauseSeit});
+
+  final String person;
+  String projektId;
+  DateTime start;
+  bool fahrt;
+  int pauseMinuten;
+  DateTime? pauseSeit;
+
+  Map<String, dynamic> toJson() => {
+        'person': person,
+        'projektId': projektId,
+        'start': start.toIso8601String(),
+        'fahrt': fahrt,
+        'pauseMinuten': pauseMinuten,
+        'pauseSeit': pauseSeit?.toIso8601String(),
+      };
+
+  factory Stempel.fromJson(Map<String, dynamic> j) => Stempel(
+        person: j['person'] as String? ?? '',
+        projektId: j['projektId'] as String? ?? '',
+        start: _datum(j['start']) ?? DateTime.now(),
+        fahrt: j['fahrt'] == true,
+        pauseMinuten: (j['pauseMinuten'] as num?)?.toInt() ?? 0,
+        pauseSeit: _datum(j['pauseSeit']),
       );
 }
 

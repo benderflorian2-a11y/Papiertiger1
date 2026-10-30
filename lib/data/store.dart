@@ -41,6 +41,7 @@ class AppStore extends ChangeNotifier {
   List<Zaehler> zaehler = [];
   List<Artikel> artikel = [];
   List<Einsatz> einsaetze = [];
+  List<Stempel> stempel = [];
 
   /// Mitarbeiter bzw. Kolonnen für die Plantafel (Namen).
   List<String> mitarbeiter = [];
@@ -77,6 +78,7 @@ class AppStore extends ChangeNotifier {
     zaehler = _liste('zaehler').map(Zaehler.fromJson).toList();
     artikel = _liste('artikel').map(Artikel.fromJson).toList();
     einsaetze = _liste('einsaetze').map(Einsatz.fromJson).toList();
+    stempel = _liste('stempel').map(Stempel.fromJson).toList();
     mitarbeiter = _prefs.getStringList('mitarbeiter') ?? [];
     sparziele = _liste('sparziele').map(Sparziel.fromJson).toList();
     final a = _prefs.getString('alltag');
@@ -144,6 +146,7 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
     await _prefs.setString('artikel', jsonEncode(artikel.map((a) => a.toJson()).toList()));
     await _prefs.setString('einsaetze', jsonEncode(einsaetze.map((e) => e.toJson()).toList()));
+    await _prefs.setString('stempel', jsonEncode(stempel.map((e) => e.toJson()).toList()));
     await _prefs.setStringList('mitarbeiter', mitarbeiter);
     await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
     await _prefs.setString('alltag', jsonEncode(alltag.toJson()));
@@ -293,6 +296,7 @@ class AppStore extends ChangeNotifier {
     zaehler = [];
     artikel = [];
     einsaetze = [];
+    stempel = [];
     mitarbeiter = [];
     inventar = [];
     sparziele = [];

@@ -29,10 +29,10 @@ double aufmassMenge(List<AufmassZeile> l) {
 
 String _z(double v) => v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2).replaceAll('.', ',');
 
-/// Kurzform fürs PDF: „Wand Nord 4,2 × 2,5 + … − Fenster 1,2 × 1,4“.
+/// Kurzform fürs PDF: „Wand Nord 4,20 × 2,50 · - Fenster 1,20 × 1,40“ (nur Zeichen, die die PDF-Schrift kennt).
 String aufmassText(List<AufmassZeile> l) => l.map((a) {
       final masse = [if (a.anzahl != 1) _z(a.anzahl), for (final m in [a.laenge, a.breite, a.hoehe]) if (m != null) _z(m)];
-      return '${a.abzug ? '− ' : ''}${a.text.isEmpty ? '' : '${a.text} '}${masse.join(' × ')}';
+      return '${a.abzug ? '- ' : ''}${a.text.isEmpty ? '' : '${a.text} '}${masse.join(' × ')}';
     }).join(' · ');
 
 class Kalkulation {

@@ -17,6 +17,7 @@ import '../widgets/common.dart';
 import 'katalog.dart';
 import 'marketing.dart';
 import 'plantafel.dart';
+import 'stempeluhr.dart';
 import 'projekte.dart';
 import '../ki_text.dart';
 import '../kontoauszug.dart';
@@ -126,6 +127,10 @@ class GeschaeftScreen extends StatelessWidget {
                 avatar: const Icon(Icons.work_outline, size: 18),
                 label: const Text('Projekte'),
                 onPressed: () => oeffne(const ProjekteScreen())),
+            ActionChip(
+                avatar: const Icon(Icons.timer_outlined, size: 18),
+                label: Text(store.stempel.isEmpty ? 'Stempeluhr' : 'Stempeluhr (${store.stempel.length} läuft)'),
+                onPressed: () => oeffne(const StempeluhrScreen())),
             ActionChip(
                 avatar: const Icon(Icons.calendar_view_week_outlined, size: 18),
                 label: const Text('Plantafel'),

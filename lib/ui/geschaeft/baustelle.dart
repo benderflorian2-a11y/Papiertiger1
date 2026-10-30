@@ -53,6 +53,19 @@ class BaustelleTab extends StatelessWidget {
           },
         ),
       ),
+      OutlinedButton.icon(
+        onPressed: () async {
+          final kandidaten = store.rechnungen
+              .where((r) => !r.storniert && (r.id == p.angebotId || r.projektId == p.id) && !r.istRechnung)
+              .toList()
+            ..sort((a, b) => (a.art == 'auftragsbestaetigung' ? 0 : 1).compareTo(b.art == 'auftragsbestaetigung' ? 0 : 1));
+          final d = await arbeitsauftragAlsPdf(p, store.firma, k,
+              einsaetze: store.einsaetze, auftrag: kandidaten.firstOrNull);
+          await dateiTeilen(d.path, mimeType: 'application/pdf', text: 'Arbeitsauftrag ${p.name}');
+        },
+        icon: const Icon(Icons.assignment_outlined),
+        label: const Text('Arbeitsauftrag fürs Team (PDF)'),
+      ),
       // ------------------------------------------------ Fotos
       Row(children: [
         Expanded(child: Abschnitt('Fotos (${p.fotos.length})')),
