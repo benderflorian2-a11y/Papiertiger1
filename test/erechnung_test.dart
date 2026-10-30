@@ -84,10 +84,7 @@ void main() {
     expect(xmlKu, isNot(contains('schemeID="VA"')));
     File('build/erechnung_kleinunternehmer.xml').writeAsStringSync(xmlKu);
 
-    final auftrag = _rechnung()
-      ..art = 'auftragsbestaetigung'
-      ..id = 'ab'
-      ..rabattProzent = 0;
+    final auftrag = Rechnung.fromJson({..._rechnung().toJson(), 'id': 'ab', 'art': 'auftragsbestaetigung', 'rabattProzent': 0});
     final alle = <Rechnung>[auftrag];
     final abschlag = abschlagAus(auftrag, alle, id: 'a1', datum: DateTime(2026, 10, 10), prozent: 50, zahlungszielTage: 7);
     alle.add(abschlag);

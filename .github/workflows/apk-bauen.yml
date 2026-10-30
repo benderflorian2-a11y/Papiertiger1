@@ -182,10 +182,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p kosit && cd kosit
-          gh release download -R itplr-kosit/validator -p '*.zip' || true
-          gh release download -R itplr-kosit/validator-configuration-xrechnung -p '*.zip' || true
+          {
+            gh release list -R itplr-kosit/validator -L 3
+            gh release view -R itplr-kosit/validator --json assets -q '.assets[].name'
+            gh release list -R itplr-kosit/validator-configuration-xrechnung -L 3
+            gh release view -R itplr-kosit/validator-configuration-xrechnung --json assets -q '.assets[].name'
+          } > ../kosit_liste.txt 2>&1 || true
+          gh release download -R itplr-kosit/validator -p '*.zip' >> ../kosit_liste.txt 2>&1 || true
+          gh release download -R itplr-kosit/validator -p '*.jar' >> ../kosit_liste.txt 2>&1 || true
+          gh release download -R itplr-kosit/validator-configuration-xrechnung -p '*.zip' >> ../kosit_liste.txt 2>&1 || true
           for z in *.zip; do unzip -o -q "$z"; done
+          find . -maxdepth 3 \( -name '*.jar' -o -name 'scenarios.xml' \) >> ../kosit_liste.txt
+          ls ../build/erechnung_*.xml >> ../kosit_liste.txt 2>&1
           jar=$(find . -name '*standalone*.jar' | head -1)
+          [ -z "$jar" ] && jar=$(find . -name 'validat*.jar' | head -1)
           szen=$(find . -name 'scenarios.xml' | head -1)
           echo "Validator: $jar / $szen" > ../erechnung.txt
           java -jar "$jar" -s "$szen" -r "$(dirname "$szen")" -o ergebnis ../build/erechnung_*.xml >> ../erechnung.txt 2>&1 || true
@@ -224,6 +234,7 @@ jobs:
             echo '```'
             echo "## E-Rechnung (KoSIT)"
             echo '```'
+            cat kosit_liste.txt 2>/dev/null | head -n 30
             grep -iE "valid=|accept|reject|id=|svrl:text|==|Validator|error|exception" erechnung.txt 2>/dev/null | head -n 60
             echo '```'
             echo "## Bau"
