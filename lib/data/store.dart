@@ -52,6 +52,28 @@ class AppStore extends ChangeNotifier {
 
   /// Zuschaltbare Bereichsgruppen: 'selbststaendig', 'haushalt'.
   bool bereichAktiv(String gruppe) => checklisten['bereich:$gruppe'] == true;
+
+  /// Gewählte Lebenslagen (siehe logic/lebenslage.dart).
+  Set<String> get lebenslagen => {
+        for (final e in checklisten.entries)
+          if (e.key.startsWith('lage:') && e.value) e.key.substring(5),
+      };
+
+  /// Lebenslagen setzen; schaltet die passenden Bereiche mit.
+  Future<void> lebenslagenSetzen(Set<String> lagen) {
+    checklisten.removeWhere((k, _) => k.startsWith('lage:'));
+    for (final l in lagen) {
+      checklisten['lage:$l'] = true;
+    }
+    if (lagen.isNotEmpty) {
+      checklisten['bereich:selbststaendig'] = lagen.contains('selbststaendig') || lagen.contains('handwerk');
+      checklisten['bereich:haushalt'] = lagen.contains('familie') || lagen.contains('senior') || lagen.contains('vermieter');
+    }
+    if (lagen.contains('senior')) checklisten['ansicht:grossschrift'] = true;
+    return _speichern();
+  }
+
+  bool get grossschrift => checklisten['ansicht:grossschrift'] == true;
   ErinnerungsEinstellungen erinnerungen = ErinnerungsEinstellungen();
 
   static Future<AppStore> oeffnen() async {

@@ -6,6 +6,7 @@ import '../geschaeft/geschaeft.dart';
 import '../haushalt/haushalt.dart';
 import '../karriere/karriere.dart';
 import '../theme.dart';
+import '../../logic/lebenslage.dart';
 import 'antraege.dart';
 import 'behoerdengaenge.dart';
 import 'belege.dart';
@@ -15,7 +16,10 @@ import 'steuer.dart';
 import 'vertraege.dart';
 
 class ModulInfo {
-  const ModulInfo(this.titel, this.untertitel, this.icon, this.seite);
+  const ModulInfo(this.titel, this.untertitel, this.icon, this.seite, {this.key = ''});
+
+  /// Für die Sichtbarkeit je Lebenslage (siehe logic/lebenslage.dart).
+  final String key;
 
   final String titel;
   final String untertitel;
@@ -39,7 +43,7 @@ final module = <ModulInfo>[
   ModulInfo('Anträge', 'Kindergeld und Wohngeld', Icons.assignment_outlined,
       () => const AntraegeScreen()),
   ModulInfo('Job & Karriere', 'Lebenslauf, Bewerbungen, Weiterbildung', Icons.work_outline,
-      () => const KarriereScreen()),
+      () => const KarriereScreen(), key: 'karriere'),
   ModulInfo('Behördengänge', 'Ummelden, Gewerbe, Ausweis', Icons.account_balance_outlined,
       () => const BehoerdengaengeScreen()),
 ];
@@ -50,13 +54,14 @@ class ModulRaster extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    final lagen = store.lebenslagen;
     final liste = [
       if (store.bereichAktiv('selbststaendig'))
         ModulInfo('Mein Gewerbe', 'Rechnungen, Kunden, Marketing', Icons.storefront_outlined,
             () => const GeschaeftScreen()),
       if (store.bereichAktiv('haushalt'))
         ModulInfo('Haushalt', 'Einkauf, Essen, Reisen, Zähler', Icons.home_outlined, () => const HaushaltScreen()),
-      ...module,
+      ...module.where((m) => modulSichtbar(m.key, lagen)),
     ];
     return GridView.count(
       crossAxisCount: 2,

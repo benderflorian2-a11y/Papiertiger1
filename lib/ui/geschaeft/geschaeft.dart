@@ -7,6 +7,7 @@ import '../../logic/datev.dart';
 import '../../logic/erechnung.dart';
 import '../../logic/export.dart';
 import '../../logic/kalkulation.dart';
+import '../../logic/lebenslage.dart';
 import '../../logic/kommunikation.dart';
 import '../../logic/marketing.dart';
 import '../../logic/rechnungen.dart';
@@ -127,10 +128,12 @@ class GeschaeftScreen extends StatelessWidget {
                 avatar: const Icon(Icons.work_outline, size: 18),
                 label: const Text('Projekte'),
                 onPressed: () => oeffne(const ProjekteScreen())),
+            if (handwerkSichtbar(store.lebenslagen))
             ActionChip(
                 avatar: const Icon(Icons.timer_outlined, size: 18),
                 label: Text(store.stempel.isEmpty ? 'Stempeluhr' : 'Stempeluhr (${store.stempel.length} läuft)'),
                 onPressed: () => oeffne(const StempeluhrScreen())),
+            if (handwerkSichtbar(store.lebenslagen))
             ActionChip(
                 avatar: const Icon(Icons.calendar_view_week_outlined, size: 18),
                 label: const Text('Plantafel'),
@@ -940,6 +943,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
                     ),
                   ),
                 ]),
+                if (handwerkSichtbar(store.lebenslagen))
                 Align(
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(

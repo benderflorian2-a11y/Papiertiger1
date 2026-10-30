@@ -8,6 +8,7 @@ import 'kommunikation.dart';
 import 'ki_einstellungen.dart';
 import 'termine.dart';
 import 'module/profil.dart';
+import '../logic/lebenslage.dart';
 import 'sicherung.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -71,10 +72,34 @@ class MehrScreen extends StatelessWidget {
                 ],
               ),
             ),
-          const Abschnitt('Bereiche'),
+          const Abschnitt('Meine Lebenslage'),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final l in lebenslagen)
+              FilterChip(
+                label: Text(l.titel),
+                tooltip: l.text,
+                selected: store.lebenslagen.contains(l.key),
+                onSelected: (v) {
+                  final neu = {...store.lebenslagen};
+                  v ? neu.add(l.key) : neu.remove(l.key);
+                  store.lebenslagenSetzen(neu);
+                },
+              ),
+          ]),
+          const SizedBox(height: 4),
+          const Text('Der Tiger zeigt nur, was zu dir passt. Nichts gewählt = alles sichtbar.',
+              style: TextStyle(color: PT.grau, fontSize: 12)),
+          const SizedBox(height: 8),
           PTKarte(
             padding: const EdgeInsets.symmetric(vertical: 4),
             child: Column(children: [
+              SwitchListTile(
+                secondary: const Icon(Icons.text_increase, color: PT.orangeDunkel),
+                title: const Text('Große Schrift', style: TextStyle(fontWeight: FontWeight.w700)),
+                subtitle: const Text('Alles größer und leichter zu lesen'),
+                value: store.grossschrift,
+                onChanged: (v) => store.checklistePunkt('ansicht:grossschrift', v),
+              ),
               SwitchListTile(
                 secondary: const Icon(Icons.storefront_outlined, color: PT.orangeDunkel),
                 title: const Text('Selbstständig', style: TextStyle(fontWeight: FontWeight.w700)),

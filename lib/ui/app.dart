@@ -35,6 +35,15 @@ class PapiertigerApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+        // Große Schrift (Mehr → Große Schrift): alles 25 % größer, zusätzlich zur Systemeinstellung
+        builder: (context, child) {
+          final gross = StoreScope.of(context).grossschrift;
+          final mq = MediaQuery.of(context);
+          return MediaQuery(
+            data: gross ? mq.copyWith(textScaler: TextScaler.linear(mq.textScaler.scale(1) * 1.25)) : mq,
+            child: child!,
+          );
+        },
         home: const _Start(),
       ),
     );

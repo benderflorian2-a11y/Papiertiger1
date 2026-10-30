@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../logic/benachrichtigungen.dart';
+import '../logic/lebenslage.dart';
 import 'app.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -17,8 +18,7 @@ class _OnboardingState extends State<Onboarding> {
   final _seiten = PageController();
   final _name = TextEditingController();
   int _index = 0;
-  bool _selbststaendig = false;
-  bool _haushalt = false;
+  final Set<String> _lagen = {};
 
   static const _inhalte = [
     (
@@ -54,8 +54,7 @@ class _OnboardingState extends State<Onboarding> {
           duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
     } else {
       final store = StoreScope.of(context);
-      store.checklisten['bereich:selbststaendig'] = _selbststaendig;
-      store.checklisten['bereich:haushalt'] = _haushalt;
+      store.lebenslagenSetzen(_lagen);
       store.onboardingAbschliessen(_name.text);
       Benachrichtigungen.erlaubnisAnfragen();
     }
@@ -83,12 +82,8 @@ class _OnboardingState extends State<Onboarding> {
                     ),
                   _NameSeite(
                     controller: _name,
-                    selbststaendig: _selbststaendig,
-                    haushalt: _haushalt,
-                    setzen: (s, h) => setState(() {
-                      _selbststaendig = s;
-                      _haushalt = h;
-                    }),
+                    lagen: _lagen,
+                    umschalten: (l) => setState(() => _lagen.contains(l) ? _lagen.remove(l) : _lagen.add(l)),
                   ),
                 ],
               ),
@@ -176,15 +171,13 @@ class _IconKreis extends StatelessWidget {
 class _NameSeite extends StatelessWidget {
   const _NameSeite({
     required this.controller,
-    required this.selbststaendig,
-    required this.haushalt,
-    required this.setzen,
+    required this.lagen,
+    required this.umschalten,
   });
 
   final TextEditingController controller;
-  final bool selbststaendig;
-  final bool haushalt;
-  final void Function(bool selbststaendig, bool haushalt) setzen;
+  final Set<String> lagen;
+  final void Function(String lage) umschalten;
 
   @override
   Widget build(BuildContext context) {
@@ -212,23 +205,22 @@ class _NameSeite extends StatelessWidget {
           const SizedBox(height: 24),
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text('Was soll der Tiger noch können?',
+            child: Text('Was passt zu dir? (mehreres möglich)',
                 style: TextStyle(fontWeight: FontWeight.w700, color: PT.tinte)),
           ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Ich bin selbstständig'),
-            subtitle: const Text('Rechnungen, Kunden, Einnahmen, Marketing'),
-            value: selbststaendig,
-            onChanged: (v) => setzen(v, haushalt),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Haushalt organisieren'),
-            subtitle: const Text('Zählerstände, Inventar, Notfallmappe'),
-            value: haushalt,
-            onChanged: (v) => setzen(selbststaendig, v),
-          ),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final l in lebenslagen)
+              FilterChip(
+                label: Text(l.titel),
+                tooltip: l.text,
+                selected: lagen.contains(l.key),
+                onSelected: (_) => umschalten(l.key),
+              ),
+          ]),
+          const SizedBox(height: 8),
+          const Text('Der Tiger zeigt dann nur, was zu dir passt. Nichts gewählt = alles sichtbar.',
+              style: TextStyle(color: PT.grau, fontSize: 12)),
           const Text('Lässt sich jederzeit unter „Mehr“ ändern.', style: TextStyle(color: PT.grau, fontSize: 12)),
         ],
       ),

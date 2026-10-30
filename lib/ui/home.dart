@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../logic/finanzen.dart';
+import '../logic/heute.dart';
 import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
 import 'app.dart';
 import 'brief_detail.dart';
 import 'finanzen.dart';
 import 'fristen.dart';
+import 'geschaeft/stempeluhr.dart';
+import 'haushalt/alltag.dart';
+import 'karriere/karriere.dart';
 import 'kommunikation.dart';
 import 'module/module_liste.dart';
 import 'scan.dart';
+import 'sicherung.dart';
 import 'theme.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
@@ -30,6 +35,17 @@ class HomeScreen extends StatelessWidget {
     final name = store.profil.name.split(' ').first;
     final zahlungen = offeneZahlungen(store.briefe);
     final warten = wartetAufAntwort(store.briefe);
+    final jetzt = DateTime.now();
+    final in3 = DateTime(jetzt.year, jetzt.month, jetzt.day + 3, 23, 59);
+    final hinweise = heuteHinweise(
+      alltag: store.alltag,
+      karriere: store.karriere,
+      stempel: store.stempel,
+      letzteSicherung: letzteSicherung(store.notizen),
+      hatDaten: store.briefe.isNotEmpty || store.rechnungen.isNotEmpty || store.vertraege.isNotEmpty,
+      jetzt: jetzt,
+    );
+    final heuteZahl = fristen.where((f) => !f.datum.isAfter(in3)).length + hinweise.length;
 
     void oeffne(Widget seite) =>
         Navigator.of(context).push(MaterialPageRoute(builder: (_) => seite));
@@ -115,12 +131,12 @@ class HomeScreen extends StatelessWidget {
 
           Row(
             children: [
-              const Expanded(child: Abschnitt('Als Nächstes fällig')),
-              if (fristen.length > 3)
+              Expanded(child: Abschnitt(heuteZahl > 0 ? 'Heute erledigen' : 'Als Nächstes fällig')),
+              if (fristen.length + hinweise.length > 3)
                 TextButton(onPressed: () => zuTab(1), child: const Text('Alle')),
             ],
           ),
-          if (fristen.isEmpty)
+          if (fristen.isEmpty && hinweise.isEmpty)
             const PTKarte(
               child: Row(
                 children: [
@@ -130,8 +146,28 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
             )
-          else
-            for (final f in fristen.take(3)) FristZeile(f),
+          else ...[
+            // Dringendes zuerst: Fristen der nächsten 3 Tage, dann Hinweise, dann spätere Fristen
+            for (final f in fristen.where((f) => !f.datum.isAfter(in3)).take(3)) FristZeile(f),
+            for (final h in hinweise.take((3 - fristen.where((f) => !f.datum.isAfter(in3)).length).clamp(0, 3)))
+              PTKarte(
+                padding: const EdgeInsets.all(12),
+                onTap: () => oeffne(_hinweisZiel(h)),
+                child: Row(children: [
+                  IconKachel(_hinweisIcon(h.art)),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(h.titel, style: const TextStyle(fontWeight: FontWeight.w700)),
+                      Text(h.text, style: const TextStyle(color: PT.grau, fontSize: 13)),
+                    ]),
+                  ),
+                  const Icon(Icons.chevron_right, color: PT.grau),
+                ]),
+              ),
+            if (heuteZahl == 0)
+              for (final f in fristen.take(3)) FristZeile(f),
+          ],
 
           if (dringend.isNotEmpty) ...[
             const Abschnitt('Dringend'),
@@ -206,6 +242,25 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
+
+IconData _hinweisIcon(String art) => switch (art) {
+      'vorrat' => Icons.kitchen_outlined,
+      'hausaufgabe' => Icons.cleaning_services_outlined,
+      'bewerbung' || 'bewerbungsfrist' => Icons.work_outline,
+      'weiterbildung' => Icons.school_outlined,
+      'stempel' => Icons.timer_outlined,
+      'sicherung' => Icons.cloud_upload_outlined,
+      _ => Icons.info_outline,
+    };
+
+Widget _hinweisZiel(Hinweis h) => switch (h.art) {
+      'vorrat' => const VorraeteScreen(),
+      'hausaufgabe' => const HausaufgabenScreen(),
+      'bewerbung' || 'bewerbungsfrist' => BewerbungDetail(bewerbungId: h.ref),
+      'weiterbildung' => const WeiterbildungScreen(),
+      'stempel' => const StempeluhrScreen(),
+      _ => const SicherungScreen(),
+    };
 
 class _Quelle extends StatelessWidget {
   const _Quelle({super.key, required this.icon, required this.text, required this.onTap});
