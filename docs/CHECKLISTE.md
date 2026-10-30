@@ -4,7 +4,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 200 Punkte – ✅ 181 fertig, 🟡 14 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11 und folgende noch nicht erfasst)
+**Gesamt: 209 Punkte – ✅ 190 fertig, 🟡 14 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
 ✅ 23 · 🟡 1 · ❌ 0 · 🔒 0
@@ -246,5 +246,15 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Inventar für die Hausratversicherung (zusätzlich)
 - ✅ Notfallmappe (zusätzlich)
 
-## 11. Job, Karriere und Weiterbildung
-Liste fehlt noch (Screenshots nachreichen).
+## 11. Job, Karriere und Weiterbildung (nur der Anfang der Liste war im Screenshot)
+✅ 9 · 🟡 0 · ❌ 0 · 🔒 0
+
+- ✅ Lebensläufe erstellen – tabellarisch als PDF, mit Foto, Lücken-Hinweis
+- ✅ Stellenanzeigen auswerten – Frist, Kontakt, verlangte Unterlagen, Gehalt; Passung per KI
+- ✅ Bewerbungsunterlagen auf Vollständigkeit prüfen
+- ✅ Anschreiben passend zur Anzeige (KI) (zusätzlich)
+- ✅ Bewerbungen verfolgen mit Status und Nachfassen (zusätzlich)
+- ✅ Bewerbung mit allen Anlagen per E-Mail senden (zusätzlich)
+- ✅ Vorstellungsgespräch vorbereiten (zusätzlich)
+- ✅ Arbeitszeugnis verstehen (zusätzlich)
+- ✅ Weiterbildungen mit Kosten, Fristen und Förderhinweisen (zusätzlich)

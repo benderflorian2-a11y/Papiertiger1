@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../data/geschaeft.dart';
 import '../data/haushalt.dart';
+import '../data/karriere.dart';
 import '../data/models.dart';
 import 'kalkulation.dart';
 import 'kommunikation.dart';
@@ -749,4 +750,70 @@ Future<File> arbeitsauftragAlsPdf(Projekt p, Firma f, Kunde? k, {List<Einsatz> e
     ],
   ));
   return _speichern(doc, 'Arbeitsauftrag ${p.name}');
+}
+
+/// Tabellarischer Lebenslauf (ohne Unterschrift, mit Foto falls vorhanden).
+Future<File> lebenslaufAlsPdf(Lebenslauf l, Profil p) async {
+  final doc = pw.Document(title: 'Lebenslauf ${p.name}', author: p.name);
+  const normal = pw.TextStyle(fontSize: 10);
+  const grau = pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700);
+  final fett = pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold);
+  pw.MemoryImage? foto;
+  if (l.foto != null && File(l.foto!).existsSync()) foto = pw.MemoryImage(await File(l.foto!).readAsBytes());
+  String monat(DateTime d) => '${d.month.toString().padLeft(2, '0')}/${d.year}';
+  pw.Widget abschnitt(String t) => pw.Padding(
+        padding: const pw.EdgeInsets.only(top: 14, bottom: 6),
+        child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+          pw.Text(t, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: _orange)),
+          pw.Divider(color: PdfColors.grey400, thickness: 0.5),
+        ]),
+      );
+  doc.addPage(pw.MultiPage(
+    pageFormat: PdfPageFormat.a4,
+    margin: const pw.EdgeInsets.fromLTRB(50, 40, 50, 40),
+    build: (c) => [
+      pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+        pw.Expanded(
+          child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+            pw.Text('Lebenslauf', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 6),
+            pw.Text(p.name, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+            pw.Text(p.adresse.replaceAll('\n', ', '), style: normal),
+            if (l.telefon.isNotEmpty) pw.Text('Telefon: ${l.telefon}', style: normal),
+            if (l.email.isNotEmpty) pw.Text('E-Mail: ${l.email}', style: normal),
+            if (l.geburtsdatum != null) pw.Text('Geboren am ${_d(l.geburtsdatum!)}', style: normal),
+          ]),
+        ),
+        if (foto != null) pw.Image(foto, width: 90, height: 115, fit: pw.BoxFit.cover),
+      ]),
+      if (l.kurzprofil.isNotEmpty) ...[pw.SizedBox(height: 10), pw.Text(l.kurzprofil, style: normal)],
+      for (final art in stationsArten)
+        if (l.stationen.any((s) => s.art == art)) ...[
+          abschnitt(art == 'Beruf' ? 'Berufserfahrung' : art),
+          for (final s in (l.stationen.where((s) => s.art == art).toList()
+            ..sort((a, b) => (b.von ?? DateTime(0)).compareTo(a.von ?? DateTime(0)))))
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 6),
+              child: pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.SizedBox(
+                  width: 100,
+                  child: pw.Text(s.von == null ? '' : '${monat(s.von!)} – ${s.bis == null ? 'heute' : monat(s.bis!)}', style: grau),
+                ),
+                pw.Expanded(
+                  child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                    pw.Text(s.titel, style: fett),
+                    if (s.ort.isNotEmpty) pw.Text(s.ort, style: normal),
+                    if (s.text.isNotEmpty) pw.Text(s.text, style: normal),
+                  ]),
+                ),
+              ]),
+            ),
+        ],
+      if (l.kenntnisse.isNotEmpty) ...[abschnitt('Kenntnisse'), pw.Text(l.kenntnisse.join(' · '), style: normal)],
+      if (l.sprachen.isNotEmpty) ...[abschnitt('Sprachen'), pw.Text(l.sprachen.join(' · '), style: normal)],
+      pw.SizedBox(height: 24),
+      pw.Text('${p.adresse.split(RegExp(r'[\n,]')).last.replaceAll(RegExp(r'^\s*\d{5}\s*'), '').trim()}, ${_d(DateTime.now())}', style: normal),
+    ],
+  ));
+  return _speichern(doc, 'Lebenslauf ${p.name}');
 }

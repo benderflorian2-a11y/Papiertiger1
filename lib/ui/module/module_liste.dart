@@ -4,6 +4,7 @@ import '../app.dart';
 import '../finanzen.dart';
 import '../geschaeft/geschaeft.dart';
 import '../haushalt/haushalt.dart';
+import '../karriere/karriere.dart';
 import '../theme.dart';
 import 'antraege.dart';
 import 'behoerdengaenge.dart';
@@ -37,6 +38,8 @@ final module = <ModulInfo>[
       () => const LeistungenScreen()),
   ModulInfo('Anträge', 'Kindergeld und Wohngeld', Icons.assignment_outlined,
       () => const AntraegeScreen()),
+  ModulInfo('Job & Karriere', 'Lebenslauf, Bewerbungen, Weiterbildung', Icons.work_outline,
+      () => const KarriereScreen()),
   ModulInfo('Behördengänge', 'Ummelden, Gewerbe, Ausweis', Icons.account_balance_outlined,
       () => const BehoerdengaengeScreen()),
 ];
