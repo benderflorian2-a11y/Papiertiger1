@@ -17,7 +17,11 @@ class Firma {
     this.email = '',
     this.telefon = '',
     this.zahlungszielTage = 14,
+    this.stundensatz = 0,
   });
+
+  /// Lohn pro Stunde (netto) für die Kalkulation.
+  double stundensatz;
 
   String name;
   String adresse;
@@ -47,6 +51,7 @@ class Firma {
         'email': email,
         'telefon': telefon,
         'zahlungszielTage': zahlungszielTage,
+        'stundensatz': stundensatz,
       };
 
   factory Firma.fromJson(Map<String, dynamic> j) => Firma(
@@ -61,6 +66,7 @@ class Firma {
         email: j['email'] as String? ?? '',
         telefon: j['telefon'] as String? ?? '',
         zahlungszielTage: (j['zahlungszielTage'] as num?)?.toInt() ?? 14,
+        stundensatz: _zahl(j['stundensatz']),
       );
 }
 
@@ -84,8 +90,116 @@ class Kunde {
       );
 }
 
+/// Eine Zeile im Aufmaß: Anzahl × Länge × Breite × Höhe (leere Maße zählen nicht).
+/// [abzug] = Öffnungen wie Fenster und Türen, werden abgezogen.
+class AufmassZeile {
+  AufmassZeile({this.text = '', this.anzahl = 1, this.laenge, this.breite, this.hoehe, this.abzug = false});
+
+  String text;
+  double anzahl;
+  double? laenge;
+  double? breite;
+  double? hoehe;
+  bool abzug;
+
+  double get wert {
+    var x = anzahl;
+    for (final m in [laenge, breite, hoehe]) {
+      if (m != null) x *= m;
+    }
+    return (abzug ? -x : x);
+  }
+
+  Map<String, dynamic> toJson() =>
+      {'text': text, 'anzahl': anzahl, 'laenge': laenge, 'breite': breite, 'hoehe': hoehe, 'abzug': abzug};
+
+  factory AufmassZeile.fromJson(Map<String, dynamic> j) => AufmassZeile(
+        text: j['text'] as String? ?? '',
+        anzahl: (j['anzahl'] as num?)?.toDouble() ?? 1,
+        laenge: (j['laenge'] as num?)?.toDouble(),
+        breite: (j['breite'] as num?)?.toDouble(),
+        hoehe: (j['hoehe'] as num?)?.toDouble(),
+        abzug: j['abzug'] == true,
+      );
+}
+
+/// Artikel oder Leistung im Katalog, mit Kalkulation aus Einkauf, Aufschlag und Arbeitszeit.
+class Artikel {
+  Artikel({
+    required this.id,
+    required this.text,
+    this.nummer = '',
+    this.einheit = 'Stück',
+    this.einkauf = 0,
+    this.aufschlagProzent = 0,
+    this.minuten = 0,
+    this.festpreis,
+    this.ustSatz = 19,
+    this.gruppe = '',
+  });
+
+  final String id;
+  String text;
+  String nummer;
+  String einheit;
+
+  /// Einkaufspreis netto je Einheit (Material).
+  double einkauf;
+  double aufschlagProzent;
+
+  /// Arbeitszeit je Einheit in Minuten (Lohn kommt über den Stundensatz dazu).
+  double minuten;
+
+  /// Fester Verkaufspreis netto; überschreibt die Kalkulation.
+  double? festpreis;
+  int ustSatz;
+  String gruppe;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        'nummer': nummer,
+        'einheit': einheit,
+        'einkauf': einkauf,
+        'aufschlagProzent': aufschlagProzent,
+        'minuten': minuten,
+        'festpreis': festpreis,
+        'ustSatz': ustSatz,
+        'gruppe': gruppe,
+      };
+
+  factory Artikel.fromJson(Map<String, dynamic> j) => Artikel(
+        id: j['id'] as String,
+        text: j['text'] as String? ?? '',
+        nummer: j['nummer'] as String? ?? '',
+        einheit: j['einheit'] as String? ?? 'Stück',
+        einkauf: _zahl(j['einkauf']),
+        aufschlagProzent: _zahl(j['aufschlagProzent']),
+        minuten: _zahl(j['minuten']),
+        festpreis: (j['festpreis'] as num?)?.toDouble(),
+        ustSatz: (j['ustSatz'] as num?)?.toInt() ?? 19,
+        gruppe: j['gruppe'] as String? ?? '',
+      );
+}
+
 class Position {
-  Position({required this.text, this.menge = 1, this.einheit = 'Stück', this.preis = 0, this.ustSatz = 19});
+  Position({
+    required this.text,
+    this.menge = 1,
+    this.einheit = 'Stück',
+    this.preis = 0,
+    this.ustSatz = 19,
+    List<AufmassZeile>? aufmass,
+    this.einkauf = 0,
+    this.minuten = 0,
+  }) : aufmass = aufmass ?? [];
+
+  /// Aufmaß, aus dem die Menge berechnet wurde (leer = Menge von Hand).
+  List<AufmassZeile> aufmass;
+
+  /// Für die Nachkalkulation: Material-Einkauf und Arbeitszeit je Einheit.
+  double einkauf;
+  double minuten;
 
   String text;
   double menge;
@@ -99,8 +213,16 @@ class Position {
 
   double get netto => (menge * preis * 100).round() / 100;
 
-  Map<String, dynamic> toJson() =>
-      {'text': text, 'menge': menge, 'einheit': einheit, 'preis': preis, 'ustSatz': ustSatz};
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'menge': menge,
+        'einheit': einheit,
+        'preis': preis,
+        'ustSatz': ustSatz,
+        if (aufmass.isNotEmpty) 'aufmass': aufmass.map((a) => a.toJson()).toList(),
+        if (einkauf != 0) 'einkauf': einkauf,
+        if (minuten != 0) 'minuten': minuten,
+      };
 
   factory Position.fromJson(Map<String, dynamic> j) => Position(
         text: j['text'] as String? ?? '',
@@ -108,6 +230,9 @@ class Position {
         einheit: j['einheit'] as String? ?? 'Stück',
         preis: _zahl(j['preis']),
         ustSatz: (j['ustSatz'] as num?)?.toInt() ?? 19,
+        aufmass: (j['aufmass'] as List?)?.whereType<Map<String, dynamic>>().map(AufmassZeile.fromJson).toList(),
+        einkauf: _zahl(j['einkauf']),
+        minuten: _zahl(j['minuten']),
       );
 }
 

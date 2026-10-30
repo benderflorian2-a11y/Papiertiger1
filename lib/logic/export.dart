@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../data/geschaeft.dart';
 import '../data/haushalt.dart';
 import '../data/models.dart';
+import 'kalkulation.dart';
 import 'kommunikation.dart';
 import 'rechnungen.dart';
 import 'ordnung.dart';
@@ -344,7 +345,9 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle 
             for (var i = 0; i < r.positionen.length; i++)
               [
                 '${i + 1}',
-                r.positionen[i].text,
+                r.positionen[i].aufmass.isEmpty
+                    ? r.positionen[i].text
+                    : '${r.positionen[i].text}\nAufmaß: ${aufmassText(r.positionen[i].aufmass)}',
                 '${_menge(r.positionen[i].menge)} ${r.positionen[i].einheit}',
                 _euro(r.positionen[i].preis),
                 if (!f.kleinunternehmer) '${r.positionen[i].ustSatz} %',

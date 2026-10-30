@@ -39,6 +39,7 @@ class AppStore extends ChangeNotifier {
 
   // Haushalt
   List<Zaehler> zaehler = [];
+  List<Artikel> artikel = [];
   List<Gegenstand> inventar = [];
   Alltag alltag = Alltag();
 
@@ -70,6 +71,7 @@ class AppStore extends ChangeNotifier {
     rechnungen = _liste('rechnungen').map(Rechnung.fromJson).toList();
     projekte = _liste('projekte').map(Projekt.fromJson).toList();
     zaehler = _liste('zaehler').map(Zaehler.fromJson).toList();
+    artikel = _liste('artikel').map(Artikel.fromJson).toList();
     sparziele = _liste('sparziele').map(Sparziel.fromJson).toList();
     final a = _prefs.getString('alltag');
     if (a != null) {
@@ -134,6 +136,7 @@ class AppStore extends ChangeNotifier {
     await _prefs.setString('rechnungen', jsonEncode(rechnungen.map((r) => r.toJson()).toList()));
     await _prefs.setString('projekte', jsonEncode(projekte.map((p) => p.toJson()).toList()));
     await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
+    await _prefs.setString('artikel', jsonEncode(artikel.map((a) => a.toJson()).toList()));
     await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
     await _prefs.setString('alltag', jsonEncode(alltag.toJson()));
     await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
@@ -280,6 +283,7 @@ class AppStore extends ChangeNotifier {
       if (g.bild != null) _dateienLoeschen([g.bild!]);
     }
     zaehler = [];
+    artikel = [];
     inventar = [];
     sparziele = [];
     alltag = Alltag();

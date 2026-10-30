@@ -4,6 +4,7 @@ import '../../data/geschaeft.dart';
 import '../../data/models.dart';
 import '../../logic/android_kanal.dart';
 import '../../logic/export.dart';
+import '../../logic/kalkulation.dart';
 import '../../logic/kommunikation.dart';
 import '../../logic/marketing.dart';
 import '../../logic/rechnungen.dart';
@@ -11,8 +12,10 @@ import '../app.dart';
 import '../theme.dart';
 import '../vorlage_screen.dart';
 import '../widgets/common.dart';
+import 'katalog.dart';
 import 'marketing.dart';
 import 'projekte.dart';
+import '../ki_text.dart';
 import '../kontoauszug.dart';
 import '../ueberweisung.dart';
 
@@ -120,6 +123,10 @@ class GeschaeftScreen extends StatelessWidget {
                 avatar: const Icon(Icons.work_outline, size: 18),
                 label: const Text('Projekte'),
                 onPressed: () => oeffne(const ProjekteScreen())),
+            ActionChip(
+                avatar: const Icon(Icons.menu_book_outlined, size: 18),
+                label: const Text('Katalog'),
+                onPressed: () => oeffne(const KatalogScreen())),
             ActionChip(
                 avatar: const Icon(Icons.people_outline, size: 18),
                 label: const Text('Kunden'),
@@ -594,17 +601,25 @@ class _PosFelder {
         menge = TextEditingController(text: _feld(p.menge)),
         einheit = TextEditingController(text: p.einheit),
         preis = TextEditingController(text: p.preis == 0 ? '' : p.preis.toStringAsFixed(2).replaceAll('.', ',')),
-        ust = p.ustSatz;
+        ust = p.ustSatz,
+        aufmass = [for (final a in p.aufmass) AufmassZeile.fromJson(a.toJson())],
+        einkauf = p.einkauf,
+        minuten = p.minuten;
 
   final TextEditingController text, menge, einheit, preis;
   int ust;
+  List<AufmassZeile> aufmass;
+  double einkauf, minuten;
 
   Position get position => Position(
       text: text.text.trim(),
       menge: _zahl(menge.text) ?? 1,
       einheit: einheit.text.trim().isEmpty ? 'Stück' : einheit.text.trim(),
       preis: _zahl(preis.text) ?? 0,
-      ustSatz: ust);
+      ustSatz: ust,
+      aufmass: aufmass,
+      einkauf: einkauf,
+      minuten: minuten);
 
   void dispose() {
     text.dispose();
@@ -689,6 +704,74 @@ class _RechnungFormularState extends State<RechnungFormular> {
     }
   }
 
+  Future<void> _ausKatalog() async {
+    final store = StoreScope.of(context);
+    final a = await Navigator.of(context)
+        .push<Artikel>(MaterialPageRoute(builder: (_) => const KatalogScreen(auswahl: true)));
+    if (a == null || !mounted) return;
+    final p = positionAusArtikel(a, stundensatz: store.firma.stundensatz, kleinunternehmer: store.firma.kleinunternehmer);
+    setState(() {
+      // leere Startzeile ersetzen
+      if (_pos.length == 1 && _pos.first.text.text.trim().isEmpty && (_zahl(_pos.first.preis.text) ?? 0) == 0) {
+        _pos.removeAt(0).dispose();
+      }
+      _pos.add(_PosFelder(p));
+    });
+  }
+
+  Future<void> _aufmass(int i) async {
+    final l = await Navigator.of(context).push<List<AufmassZeile>>(MaterialPageRoute(
+        builder: (_) => AufmassScreen(titel: _pos[i].text.text, zeilen: _pos[i].aufmass)));
+    if (l == null || !mounted) return;
+    setState(() {
+      _pos[i].aufmass = l;
+      if (l.isNotEmpty) _pos[i].menge.text = _feld(aufmassMenge(l));
+    });
+  }
+
+  Future<void> _kiAngebot() async {
+    final store = StoreScope.of(context);
+    final c = TextEditingController();
+    final notizen = await showDialog<String>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Angebot per KI'),
+        content: TextField(
+          controller: c,
+          minLines: 6,
+          maxLines: 12,
+          decoration: feld(
+              hintText: 'Notizen vom Termin, z. B.\nBad 2,5 × 3 m Boden fliesen, Wände 2 m hoch, alte Fliesen raus, Silikon neu'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
+          TextButton(onPressed: () => Navigator.pop(d, c.text), child: const Text('Weiter')),
+        ],
+      ),
+    );
+    c.dispose();
+    if (notizen == null || notizen.trim().isEmpty || !mounted) return;
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => KiTextScreen(
+        titel: 'Angebotsentwurf',
+        anfrage: angebotAnfrage(notizen, store.artikel, stundensatz: store.firma.stundensatz),
+        hinweis: 'Entwurf der KI: Mengen prüfen. Preise kommen aus deinem Katalog, fehlende bitte ergänzen.',
+        uebernehmen: (
+          'Positionen übernehmen',
+          (text) {
+            final neu = angebotLesen(text, store.artikel,
+                stundensatz: store.firma.stundensatz, kleinunternehmer: store.firma.kleinunternehmer);
+            if (!mounted) return;
+            setState(() {
+              if (_pos.length == 1 && _pos.first.text.text.trim().isEmpty) _pos.removeAt(0).dispose();
+              _pos.addAll(neu.map(_PosFelder.new));
+            });
+          }
+        ),
+      ),
+    ));
+  }
+
   Future<void> _neuerKunde() async {
     final k = await Navigator.of(context).push<Kunde>(MaterialPageRoute(builder: (_) => const KundeFormular()));
     if (k != null) setState(() => _kundeId = k.id);
@@ -765,7 +848,15 @@ class _RechnungFormularState extends State<RechnungFormular> {
                 }
               },
             ),
-          const Abschnitt('Positionen'),
+          Row(children: [
+            const Expanded(child: Abschnitt('Positionen')),
+            if (!_istRechnung)
+              TextButton.icon(
+                onPressed: _kiAngebot,
+                icon: const Icon(Icons.auto_awesome, size: 18),
+                label: const Text('Per KI'),
+              ),
+          ]),
           for (var i = 0; i < _pos.length; i++)
             PTKarte(
               child: Column(children: [
@@ -806,8 +897,16 @@ class _RechnungFormularState extends State<RechnungFormular> {
                     ),
                   ),
                 ]),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    onPressed: () => _aufmass(i),
+                    icon: const Icon(Icons.straighten, size: 18),
+                    label: Text(_pos[i].aufmass.isEmpty ? 'Aufmaß' : 'Aufmaß: ${aufmassText(_pos[i].aufmass)}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
                 if (!ku) ...[
-                  const SizedBox(height: 8),
                   Wrap(spacing: 8, children: [
                     for (final u in const [19, 7, 0])
                       ChoiceChip(
@@ -818,11 +917,37 @@ class _RechnungFormularState extends State<RechnungFormular> {
                 ],
               ]),
             ),
-          TextButton.icon(
-            onPressed: () => setState(() => _pos.add(_PosFelder(Position(text: '', ustSatz: ku ? 0 : 19)))),
-            icon: const Icon(Icons.add),
-            label: const Text('Position hinzufügen'),
-          ),
+          Wrap(spacing: 8, children: [
+            TextButton.icon(
+              onPressed: () => setState(() => _pos.add(_PosFelder(Position(text: '', ustSatz: ku ? 0 : 19)))),
+              icon: const Icon(Icons.add),
+              label: const Text('Position'),
+            ),
+            TextButton.icon(
+              onPressed: _ausKatalog,
+              icon: const Icon(Icons.menu_book_outlined),
+              label: const Text('Aus Katalog'),
+            ),
+          ]),
+          if (_pos.any((p) => p.einkauf > 0 || p.minuten > 0))
+            Builder(builder: (_) {
+              final kal = kalkulationVon(vorschau, stundensatz: store.firma.stundensatz, netto: s.netto);
+              return PTKarte(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Kalkulation', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Row(children: [const Expanded(child: Text('Material (Einkauf)')), Text(euro(kal.material))]),
+                  Row(children: [
+                    Expanded(child: Text('Lohn (${_feld(kal.stunden)} Std.)')),
+                    Text(store.firma.stundensatz == 0 ? 'Stundensatz fehlt' : euro(kal.lohn)),
+                  ]),
+                  Row(children: [
+                    const Expanded(child: Text('Bleibt für Gemeinkosten und Gewinn', style: TextStyle(fontWeight: FontWeight.w700))),
+                    Text('${euro(kal.rohertrag)}${kal.rohertragProzent == null ? '' : ' (${_feld(kal.rohertragProzent!)} %)'}',
+                        style: TextStyle(fontWeight: FontWeight.w700, color: kal.rohertrag < 0 ? PT.rot : PT.tinte)),
+                  ]),
+                ]),
+              );
+            }),
           if (widget.art != 'lieferschein')
             Row(children: [
               Expanded(
@@ -1040,6 +1165,8 @@ class _FirmaScreenState extends State<FirmaScreen> {
       'ustId': f.ustId,
       'iban': f.iban.isEmpty ? (p.extra['iban'] ?? '') : f.iban,
       'bank': f.bank.isEmpty ? (p.extra['bank'] ?? '') : f.bank,
+      'bic': f.bic,
+      'stundensatz': f.stundensatz == 0 ? '' : _feld(f.stundensatz),
       'email': f.email.isEmpty ? (p.extra['email'] ?? '') : f.email,
       'telefon': f.telefon.isEmpty ? (p.extra['telefon'] ?? '') : f.telefon,
     };
@@ -1082,6 +1209,8 @@ class _FirmaScreenState extends State<FirmaScreen> {
           ),
           f('iban', 'IBAN für Zahlungen'),
           f('bank', 'Bank'),
+          f('bic', 'BIC (optional)'),
+          f('stundensatz', 'Stundensatz netto in € (für die Kalkulation)'),
           f('email', 'E-Mail'),
           f('telefon', 'Telefon'),
           const Text('Zahlungsziel', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -1104,6 +1233,8 @@ class _FirmaScreenState extends State<FirmaScreen> {
                 ..ustId = _c['ustId']!.text.trim()
                 ..iban = _c['iban']!.text.trim()
                 ..bank = _c['bank']!.text.trim()
+                ..bic = _c['bic']!.text.trim().toUpperCase()
+                ..stundensatz = _zahl(_c['stundensatz']!.text) ?? 0
                 ..email = _c['email']!.text.trim()
                 ..telefon = _c['telefon']!.text.trim()
                 ..kleinunternehmer = _ku
