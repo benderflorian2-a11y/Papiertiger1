@@ -198,7 +198,7 @@ jobs:
           [ -z "$jar" ] && jar=$(find . -name 'validat*.jar' | head -1)
           szen=$(find . -name 'scenarios.xml' | head -1)
           echo "Validator: $jar / $szen" > ../erechnung.txt
-          java -jar "$jar" -s "$szen" -r "$(dirname "$szen")" -o ergebnis ../build/erechnung_*.xml >> ../erechnung.txt 2>&1 || true
+          java -jar "$jar" -s "$(realpath "$szen")" -r "$(realpath "$(dirname "$szen")")" -o ergebnis ../build/erechnung_*.xml >> ../erechnung.txt 2>&1 || true
           for f in ergebnis/*.xml; do
             echo "== $f" >> ../erechnung.txt
             grep -o 'valid="[a-z]*"' "$f" | head -1 >> ../erechnung.txt
@@ -234,7 +234,7 @@ jobs:
             echo '```'
             echo "## E-Rechnung (KoSIT)"
             echo '```'
-            cat kosit_liste.txt 2>/dev/null | head -n 30
+            grep -v "^\./libs/" kosit_liste.txt 2>/dev/null | tail -n 6
             grep -iE "valid=|accept|reject|id=|svrl:text|==|Validator|error|exception" erechnung.txt 2>/dev/null | head -n 60
             echo '```'
             echo "## Bau"
