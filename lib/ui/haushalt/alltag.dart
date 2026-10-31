@@ -744,7 +744,7 @@ class ReiseDetail extends StatelessWidget {
           ),
           const Text('Tipp: Buchungs-E-Mails mit „Teilen → Papiertiger“ ins Archiv holen, dann hier verknüpfen.',
               style: TextStyle(color: PT.grau, fontSize: 12)),
-          Abschnitt('Packliste (${r.packliste.where((p) => p.eingepackt).length}/${r.packliste.length})'),
+          Abschnitt(r.packliste.isEmpty ? 'Packliste' : 'Packliste (${r.packliste.where((p) => p.eingepackt).length}/${r.packliste.length})'),
           PTKarte(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Column(children: [

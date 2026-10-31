@@ -77,7 +77,7 @@ class KarriereScreen extends StatelessWidget {
         _kachel(context, Icons.workspace_premium_outlined, 'Arbeitszeugnis verstehen', 'Zeugnissprache in Klartext',
             const ZeugnisScreen()),
         _kachel(context, Icons.school_outlined, 'Weiterbildung',
-            k.weiterbildungen.isEmpty ? 'Kurse, Kosten, Fristen und Förderung' : '${k.weiterbildungen.length} Weiterbildungen',
+            k.weiterbildungen.isEmpty ? 'Kurse, Kosten, Fristen und Förderung' : anzahl(k.weiterbildungen.length, 'Weiterbildung', 'Weiterbildungen'),
             const WeiterbildungScreen()),
       ]),
     );

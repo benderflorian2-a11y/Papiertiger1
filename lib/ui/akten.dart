@@ -121,7 +121,7 @@ class AkteScreen extends StatelessWidget {
                     ),
                   )),
                   icon: const Icon(Icons.auto_awesome),
-                  label: const Text('Zusammenfassen'),
+                  label: const Text('Überblick'),
                 ),
               ),
               const SizedBox(width: 8),
