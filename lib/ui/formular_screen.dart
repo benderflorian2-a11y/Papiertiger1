@@ -5,6 +5,7 @@ import '../data/models.dart';
 import '../logic/formular.dart';
 import '../logic/ki.dart';
 import 'app.dart';
+import 'formular_pdf_screen.dart';
 import 'module/profil.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -97,6 +98,13 @@ class _FormularScreenState extends State<FormularScreen> {
                   ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.auto_awesome),
               label: Text(_kiLaeuft ? 'Die KI liest das Formular …' : 'Genauer mit KI auswerten'),
+            ),
+          if (widget.brief.bilder.isNotEmpty)
+            FilledButton.icon(
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => FormularPdfScreen(brief: widget.brief))),
+              icon: const Icon(Icons.edit_note),
+              label: const Text('Direkt ins Formular schreiben (PDF)'),
             ),
           if (h.felder.isNotEmpty) ...[
             const Abschnitt('Felder'),

@@ -9,6 +9,7 @@ import '../vermietung/vermietung.dart';
 import '../karriere/karriere.dart';
 import '../theme.dart';
 import '../../logic/lebenslage.dart';
+import 'angebote_vergleichen.dart';
 import 'antraege.dart';
 import 'behoerdengaenge.dart';
 import 'belege.dart';
@@ -53,6 +54,8 @@ final module = <ModulInfo>[
       () => const VermietungScreen(), key: 'vermietung'),
   ModulInfo('Behördengänge', 'Ummelden, Gewerbe, Ausweis', Icons.account_balance_outlined,
       () => const BehoerdengaengeScreen()),
+  ModulInfo('Angebote vergleichen', 'Handwerker, Lieferanten, Tarife', Icons.compare_arrows,
+      () => const AngeboteVergleichenScreen()),
 ];
 
 class ModulRaster extends StatelessWidget {

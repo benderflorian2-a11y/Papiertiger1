@@ -220,3 +220,17 @@ Schreiben:
 ${_kuerzen(b.text, 5000)}
 """
 ''';
+
+/// Frage zu einem Dokument (z. B. Bedienungsanleitung, Vertrag) – Antwort nur aus dem Text.
+String dokumentFrageAnfrage(Brief b, String frage) => '''
+Beantworte die Frage nur mit dem Inhalt des Dokuments unten. Antworte auf Deutsch, einfach und kurz, sprich den Leser mit „du“ an.
+Wenn es Schritte sind, nummeriere sie. Zitiere danach die passende Stelle wörtlich in Anführungszeichen.
+Steht die Antwort nicht im Dokument, schreibe: „Das steht nicht in diesem Dokument.“ Erfinde nichts.
+
+Frage: $frage
+
+Dokument („${titelVon(b)}“):
+"""
+${_kuerzen(b.text, 5000)}
+"""
+''';

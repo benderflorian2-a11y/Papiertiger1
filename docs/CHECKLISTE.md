@@ -1,13 +1,13 @@
 # Papiertiger – Checkliste Gesamtkonzept
 
-Stand: 29.10.2026, Version 1.21 (test-32)
+Stand: 31.10.2026, Version 1.37
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 209 Punkte – ✅ 190 fertig, 🟡 14 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste)
+**Gesamt: 209 Punkte – ✅ 196 fertig, 🟡 8 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste; Erweiterungen unten extra gezählt)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
-✅ 23 · 🟡 1 · ❌ 0 · 🔒 0
+✅ 24 · 🟡 0 · ❌ 0 · 🔒 0
 
 - ✅ Briefe, PDFs, Fotos und Scans lesen
 - ✅ Handschrift und gedruckten Text erkennen – Handschrift über die KI-Bilderkennung
@@ -28,7 +28,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Alte und neue Vertragsversionen vergleichen
 - ✅ Widersprüche und fehlende Angaben markieren
 - ✅ Antworten auf Dokumente vorbereiten
-- 🟡 Formulare mit bekannten Daten vorausfüllen – Ausfüllhilfe zum Abschreiben, nicht direkt ins PDF
+- ✅ Formulare mit bekannten Daten vorausfüllen
 - ✅ Unterschriftsfelder und fehlende Angaben markieren
 - ✅ Dokumente in PDF, Word oder Tabellen umwandeln
 - ✅ Belege und Quittungen auslesen
@@ -74,7 +74,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Rechtliche Fristen mit Quelle anzeigen, Unsicherheit markieren
 
 ## 4. Finanzen, Rechnungen und Geld sparen
-✅ 19 · 🟡 1 · ❌ 0 · 🔒 1
+✅ 20 · 🟡 0 · ❌ 0 · 🔒 1
 
 - ✅ Eingehende und ausgehende Rechnungen verwalten
 - ✅ Rechnungsbeträge, Zahlungsziele und Empfänger erkennen
@@ -94,7 +94,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Ausgaben nach Kategorien visualisieren
 - ✅ Einnahmen und Ausgaben prognostizieren
 - ✅ Rücklagen für Steuern und Anschaffungen planen
-- 🟡 Angebote und Preise vergleichen – Dokumentvergleich
+- ✅ Angebote und Preise vergleichen
 - ✅ Zahlungsnachweise zuordnen
 - ✅ Finanzunterlagen für Steuerberater oder Bank – CSV und PDF
 
@@ -121,12 +121,12 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Alle laufenden Verträge an einem Ort
 
 ## 6. Behörden und staatliche Leistungen
-✅ 17 · 🟡 1 · ❌ 0 · 🔒 0
+✅ 18 · 🟡 0 · ❌ 0 · 🔒 0
 
 - ✅ Behördenbriefe erklären
 - ✅ Benötigte Nachweise aus Schreiben herauslesen
 - ✅ Checklisten für Anträge – 8 Antrags-Helfer
-- 🟡 Formulare mit vorhandenen Angaben vorausfüllen – wie Punkt 1
+- ✅ Formulare mit vorhandenen Angaben vorausfüllen
 - ✅ Anträge auf Vollständigkeit prüfen
 - ✅ Unterlagen für Bürgeramt, Finanzamt usw. sortieren
 - ✅ Erinnerung an Nachreichungsfristen
@@ -169,7 +169,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - 🔒 Strukturierte E-Rechnungen verarbeiten
 
 ## 8. Selbstständige und kleine Unternehmen
-✅ 20 · 🟡 2 · ❌ 0 · 🔒 2
+✅ 21 · 🟡 1 · ❌ 0 · 🔒 2
 
 - ✅ Angebote erstellen
 - ✅ Kostenvoranschläge vorbereiten
@@ -187,7 +187,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Besprechungsprotokolle erstellen
 - ✅ Aufgaben aus Besprechungen ableiten
 - ✅ Wochenberichte und Tätigkeitsnachweise
-- 🟡 Lieferantenangebote vergleichen – Dokumentvergleich
+- ✅ Lieferantenangebote vergleichen
 - ✅ Materialbedarf erfassen
 - ✅ Bestellungen vorbereiten
 - 🔒 Lagerbestände überwachen (sofern angebunden)
@@ -218,7 +218,7 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Kundenbewertungen in Themen zusammenfassen
 
 ## 10. Privater Alltag und Haushalt
-✅ 22 · 🟡 3 · ❌ 0 · 🔒 0 (plus 3 zusätzliche Funktionen)
+✅ 24 · 🟡 1 · ❌ 0 · 🔒 0 (plus 3 zusätzliche Funktionen)
 
 - ✅ Einkaufslisten aus Rezepten, Nachrichten oder Notizen erstellen
 - ✅ Einkaufslisten nach Supermarkt oder Kategorie sortieren
@@ -235,9 +235,9 @@ Stand: 29.10.2026, Version 1.21 (test-32)
 - ✅ Umzüge organisieren – Lebens-Ereignis Umzug
 - ✅ Checklisten für Wohnungsübergaben erstellen
 - ✅ Nebenkostenabrechnungen erklären und auf Auffälligkeiten prüfen
-- 🟡 Handwerkerangebote vergleichen – Dokumentvergleich
+- ✅ Handwerkerangebote vergleichen
 - ✅ Wartungs- und Reparaturtermine verwalten
-- 🟡 Bedienungsanleitungen durchsuchen – als PDF importieren und im Archiv suchen
+- ✅ Bedienungsanleitungen durchsuchen
 - ✅ Garantieunterlagen archivieren
 - ✅ Reiseunterlagen sammeln
 - ✅ Packlisten und Reisepläne erstellen

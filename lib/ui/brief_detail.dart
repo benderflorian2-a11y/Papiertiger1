@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../data/models.dart';
+import '../logic/angebotsvergleich.dart';
 import '../logic/brief_analyse.dart';
 import '../logic/export.dart';
 import '../logic/ki_anfragen.dart';
@@ -15,9 +16,12 @@ import '../logic/vorlagen.dart';
 import 'akten.dart';
 import 'app.dart';
 import 'finanzen.dart';
+import 'dokument_frage.dart';
 import 'formular_screen.dart';
+
 import 'kalender.dart';
 import 'kommunikation.dart';
+import 'module/angebote_vergleichen.dart';
 import 'module/vertraege.dart';
 import 'rechtsbehelf_karte.dart';
 import 'termine.dart';
@@ -597,6 +601,24 @@ class BriefDetail extends StatelessWidget {
             icon: const Icon(Icons.edit_document),
             label: const Text('Ist das ein Formular? Ausfüllhilfe'),
           ),
+          if (b.text.length > 300) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => DokumentFrageScreen(brief: b))),
+              icon: const Icon(Icons.question_answer_outlined),
+              label: const Text('Frag das Dokument'),
+            ),
+          ],
+          if (istAngebot(b)) ...[
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => AngeboteVergleichenScreen(vorauswahl: b.id))),
+              icon: const Icon(Icons.balance),
+              label: const Text('Mit anderen Angeboten vergleichen'),
+            ),
+          ],
           if (store.briefe.length > 1) ...[
             const SizedBox(height: 12),
             OutlinedButton.icon(

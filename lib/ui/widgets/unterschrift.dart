@@ -9,9 +9,12 @@ import 'common.dart';
 
 /// Unterschrift mit dem Finger. Liefert (Pfad zum PNG, Name) zurück.
 class UnterschriftScreen extends StatefulWidget {
-  const UnterschriftScreen({super.key, required this.titel, this.hinweis = ''});
+  const UnterschriftScreen({super.key, required this.titel, this.hinweis = '', this.durchsichtig = false});
 
   final String titel;
+
+  /// Ohne weißen Hintergrund, damit sie auf ein Formular gelegt werden kann.
+  final bool durchsichtig;
   final String hinweis;
 
   @override
@@ -32,7 +35,7 @@ class _UnterschriftScreenState extends State<UnterschriftScreen> {
   Future<void> _fertig() async {
     final rec = ui.PictureRecorder();
     final c = Canvas(rec);
-    c.drawRect(Offset.zero & _groesse, Paint()..color = Colors.white);
+    if (!widget.durchsichtig) c.drawRect(Offset.zero & _groesse, Paint()..color = Colors.white);
     _UnterschriftMaler(_striche).paint(c, _groesse);
     final bild = await rec.endRecording().toImage(_groesse.width.ceil(), _groesse.height.ceil());
     final bytes = await bild.toByteData(format: ui.ImageByteFormat.png);

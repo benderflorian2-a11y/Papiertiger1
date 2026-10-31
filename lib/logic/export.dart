@@ -9,6 +9,7 @@ import '../data/geschaeft.dart';
 import '../data/haushalt.dart';
 import '../data/karriere.dart';
 import '../data/models.dart';
+import 'formular_eintrag.dart';
 import 'kalkulation.dart';
 import 'kommunikation.dart';
 import 'rechnungen.dart';
@@ -816,4 +817,41 @@ Future<File> lebenslaufAlsPdf(Lebenslauf l, Profil p) async {
     ],
   ));
   return _speichern(doc, 'Lebenslauf ${p.name}');
+}
+
+/// Ausgefülltes Formular: jede Seite als Bild, darauf die eingetragenen Texte und Unterschriften.
+Future<File> formularAlsPdf(List<String> seitenBilder, List<FormularEintrag> eintraege, {String titel = 'Formular'}) async {
+  final doc = pw.Document(title: titel, author: 'Papiertiger');
+  for (var i = 0; i < seitenBilder.length; i++) {
+    final datei = File(seitenBilder[i]);
+    if (!datei.existsSync()) continue;
+    final bytes = await datei.readAsBytes();
+    final bild = pw.MemoryImage(bytes);
+    final w = (bild.width ?? 1240).toDouble(), h = (bild.height ?? 1754).toDouble();
+    // Seite im Seitenverhältnis des Bildes, Breite wie A4
+    final breite = PdfPageFormat.a4.width;
+    final hoehe = breite * h / w;
+    final hier = eintraege.where((e) => e.seite == i).toList();
+    final bilder = <FormularEintrag, pw.MemoryImage>{};
+    for (final e in hier.where((e) => e.bild != null)) {
+      final f = File(e.bild!);
+      if (f.existsSync()) bilder[e] = pw.MemoryImage(await f.readAsBytes());
+    }
+    doc.addPage(pw.Page(
+      pageFormat: PdfPageFormat(breite, hoehe),
+      margin: pw.EdgeInsets.zero,
+      build: (c) => pw.Stack(children: [
+        pw.Positioned.fill(child: pw.Image(bild, fit: pw.BoxFit.fill)),
+        for (final e in hier)
+          pw.Positioned(
+            left: e.x * breite,
+            top: e.y * hoehe,
+            child: e.bild != null
+                ? (bilder[e] == null ? pw.SizedBox() : pw.Image(bilder[e]!, height: e.groesse * breite * 3))
+                : pw.Text(e.text, style: pw.TextStyle(fontSize: e.groesse * breite, color: PdfColors.blue900)),
+          ),
+      ]),
+    ));
+  }
+  return _speichern(doc, '$titel ausgefüllt');
 }
