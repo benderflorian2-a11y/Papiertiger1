@@ -1161,7 +1161,7 @@ class KundenScreen extends StatelessWidget {
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(k.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      Text('${rs.length} Rechnungen · ${euro(umsatz)}', style: const TextStyle(color: PT.grau, fontSize: 13)),
+                      Text('${anzahl(rs.length, 'Rechnung', 'Rechnungen')} · ${euro(umsatz)}', style: const TextStyle(color: PT.grau, fontSize: 13)),
                     ]),
                   ),
                 ]),

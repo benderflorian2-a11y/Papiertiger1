@@ -34,7 +34,8 @@ const _einkaufsWoerter = <String, List<String>>{
 
 /// Kategorie eines Einkaufs: selbst gewählt, sonst aus dem Text.
 String einkaufKategorie(Einkauf e) {
-  if (e.kategorie != null) return e.kategorie!;
+  // Unbekannte Kategorie (z. B. aus älteren Daten) → nach Text einordnen, damit nichts verschwindet
+  if (e.kategorie != null && einkaufsKategorien.contains(e.kategorie)) return e.kategorie!;
   final t = ' ${e.text.toLowerCase()} ';
   for (final k in einkaufsKategorien) {
     if ((_einkaufsWoerter[k] ?? const []).any(t.contains)) return k;

@@ -319,7 +319,7 @@ class SicherheitScreen extends StatelessWidget {
           status(sperre, 'App-Sperre', sperre ? 'PIN beim Öffnen' : 'Aus – wer dein entsperrtes Handy hat, kann alles sehen.'),
           status(bruch == null, 'Änderungsprotokoll',
               bruch == null
-                  ? '${store.protokoll.length} Einträge, lückenlos'
+                  ? '${anzahl(store.protokoll.length, 'Eintrag', 'Einträge')}, lückenlos'
                   : 'Eintrag ${bruch + 1} passt nicht zur Kette – das Protokoll wurde verändert.'),
           const Text(
               'Fotos und PDF-Dateien liegen im geschützten App-Ordner und sind durch die Verschlüsselung des Handys geschützt, '

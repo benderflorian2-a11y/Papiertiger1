@@ -61,12 +61,17 @@ class _SteuerScreenState extends State<SteuerScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Steuererklärung $_jahr', style: const TextStyle(color: PT.grau)),
-                  Text('Abgabe bis ${datumLang(frist)}',
+                  Text(frist.isBefore(DateTime.now()) ? 'Pflicht-Frist war der ${datumLang(frist)}' : 'Abgabe bis ${datumLang(frist)}',
                       style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                   Text(
-                      'Gilt, wenn du eine Erklärung abgeben musst (ohne Steuerberater). Freiwillig geht es bis '
-                      '${datumKurz(freiwilligBis(_jahr))} – oft gibt es Geld zurück.',
+                      frist.isBefore(DateTime.now())
+                          ? 'Musst du abgeben und hast es noch nicht getan: jetzt schnell nachholen, sonst kann ein '
+                              'Verspätungszuschlag kommen. Freiwillig geht es noch bis ${datumKurz(freiwilligBis(_jahr))} – oft gibt es Geld zurück.'
+                          : 'Gilt, wenn du eine Erklärung abgeben musst (ohne Steuerberater). Freiwillig geht es bis '
+                              '${datumKurz(freiwilligBis(_jahr))} – oft gibt es Geld zurück.',
                       style: const TextStyle(fontSize: 13, height: 1.4)),
+                  const Text('Quelle: § 149 AO (Abgabefrist), § 46 EStG mit § 169 AO (freiwillig 4 Jahre). Keine Steuerberatung.',
+                      style: TextStyle(fontSize: 11, color: PT.grau)),
                   if (!frist.isBefore(DateTime.now()))
                     TextButton.icon(
                       onPressed: () async {

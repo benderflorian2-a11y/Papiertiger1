@@ -19,6 +19,7 @@ import 'geschaeft/stempeluhr.dart';
 import 'haushalt/alltag.dart';
 import 'karriere/karriere.dart';
 import 'kommunikation.dart';
+import 'module/angebote_vergleichen.dart';
 import 'module/module_liste.dart';
 import 'scan.dart';
 import 'sicherung.dart';
@@ -339,6 +340,8 @@ void _schrittAusfuehren(BuildContext context, Brief b, Schritt sch) {
           },
         ),
       ));
+    case 'vergleichen':
+      Navigator.of(context).push(MaterialPageRoute(builder: (_) => AngeboteVergleichenScreen(vorauswahl: b.id)));
     case 'ablegen':
       b.erledigt = true;
       store.geaendert();

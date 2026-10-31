@@ -627,7 +627,7 @@ class ReisenScreen extends StatelessWidget {
                     Text(r.ziel, style: const TextStyle(fontWeight: FontWeight.w700)),
                     Text(
                       '${r.von == null ? 'Datum offen' : '${datumKurz(r.von!)}${r.bis == null ? '' : ' – ${datumKurz(r.bis!)}'}'} · '
-                      '${r.packliste.where((p) => p.eingepackt).length}/${r.packliste.length} eingepackt',
+                      '${r.packliste.isEmpty ? 'Packliste noch leer' : '${r.packliste.where((p) => p.eingepackt).length}/${r.packliste.length} eingepackt'}',
                       style: const TextStyle(color: PT.grau, fontSize: 13),
                     ),
                   ]),

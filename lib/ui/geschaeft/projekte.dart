@@ -172,7 +172,8 @@ class ProjektDetail extends StatelessWidget {
     final store = StoreScope.of(context);
     final p = store.projekte.where((x) => x.id == projektId).firstOrNull;
     if (p == null) return Scaffold(appBar: AppBar(), body: const LeerHinweis(icon: Icons.work_outline, text: 'Gelöscht.'));
-    final nk = nachkalkulation(p, store.rechnungen, belege: store.belege, kleinunternehmer: store.firma.kleinunternehmer);
+    final nk = nachkalkulation(p, store.rechnungen,
+        belege: store.belege, kleinunternehmer: store.firma.kleinunternehmer, standardSatz: store.firma.stundensatz);
     final angebote = store.rechnungen.where((r) => r.istAngebot && (p.kundeId.isEmpty || r.kundeId == p.kundeId)).toList();
     return DefaultTabController(
       length: 5,
@@ -219,7 +220,11 @@ class ProjektDetail extends StatelessWidget {
               child: Column(children: [
                 ListTile(
                   title: const Text('Stundensatz netto'),
-                  trailing: Text(p.stundensatz == 0 ? 'festlegen' : euro(p.stundensatz)),
+                  trailing: Text(p.stundensatz > 0
+                      ? euro(p.stundensatz)
+                      : store.firma.stundensatz > 0
+                          ? '${euro(store.firma.stundensatz)} (Firma)'
+                          : 'festlegen'),
                   onTap: () async {
                     final w = await _zahlAbfragen(context, 'Stundensatz netto', p.stundensatz);
                     if (w == null) return;
@@ -282,7 +287,8 @@ class ProjektDetail extends StatelessWidget {
                           id: neueId(),
                           datum: DateTime.now(),
                           zahlungszielTage: store.firma.zahlungszielTage,
-                          ustSatz: store.firma.kleinunternehmer ? 0 : 19);
+                          ustSatz: store.firma.kleinunternehmer ? 0 : 19,
+                          standardSatz: store.firma.stundensatz);
                       await store.rechnungSpeichern(r);
                       if (context.mounted) {
                         Navigator.of(context)

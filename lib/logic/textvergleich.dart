@@ -3,12 +3,24 @@ library;
 
 enum Aenderung { gleich, entfernt, neu }
 
-List<String> _saetze(String t) => t
-    .replaceAll('\r', '')
-    .split(RegExp(r'\n+|(?<=[.!?;])\s+(?=[A-ZÄÖÜ0-9§(])'))
-    .map((s) => s.replaceAll(RegExp(r'\s+'), ' ').trim())
-    .where((s) => s.length > 1)
-    .toList();
+/// Abkürzungen, nach denen kein neuer Satz beginnt.
+final _abkuerzung = RegExp(r'(?:^|\s)(?:Nr|MwSt|USt|z\.\s?B|ca|bzw|ggf|inkl|zzgl|Str|Abs|Art|Tel|Hr|Fr|Dr|vgl|evtl|u\.\s?a|d\.\s?h|bspw|max|min|Std|Mo|Di|Mi|Do|Fr|Sa|So)\.$');
+
+List<String> _saetze(String t) {
+  final out = <String>[];
+  for (final zeile in t.replaceAll('\r', '').split(RegExp(r'\n+'))) {
+    var rest = '';
+    for (final teil in zeile.split(RegExp(r'(?<=[.!?;])\s+(?=[A-ZÄÖÜ§(])'))) {
+      rest = rest.isEmpty ? teil : '$rest $teil';
+      if (!_abkuerzung.hasMatch(rest.trim())) {
+        out.add(rest);
+        rest = '';
+      }
+    }
+    if (rest.isNotEmpty) out.add(rest);
+  }
+  return out.map((s) => s.replaceAll(RegExp(r'\s+'), ' ').trim()).where((s) => s.length > 1).toList();
+}
 
 String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-zäöüß0-9]'), '');
 

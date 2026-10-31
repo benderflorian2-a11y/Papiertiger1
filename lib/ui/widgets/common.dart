@@ -176,6 +176,9 @@ String datumKurz(DateTime d) =>
 
 String datumLang(DateTime d) => '${d.day}. ${_monate[d.month - 1]} ${d.year}';
 
+/// „1 Brief“ / „3 Briefe“
+String anzahl(int n, String eins, String viele) => '$n ${n == 1 ? eins : viele}';
+
 String euro(double betrag) {
   final cent = (betrag * 100).round();
   final euroTeil = cent ~/ 100;

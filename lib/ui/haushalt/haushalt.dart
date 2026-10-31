@@ -77,7 +77,7 @@ class HaushaltScreen extends StatelessWidget {
           kachel(Icons.chair_outlined, 'Inventar',
               store.inventar.isEmpty
                   ? 'Was du besitzt – wichtig für die Hausratversicherung'
-                  : '${store.inventar.length} Gegenstände · ${euro(inventarWert(store.inventar))}',
+                  : '${anzahl(store.inventar.length, 'Gegenstand', 'Gegenstände')} · ${euro(inventarWert(store.inventar))}',
               const InventarScreen()),
           kachel(Icons.folder_special_outlined, 'Notfallmappe',
               '$notfall von ${notfallDokumente.length} Dokumenten erfasst', const NotfallScreen()),

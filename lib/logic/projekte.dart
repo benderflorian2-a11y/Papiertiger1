@@ -36,13 +36,15 @@ class Nachkalkulation {
 
 /// [belege]: Eingangsrechnungen mit projektId. Ohne Kleinunternehmer wird die Vorsteuer
 /// (19 % angenommen) herausgerechnet, weil sie vom Finanzamt zurückkommt.
-Nachkalkulation nachkalkulation(Projekt p, List<Rechnung> rechnungen, {List<Beleg> belege = const [], bool kleinunternehmer = true}) {
+/// [standardSatz]: Stundensatz aus den Firmendaten, wenn im Projekt keiner steht.
+Nachkalkulation nachkalkulation(Projekt p, List<Rechnung> rechnungen,
+    {List<Beleg> belege = const [], bool kleinunternehmer = true, double standardSatz = 0}) {
   Rechnung? angebot;
   for (final r in rechnungen) {
     if (r.id == p.angebotId) angebot = r;
   }
   return Nachkalkulation(
-    zeit: _rund(stundenVon(p) * p.stundensatz),
+    zeit: _rund(stundenVon(p) * (p.stundensatz > 0 ? p.stundensatz : standardSatz)),
     material: _rund(p.material.fold(0.0, (s, m) => s + m.summe)),
     angebot: angebot == null ? null : summenVon(angebot, kleinunternehmer: true).netto,
     eingang: _rund(belege
@@ -53,7 +55,8 @@ Nachkalkulation nachkalkulation(Projekt p, List<Rechnung> rechnungen, {List<Bele
 
 /// Rechnungsentwurf aus Projektzeiten und Material.
 Rechnung rechnungAusProjekt(Projekt p, List<Rechnung> alle,
-    {required String id, required DateTime datum, required int zahlungszielTage, int ustSatz = 19}) {
+    {required String id, required DateTime datum, required int zahlungszielTage, int ustSatz = 19, double standardSatz = 0}) {
+  final satz = p.stundensatz > 0 ? p.stundensatz : standardSatz;
   final daten = p.zeiten.map((z) => z.datum).toList()..sort();
   return Rechnung(
     id: id,
@@ -67,7 +70,7 @@ Rechnung rechnungAusProjekt(Projekt p, List<Rechnung> alle,
     projektId: p.id,
     positionen: [
       if (stundenVon(p) > 0)
-        Position(text: 'Arbeitszeit ${p.name}', menge: stundenVon(p), einheit: 'Std.', preis: p.stundensatz, ustSatz: ustSatz),
+        Position(text: 'Arbeitszeit ${p.name}', menge: stundenVon(p), einheit: 'Std.', preis: satz, ustSatz: ustSatz),
       for (final m in p.material)
         Position(text: m.text, menge: m.menge, einheit: m.einheit, preis: m.preis, ustSatz: ustSatz),
     ],

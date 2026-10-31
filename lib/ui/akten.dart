@@ -104,7 +104,7 @@ class AkteScreen extends StatelessWidget {
               children: [
                 Text(akte.titel, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 6),
-                Text('${akte.briefe.length} Dokumente · $offen offen'
+                Text('${anzahl(akte.briefe.length, 'Dokument', 'Dokumente')} · $offen offen'
                     '${fristen.isNotEmpty ? ' · nächste Frist ${datumKurz(fristen.first.frist!)}' : ''}'),
               ],
             ),

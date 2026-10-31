@@ -672,7 +672,7 @@ class BriefDetail extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.layers_outlined, color: PT.orangeDunkel),
                     title: const Text('Vorgang'),
-                    subtitle: Text('${akte.titel} · ${akte.briefe.length} Dokumente'),
+                    subtitle: Text('${akte.titel} · ${anzahl(akte.briefe.length, 'Dokument', 'Dokumente')}'),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.of(context).push(MaterialPageRoute(
                         builder: (_) => AkteScreen(schluessel: akte.schluessel))),

@@ -2,6 +2,7 @@
 library;
 
 import '../data/models.dart';
+import 'angebotsvergleich.dart';
 import 'behoerden.dart';
 import 'ordnung.dart';
 import 'zeitplan.dart';
@@ -47,6 +48,7 @@ Schritt naechsterSchritt(Brief b, {DateTime? heute}) {
   if (termine.isNotEmpty) return Schritt('termin', 'Termin eintragen', 'Am ${_d(termine.first.zeit)} um ${termine.first.zeit.hour}:${termine.first.zeit.minute.toString().padLeft(2, '0')} Uhr');
   if (b.typ == 'erhoehung') return const Schritt('pruefen', 'Kündigen prüfen', 'Bei Preiserhöhung oft Sonderkündigungsrecht');
   if (b.frist != null) return Schritt('antworten', 'Erledigen', 'Frist ${_d(b.frist!)}');
+  if (istAngebot(b)) return const Schritt('vergleichen', 'Vergleichen', 'Angebot – mit anderen vergleichen');
   return const Schritt('ablegen', 'Ablegen', 'Nur zur Information');
 }
 

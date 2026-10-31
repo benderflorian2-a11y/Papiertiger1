@@ -175,7 +175,7 @@ class _ZahlungseingaengeScreenState extends State<ZahlungseingaengeScreen> with 
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
-          Text('$offen offene Rechnungen. Der Tiger sucht im Kontoauszug nach der Rechnungsnummer oder dem genauen Betrag. '
+          Text('${anzahl(offen, 'offene Rechnung', 'offene Rechnungen')}. Der Tiger sucht im Kontoauszug nach der Rechnungsnummer oder dem genauen Betrag. '
               'Du bestätigst jede Zahlung selbst.',
               style: const TextStyle(color: PT.grau)),
           ...quelleAuswahl(store.briefe),

@@ -345,6 +345,11 @@ class NebenkostenScreen extends StatelessWidget {
             'trag dafür den Anteil laut Messdienst-Abrechnung je Mieter separat ein.',
             style: TextStyle(color: PT.grau, fontSize: 12)),
         const Abschnitt('Ergebnis je Mieter'),
+        if (gesamt == 0)
+          const Text('Trag zuerst die Kosten des Hauses ein (Grundsteuer, Wasser, Müll, Versicherung …), '
+              'dann rechnet der Tiger Nachzahlung oder Guthaben je Mieter aus.',
+              style: TextStyle(color: PT.grau)),
+        if (gesamt > 0)
         for (final m in mieter)
           Builder(builder: (_) {
             final r = nebenkostenFuer(m, jj, o);

@@ -103,6 +103,9 @@ Die Garantie beträgt 24 Monate ab Kaufdatum.''';
         ['Der Grundpreis beträgt 12,99 € im Monat.', 'Neu: Papierrechnung kostet 2 €.']);
     expect(d.where((e) => e.$1 == Aenderung.gleich).length, 2);
     expect(enthaeltWerte('kostet 2 €'), isTrue);
+    final z = textUnterschiede('Angebot Nr. 17 vom Mai. MwSt. 19 % sind enthalten.', 'Angebot Nr. 18 vom Mai. MwSt. 19 % sind enthalten.');
+    expect(z.where((e) => e.$1 == Aenderung.entfernt).single.$2, 'Angebot Nr. 17 vom Mai.');
+    expect(z.where((e) => e.$1 == Aenderung.gleich).single.$2, 'MwSt. 19 % sind enthalten.');
     expect(enthaeltWerte('Gerichtsstand ist Berlin.'), isFalse);
   });
 }

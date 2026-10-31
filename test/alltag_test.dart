@@ -9,6 +9,8 @@ void main() {
     expect(einkaufKategorie(Einkauf(text: 'Milch')), 'Kühlregal');
     expect(einkaufKategorie(Einkauf(text: '1 kg Kartoffeln')), 'Obst & Gemüse');
     expect(einkaufKategorie(Einkauf(text: 'Reis')), 'Vorrat');
+    expect(einkaufKategorie(Einkauf(text: 'Brot', kategorie: 'Backwaren')), 'Brot & Backwaren');
+    expect(einkaufNachKategorie([Einkauf(text: 'Etwas', kategorie: 'Gibt es nicht')]).single.$2.single.text, 'Etwas');
     expect(einkaufKategorie(Einkauf(text: 'Klopapier')), 'Drogerie');
     expect(einkaufKategorie(Einkauf(text: 'Irgendwas')), 'Sonstiges');
     expect(einkaufKategorie(Einkauf(text: 'Milch', kategorie: 'Getränke')), 'Getränke');
