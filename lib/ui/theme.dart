@@ -36,6 +36,7 @@ ThemeData papiertigerTheme() {
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: TextStyle(
+        fontFamily: 'Roboto',
         fontSize: 20,
         fontWeight: FontWeight.w700,
         color: PT.tinte,
@@ -45,7 +46,7 @@ ThemeData papiertigerTheme() {
       style: FilledButton.styleFrom(
         minimumSize: const Size(48, 52),
         shape: RoundedRectangleBorder(borderRadius: rund),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(fontFamily: 'Roboto', fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -54,7 +55,7 @@ ThemeData papiertigerTheme() {
         foregroundColor: PT.tinte,
         side: const BorderSide(color: PT.sand, width: 1.5),
         shape: RoundedRectangleBorder(borderRadius: rund),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(fontFamily: 'Roboto', fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
     navigationBarTheme: NavigationBarThemeData(
