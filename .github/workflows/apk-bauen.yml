@@ -207,6 +207,17 @@ jobs:
           if flutter test 2>&1 | tee tests.txt; then echo "TESTS OK" > tests_status.txt; else echo "TESTS FEHLGESCHLAGEN" > tests_status.txt; fi
           cat tests_status.txt
 
+      - name: Rundgang-Bilder packen
+        if: always()
+        continue-on-error: true
+        run: |
+          if [ -d build/rundgang ]; then
+            (command -v pdftoppm >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils)) >/dev/null 2>&1 || true
+            for f in build/rundgang/*.pdf; do [ -f "$f" ] && pdftoppm -png -r 70 "$f" "${f%.pdf}_seite" || true; done
+            (cd build && zip -q -r ../rundgang.zip rundgang)
+          fi
+          ls -la rundgang.zip || echo "kein Rundgang" > rundgang_fehlt.txt
+
       - name: E-Rechnung pruefen (KoSIT-Validator)
         continue-on-error: true
         env:
@@ -263,6 +274,10 @@ jobs:
             echo '---'
             tail -n 60 tests.txt 2>/dev/null | grep -v '^\s*$' | tail -n 20
             echo '```'
+            echo "## Rundgang"
+            echo '```'
+            cat build/rundgang/fehler.txt build/rundgang/pdf_fehler.txt 2>/dev/null | head -n 60
+            echo '```'
             echo "## E-Rechnung (KoSIT)"
             echo '```'
             grep -v "^\./libs/" kosit_liste.txt 2>/dev/null | tail -n 6
@@ -290,7 +305,9 @@ jobs:
           prerelease: false
           make_latest: true
           body_path: bericht_kurz.md
-          files: papiertiger.apk
+          files: |
+            papiertiger.apk
+            rundgang.zip
 
       - name: Fehlerbericht veroeffentlichen
         if: failure() && github.ref == 'refs/heads/main'

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -23,6 +24,26 @@ String _dateiname(String s) =>
     s.replaceAll(RegExp(r'[^A-Za-z0-9ÄÖÜäöüß \-]'), '').trim().replaceAll(RegExp(r'\s+'), '_');
 
 const _orange = PdfColor.fromInt(0xFFC9650F);
+
+pw.ThemeData? _thema;
+
+/// Schrift für alle PDFs: Liberation Sans (eingebettet). Die PDF-Standardschrift kann weder €
+/// noch „ “ – darstellen. Ohne Schriftdatei (z. B. in reinen Logik-Tests) die Standardschrift.
+Future<pw.ThemeData> pdfThema() async {
+  final t = _thema;
+  if (t != null) return t;
+  try {
+    Future<pw.Font> schrift(String n) async => pw.Font.ttf(await rootBundle.load('assets/fonts/LiberationSans-$n.ttf'));
+    return _thema = pw.ThemeData.withFont(
+      base: await schrift('Regular'),
+      bold: await schrift('Bold'),
+      italic: await schrift('Italic'),
+      boldItalic: await schrift('BoldItalic'),
+    );
+  } catch (_) {
+    return pw.ThemeData();
+  }
+}
 
 List<pw.Widget> _briefTeil(Brief b) => [
       pw.Header(level: 1, text: titelVon(b)),
@@ -70,7 +91,7 @@ Future<File> _speichern(pw.Document doc, String name) async {
 const _fuss = 'Erstellt mit Papiertiger. Die Erklärungen sind automatisch erstellt und ersetzen keine Beratung.';
 
 Future<File> briefAlsPdf(Brief b) async {
-  final doc = pw.Document(title: titelVon(b), author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: titelVon(b), author: 'Papiertiger');
   doc.addPage(pw.MultiPage(
     pageFormat: PdfPageFormat.a4,
     footer: (c) => pw.Text(_fuss, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
@@ -83,7 +104,7 @@ Future<File> briefAlsPdf(Brief b) async {
 }
 
 Future<File> akteAlsPdf(Akte a) async {
-  final doc = pw.Document(title: a.titel, author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: a.titel, author: 'Papiertiger');
   final reihenfolge = a.briefe.reversed.toList();
   doc.addPage(pw.MultiPage(
     pageFormat: PdfPageFormat.a4,
@@ -108,7 +129,7 @@ Future<File> akteAlsPdf(Akte a) async {
 /// Fenster eines DIN-lang-Umschlags, mit Falz- und Lochmarken.
 Future<File> antwortAlsPdf(String text, {String titel = 'Antwort'}) async {
   final t = briefTeile(text);
-  final doc = pw.Document(title: titel, author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: titel, author: 'Papiertiger');
   final mm = PdfPageFormat.mm;
   const klein = pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700);
   const normal = pw.TextStyle(fontSize: 11, lineSpacing: 2);
@@ -209,7 +230,7 @@ String _euro(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
 
 /// Jahresübersicht für die Steuererklärung als PDF.
 Future<File> steuerAlsPdf(int jahr, List<SteuerPosten> posten, {Werbungskosten? werbung}) async {
-  final doc = pw.Document(title: 'Steuer $jahr', author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: 'Steuer $jahr', author: 'Papiertiger');
   final summen = summenNachKategorie(posten);
   doc.addPage(pw.MultiPage(
     pageFormat: PdfPageFormat.a4,
@@ -270,7 +291,7 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle 
       ? giroCode(name: f.name, iban: f.iban, bic: f.bic, betrag: zahlen.brutto, zweck: '${r.artName} ${r.nummer}')
       : '';
   final titel = r.artName;
-  final doc = pw.Document(title: '$titel ${r.nummer}', author: f.name);
+  final doc = pw.Document(theme: await pdfThema(), title: '$titel ${r.nummer}', author: f.name);
   final mm = PdfPageFormat.mm;
   const klein = pw.TextStyle(fontSize: 7.5, color: PdfColors.grey700);
   const normal = pw.TextStyle(fontSize: 10);
@@ -453,7 +474,7 @@ pw.Widget _summenZeile(String a, String b, pw.TextStyle st) => pw.Padding(
 
 /// Inventarliste mit Fotos, z. B. für die Hausratversicherung.
 Future<File> inventarAlsPdf(List<Gegenstand> liste) async {
-  final doc = pw.Document(title: 'Inventar', author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: 'Inventar', author: 'Papiertiger');
   final summe = liste.fold(0.0, (s, g) => s + (g.preis ?? 0));
   final fotos = <(Gegenstand, pw.MemoryImage)>[];
   for (final g in liste) {
@@ -531,7 +552,7 @@ Future<File> alsWord(String titel, String text) async {
 
 /// Belege mit Fotos als PDF, z. B. für die Steuerberatung.
 Future<File> belegeAlsPdf(String titel, List<Beleg> belege) async {
-  final doc = pw.Document(title: titel, author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: titel, author: 'Papiertiger');
   final summe = belege.fold(0.0, (s, b) => s + (b.betrag ?? 0));
   doc.addPage(pw.MultiPage(
     pageFormat: PdfPageFormat.a4,
@@ -574,7 +595,7 @@ Future<File> belegeAlsPdf(String titel, List<Beleg> belege) async {
 
 /// Regiebericht oder Abnahmeprotokoll mit Unterschrift des Kunden.
 Future<File> berichtAlsPdf(Baubericht b, Projekt p, Firma f, Kunde? k) async {
-  final doc = pw.Document(title: '${b.titel} ${p.name}', author: f.name);
+  final doc = pw.Document(theme: await pdfThema(), title: '${b.titel} ${p.name}', author: f.name);
   const normal = pw.TextStyle(fontSize: 10);
   final fett = pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold);
   pw.MemoryImage? unterschrift;
@@ -652,7 +673,7 @@ Future<File> berichtAlsPdf(Baubericht b, Projekt p, Firma f, Kunde? k) async {
 
 /// Bautagebuch mit Fotos des jeweiligen Tages.
 Future<File> bautagebuchAlsPdf(Projekt p, Firma f, Kunde? k) async {
-  final doc = pw.Document(title: 'Bautagebuch ${p.name}', author: f.name);
+  final doc = pw.Document(theme: await pdfThema(), title: 'Bautagebuch ${p.name}', author: f.name);
   const normal = pw.TextStyle(fontSize: 10);
   final fett = pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold);
   final tage = [...p.tagebuch]..sort((a, b) => a.datum.compareTo(b.datum));
@@ -699,7 +720,7 @@ Future<File> bautagebuchAlsPdf(Projekt p, Firma f, Kunde? k) async {
 
 /// Arbeitsauftrag für Mitarbeiter: wo, wann, wer, was – ohne Preise.
 Future<File> arbeitsauftragAlsPdf(Projekt p, Firma f, Kunde? k, {List<Einsatz> einsaetze = const [], Rechnung? auftrag}) async {
-  final doc = pw.Document(title: 'Arbeitsauftrag ${p.name}', author: f.name);
+  final doc = pw.Document(theme: await pdfThema(), title: 'Arbeitsauftrag ${p.name}', author: f.name);
   const normal = pw.TextStyle(fontSize: 10);
   final fett = pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold);
   final plan = einsaetze.where((e) => e.projektId == p.id).toList()..sort((a, b) => a.von.compareTo(b.von));
@@ -755,7 +776,7 @@ Future<File> arbeitsauftragAlsPdf(Projekt p, Firma f, Kunde? k, {List<Einsatz> e
 
 /// Tabellarischer Lebenslauf (ohne Unterschrift, mit Foto falls vorhanden).
 Future<File> lebenslaufAlsPdf(Lebenslauf l, Profil p) async {
-  final doc = pw.Document(title: 'Lebenslauf ${p.name}', author: p.name);
+  final doc = pw.Document(theme: await pdfThema(), title: 'Lebenslauf ${p.name}', author: p.name);
   const normal = pw.TextStyle(fontSize: 10);
   const grau = pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700);
   final fett = pw.TextStyle(fontSize: 10.5, fontWeight: pw.FontWeight.bold);
@@ -821,7 +842,7 @@ Future<File> lebenslaufAlsPdf(Lebenslauf l, Profil p) async {
 
 /// Ausgefülltes Formular: jede Seite als Bild, darauf die eingetragenen Texte und Unterschriften.
 Future<File> formularAlsPdf(List<String> seitenBilder, List<FormularEintrag> eintraege, {String titel = 'Formular'}) async {
-  final doc = pw.Document(title: titel, author: 'Papiertiger');
+  final doc = pw.Document(theme: await pdfThema(), title: titel, author: 'Papiertiger');
   for (var i = 0; i < seitenBilder.length; i++) {
     final datei = File(seitenBilder[i]);
     if (!datei.existsSync()) continue;
