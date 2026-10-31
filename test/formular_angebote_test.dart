@@ -4,6 +4,7 @@ import 'package:papiertiger/logic/angebotsvergleich.dart';
 import 'package:papiertiger/logic/dokument_frage.dart';
 import 'package:papiertiger/logic/formular_eintrag.dart';
 import 'package:papiertiger/logic/ki_anfragen.dart';
+import 'package:papiertiger/logic/textvergleich.dart';
 
 Brief _b(String id, String text, {String? absender, DateTime? datum}) => Brief(
     id: id,
@@ -91,5 +92,17 @@ Die Garantie beträgt 24 Monate ab Kaufdatum.''';
     expect(textstellenFinden(anleitung, 'und die'), isEmpty);
     final b = _b('d', anleitung);
     expect(dokumentFrageAnfrage(b, 'Wie entkalke ich?'), contains('Frage: Wie entkalke ich?'));
+  });
+
+  test('Textfassungen vergleichen', () {
+    const alt = 'Der Grundpreis beträgt 9,99 € im Monat. Die Kündigungsfrist beträgt einen Monat.\nGerichtsstand ist Berlin.';
+    const neu = 'Der Grundpreis beträgt 12,99 € im Monat. Die Kündigungsfrist beträgt einen Monat.\nGerichtsstand ist Berlin.\nNeu: Papierrechnung kostet 2 €.';
+    final d = textUnterschiede(alt, neu);
+    expect(d.where((e) => e.$1 == Aenderung.entfernt).map((e) => e.$2), ['Der Grundpreis beträgt 9,99 € im Monat.']);
+    expect(d.where((e) => e.$1 == Aenderung.neu).map((e) => e.$2),
+        ['Der Grundpreis beträgt 12,99 € im Monat.', 'Neu: Papierrechnung kostet 2 €.']);
+    expect(d.where((e) => e.$1 == Aenderung.gleich).length, 2);
+    expect(enthaeltWerte('kostet 2 €'), isTrue);
+    expect(enthaeltWerte('Gerichtsstand ist Berlin.'), isFalse);
   });
 }

@@ -203,6 +203,23 @@ class MieterScreen extends StatelessWidget {
         zeile('Letzte Mieterhöhung', m.letzteErhoehung == null ? '' : datumKurz(m.letzteErhoehung!),
             () => datum(m.letzteErhoehung, (d) => m.letzteErhoehung = d)),
         zeile('Auszug', m.auszug == null ? '' : datumKurz(m.auszug!), () => datum(m.auszug, (d) => m.auszug = d)),
+        const Abschnitt('Schreiben'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          for (final (art, titel) in mieterSchreiben)
+            ActionChip(
+              label: Text(titel),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => VorlageScreen(
+                  titel: titel,
+                  text: mieterSchreibenText(art, m, store.vermietung.objekte.where((o) => o.id == m.objektId).firstOrNull,
+                      vermieter: store.profil.name, adresse: store.profil.adresse),
+                ),
+              )),
+            ),
+        ]),
+        const Text('Allgemeine Muster, keine Rechtsberatung. Prüfe Beträge und Fristen.',
+            style: TextStyle(color: PT.grau, fontSize: 12)),
+        const SizedBox(height: 8),
         if (m.kaltmiete > 0 && m.auszug == null)
           PTKarte(
             farbe: verlangen.isBefore(DateTime.now()) ? PT.orangeHell : Colors.white,

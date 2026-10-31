@@ -113,3 +113,68 @@ List<(Mieter, Gutschrift?)> mieteingaenge(List<Mieter> mieter, List<Gutschrift> 
   }
   return out;
 }
+
+/// Schreiben an oder für Mieter. Allgemeine Muster, keine Rechtsberatung.
+const mieterSchreiben = <(String, String)>[
+  ('wohnungsgeber', 'Wohnungsgeberbestätigung'),
+  ('mietbescheinigung', 'Mietbescheinigung (Jobcenter, Wohngeld)'),
+  ('erhoehung', 'Mieterhöhung verlangen'),
+  ('kaution', 'Kautionsabrechnung'),
+];
+
+String mieterSchreibenText(String art, Mieter m, Mietobjekt? o,
+    {required String vermieter, required String adresse, DateTime? heute}) {
+  final h = heute ?? DateTime.now();
+  final wo = [o?.adresse ?? '[Anschrift der Wohnung]', if (m.wohnung.isNotEmpty) m.wohnung].join(', ');
+  final kopf = '${vermieter.isEmpty ? '[Dein Name]' : vermieter}\n${adresse.isEmpty ? '[Deine Adresse]' : adresse}\n\n'
+      '${m.name}\n$wo\n\n${_d(h)}\n\n';
+  final gruss = '\n\nMit freundlichen Grüßen\n\n${vermieter.isEmpty ? '[Dein Name]' : vermieter}';
+  switch (art) {
+    case 'wohnungsgeber':
+      final auszug = m.auszug != null && !m.auszug!.isAfter(h.add(const Duration(days: 60)));
+      return 'Wohnungsgeberbestätigung nach § 19 Bundesmeldegesetz\n\n'
+          'Name und Anschrift des Wohnungsgebers:\n${vermieter.isEmpty ? '[Dein Name]' : vermieter}, ${adresse.replaceAll('\n', ', ')}\n\n'
+          'Der Wohnungsgeber ist [ ] Eigentümer [ ] nicht Eigentümer (dann Name und Anschrift des Eigentümers: ______)\n\n'
+          'Hiermit bestätige ich den ${auszug ? 'Auszug' : 'Einzug'} am ${_d((auszug ? m.auszug : m.einzug) ?? h)}\n'
+          'in die Wohnung: $wo\n\n'
+          'Meldepflichtige Person(en):\n${m.name}${m.personen > 1 ? '\n[weitere Namen – insgesamt ${m.personen} Personen]' : ''}\n\n'
+          'Ich bestätige, dass die Angaben richtig sind. Mir ist bekannt, dass es verboten ist, eine Wohnanschrift '
+          'für eine Anmeldung anzubieten, wenn dort tatsächlich kein Einzug stattfindet (§ 19 Abs. 6 BMG).\n\n'
+          '${_d(h)}, Unterschrift Wohnungsgeber: ______________________';
+    case 'mietbescheinigung':
+      return '${kopf}Mietbescheinigung\n\n'
+          'Hiermit bestätige ich, dass ${m.name} seit ${m.einzug == null ? '[Datum]' : _d(m.einzug!)} '
+          'die Wohnung $wo gemietet hat.\n\n'
+          'Wohnfläche: ${m.flaeche == 0 ? '[m²]' : '${m.flaeche.toStringAsFixed(m.flaeche % 1 == 0 ? 0 : 1).replaceAll('.', ',')} m²'}\n'
+          'Personen im Haushalt: ${m.personen}\n'
+          'Kaltmiete monatlich: ${_e(m.kaltmiete)}\n'
+          'Vorauszahlung Betriebs- und Heizkosten: ${_e(m.nebenkosten)} (davon Heizung/Warmwasser: [Betrag])\n'
+          'Gesamtmiete monatlich: ${_e(m.warmmiete)}\n\n'
+          'Die Miete wird [ ] pünktlich [ ] mit Rückständen gezahlt.$gruss';
+    case 'erhoehung':
+      final (_, wirksam, _) = mieterhoehungMoeglich(m);
+      final ab = wirksam.isBefore(h) ? DateTime(h.year, h.month + 3) : wirksam;
+      return '${kopf}Betreff: Mieterhöhung auf die ortsübliche Vergleichsmiete (§ 558 BGB)\n\n'
+          'Guten Tag ${m.name},\n\n'
+          'die Kaltmiete für Ihre Wohnung beträgt derzeit ${_e(m.kaltmiete)}. Ich bitte Sie, einer Erhöhung der Kaltmiete auf '
+          '[neuer Betrag] € ab dem ${_d(DateTime(ab.year, ab.month, 1))} zuzustimmen.\n\n'
+          'Begründung: Nach dem Mietspiegel [Stadt, Jahr] liegt die ortsübliche Vergleichsmiete für Ihre Wohnung '
+          '(${m.flaeche == 0 ? '[m²]' : '${m.flaeche.toStringAsFixed(0)} m²'}, [Baujahr], [Lage], [Ausstattung]) bei [Spanne] € je m². '
+          '[Alternativ: drei Vergleichswohnungen oder ein Gutachten.]\n\n'
+          'Die Kappungsgrenze (höchstens 20 %, in manchen Gemeinden 15 % in drei Jahren) ist eingehalten. '
+          'Die Vorauszahlung für Nebenkosten bleibt unverändert.\n\n'
+          'Bitte teilen Sie mir Ihre Zustimmung bis zum Ende des übernächsten Monats nach Zugang dieses Schreibens mit.$gruss';
+    case 'kaution':
+      return '${kopf}Betreff: Abrechnung der Mietkaution\n\n'
+          'Guten Tag ${m.name},\n\n'
+          'Ihr Mietverhältnis endete am ${m.auszug == null ? '[Datum]' : _d(m.auszug!)}. Die Kaution rechne ich wie folgt ab:\n\n'
+          'Kaution: ${_e(m.kaution)}\n'
+          'Zinsen: [Betrag] €\n'
+          'Einbehalt für [Grund, z. B. Schäden laut Übergabeprotokoll]: [Betrag] €\n'
+          'Einbehalt für die noch offene Betriebskostenabrechnung [Jahr]: [Betrag] €\n'
+          'Auszahlung an Sie: [Betrag] €\n\n'
+          'Den Betrag überweise ich auf Ihr Konto IBAN [IBAN]. '
+          'Einen Einbehalt für die Nebenkosten rechne ich ab, sobald die Abrechnung vorliegt.$gruss';
+  }
+  return '';
+}

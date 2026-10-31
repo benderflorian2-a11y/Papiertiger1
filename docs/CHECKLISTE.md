@@ -4,7 +4,7 @@ Stand: 31.10.2026, Version 1.37
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 209 Punkte – ✅ 196 fertig, 🟡 8 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste; Erweiterungen unten extra gezählt)
+**Gesamt: 209 Punkte – ✅ 198 fertig, 🟡 6 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste; Erweiterungen unten extra gezählt)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
 ✅ 24 · 🟡 0 · ❌ 0 · 🔒 0
@@ -99,7 +99,7 @@ Stand: 31.10.2026, Version 1.37
 - ✅ Finanzunterlagen für Steuerberater oder Bank – CSV und PDF
 
 ## 5. Verträge, Versicherungen und Abonnements
-✅ 17 · 🟡 1 · ❌ 0 · 🔒 0
+✅ 18 · 🟡 0 · ❌ 0 · 🔒 0
 
 - ✅ Verträge auslesen und verständlich zusammenfassen
 - ✅ Laufzeiten, Kosten und Kündigungsfristen herausarbeiten
@@ -116,7 +116,7 @@ Stand: 31.10.2026, Version 1.37
 - ✅ Anbieterwechsel vorbereiten
 - ✅ Tarife und Angebote vergleichen
 - ✅ Preisänderungen gegenüber früheren Ständen erkennen
-- 🟡 Vertragsänderungen markieren – über Vergleich
+- ✅ Vertragsänderungen markieren – satzweise rot/grün, auch ohne KI
 - ✅ Vor Ablauf von Probeabos warnen
 - ✅ Alle laufenden Verträge an einem Ort
 
@@ -218,7 +218,7 @@ Stand: 31.10.2026, Version 1.37
 - ✅ Kundenbewertungen in Themen zusammenfassen
 
 ## 10. Privater Alltag und Haushalt
-✅ 24 · 🟡 1 · ❌ 0 · 🔒 0 (plus 3 zusätzliche Funktionen)
+✅ 25 · 🟡 0 · ❌ 0 · 🔒 0 (plus 3 zusätzliche Funktionen)
 
 - ✅ Einkaufslisten aus Rezepten, Nachrichten oder Notizen erstellen
 - ✅ Einkaufslisten nach Supermarkt oder Kategorie sortieren
@@ -241,7 +241,7 @@ Stand: 31.10.2026, Version 1.37
 - ✅ Garantieunterlagen archivieren
 - ✅ Reiseunterlagen sammeln
 - ✅ Packlisten und Reisepläne erstellen
-- 🟡 Dokumente für Vermieter, Mieter oder Hausverwaltung vorbereiten – über Antwort-Briefe
+- ✅ Dokumente für Vermieter, Mieter oder Hausverwaltung vorbereiten – Wohnungsgeberbestätigung, Mietbescheinigung, Mieterhöhung, Kaution, Nebenkosten
 - ✅ Zählerstände und Abschlag prüfen (zusätzlich, nicht in deiner Liste)
 - ✅ Inventar für die Hausratversicherung (zusätzlich)
 - ✅ Notfallmappe (zusätzlich)

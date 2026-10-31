@@ -52,4 +52,23 @@ void main() {
     expect(l[0].$2?.betrag, 600);
     expect(l[1].$2, isNull); // Oktober zählt nicht für November
   });
+
+  test('Schreiben an Mieter', () {
+    final o = Mietobjekt(id: 'o', adresse: 'Lindenweg 3, 12345 Ort');
+    final m = Mieter(id: 'm', objektId: 'o', name: 'Max Mieter', wohnung: '1. OG', einzug: DateTime(2024, 3, 1),
+        kaltmiete: 600, nebenkosten: 150, flaeche: 62, personen: 2, kaution: 1800);
+    final w = mieterSchreibenText('wohnungsgeber', m, o, vermieter: 'Vera Vermieter', adresse: 'Hof 1\n12345 Ort', heute: DateTime(2026, 10, 31));
+    expect(w, contains('§ 19 Bundesmeldegesetz'));
+    expect(w, contains('Einzug am 01.03.2024'));
+    expect(w, contains('Lindenweg 3, 12345 Ort, 1. OG'));
+    expect(w, contains('insgesamt 2 Personen'));
+    final b = mieterSchreibenText('mietbescheinigung', m, o, vermieter: 'Vera Vermieter', adresse: '', heute: DateTime(2026, 10, 31));
+    expect(b, contains('Gesamtmiete monatlich: 750,00 €'));
+    expect(b, contains('Wohnfläche: 62 m²'));
+    expect(mieterSchreibenText('erhoehung', m, o, vermieter: 'V', adresse: 'A', heute: DateTime(2026, 10, 31)), contains('ab dem 01.01.2027'));
+    m.auszug = DateTime(2026, 11, 30);
+    expect(mieterSchreibenText('wohnungsgeber', m, o, vermieter: 'V', adresse: 'A', heute: DateTime(2026, 10, 31)), contains('Auszug am 30.11.2026'));
+    expect(mieterSchreibenText('kaution', m, null, vermieter: 'V', adresse: 'A'), contains('Kaution: 1800,00 €'));
+    expect(mieterSchreiben.length, 4);
+  });
 }

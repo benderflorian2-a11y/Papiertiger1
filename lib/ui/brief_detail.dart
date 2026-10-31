@@ -26,6 +26,7 @@ import 'module/vertraege.dart';
 import 'rechtsbehelf_karte.dart';
 import 'termine.dart';
 import 'ki_text.dart';
+import 'textvergleich.dart';
 import 'theme.dart';
 import 'vorlage_screen.dart';
 import 'widgets/brief_teile.dart';
@@ -898,11 +899,7 @@ void _vergleichen(BuildContext context, Brief b, List<Brief> alle) {
                   final alt = xa.isBefore(ba) ? x : b;
                   final neu = identical(alt, x) ? b : x;
                   Navigator.of(context).push(MaterialPageRoute(
-                    builder: (_) => KiTextScreen(
-                      titel: 'Vergleich',
-                      anfrage: vergleichAnfrage(alt, neu),
-                      hinweis: 'Vergleich durch die KI. Prüfe wichtige Werte im Original.',
-                    ),
+                    builder: (_) => TextVergleichScreen(alt: alt, neu: neu),
                   ));
                 },
               ),
