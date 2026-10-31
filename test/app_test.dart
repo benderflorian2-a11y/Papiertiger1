@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:papiertiger/data/store.dart';
+import 'package:papiertiger/logic/android_kanal.dart';
 import 'package:papiertiger/logic/benachrichtigungen.dart';
 import 'package:papiertiger/logic/ki.dart';
 import 'package:papiertiger/ui/app.dart';
@@ -14,6 +15,7 @@ Future<AppStore> _neuerStore({bool onboardingFertig = false}) async {
 
 void main() {
   Ki.deaktiviert = true;
+  sicherheitNativAus = true;
   Benachrichtigungen.deaktiviert = true;
   testWidgets('Onboarding führt zum Startbildschirm', (tester) async {
     final store = await _neuerStore();

@@ -100,9 +100,13 @@ Future<void> widgetAktualisieren() async {
 
 const _sicherKanal = MethodChannel('papiertiger/android');
 
+/// In Widget-Tests abschalten: Aufrufe an Android würden dort nie beantwortet.
+bool sicherheitNativAus = false;
+
 /// Schlüssel für die Datenverschlüsselung aus dem Android-Keystore (32 Byte, Base64).
 /// null, wenn es keinen gibt (z. B. in Tests). Wirft bei einem echten Fehler.
 Future<String?> datenschluesselHolen() async {
+  if (sicherheitNativAus) return null;
   try {
     return await _sicherKanal.invokeMethod<String>('datenschluessel');
   } on MissingPluginException {
@@ -112,6 +116,7 @@ Future<String?> datenschluesselHolen() async {
 
 /// Bildschirmfotos und Vorschau im App-Wechsler verhindern.
 Future<void> bildschirmschutz(bool an) async {
+  if (sicherheitNativAus) return;
   try {
     await _sicherKanal.invokeMethod<bool>('bildschirmschutz', {'an': an});
   } catch (_) {}
@@ -119,6 +124,7 @@ Future<void> bildschirmschutz(bool an) async {
 
 /// Hat das Handy eine Displaysperre (PIN, Muster, Fingerabdruck)?
 Future<bool> geraetGesichert() async {
+  if (sicherheitNativAus) return false;
   try {
     return await _sicherKanal.invokeMethod<bool>('geraetGesichert') ?? false;
   } catch (_) {
@@ -128,6 +134,7 @@ Future<bool> geraetGesichert() async {
 
 /// Mit der Displaysperre des Handys bestätigen. true = erfolgreich.
 Future<bool> geraetEntsperren() async {
+  if (sicherheitNativAus) return false;
   try {
     return await _sicherKanal.invokeMethod<bool>('geraetEntsperren') ?? false;
   } catch (_) {
