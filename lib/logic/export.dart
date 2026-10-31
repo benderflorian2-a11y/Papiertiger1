@@ -111,7 +111,7 @@ Future<File> akteAlsPdf(Akte a) async {
     footer: (c) => pw.Text(_fuss, style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
     build: (c) => [
       pw.Header(level: 0, text: 'Vorgang: ${a.titel}'),
-      pw.Text('${a.briefe.length} Dokumente, Stand ${_d(DateTime.now())}'),
+      pw.Text('${_anzahl(a.briefe.length, 'Dokument', 'Dokumente')}, Stand ${_d(DateTime.now())}'),
       pw.SizedBox(height: 6),
       for (final b in reihenfolge) pw.Bullet(text: '${_d(b.briefDatum ?? b.erstellt)}  ${titelVon(b)}'),
       for (final b in reihenfolge) ...[pw.NewPage(), ..._briefTeil(b)],
@@ -226,7 +226,16 @@ Future<File> archivAlsTabelle(List<Brief> briefe) async {
   return datei;
 }
 
-String _euro(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+String _euro(double b) {
+  final t = b.abs().toStringAsFixed(2).split('.');
+  final ganz = t[0].replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (_) => '.');
+  return '${b < 0 ? '-' : ''}$ganz,${t[1]} €';
+}
+
+/// IBAN in Vierergruppen, wie auf Überweisungsträgern.
+String _iban(String i) => i.replaceAll(' ', '').replaceAllMapped(RegExp(r'.{4}(?!$)'), (m) => '${m[0]} ');
+
+String _anzahl(int n, String eins, String viele) => '$n ${n == 1 ? eins : viele}';
 
 /// Jahresübersicht für die Steuererklärung als PDF.
 Future<File> steuerAlsPdf(int jahr, List<SteuerPosten> posten, {Werbungskosten? werbung}) async {
@@ -300,7 +309,7 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle 
     f.name,
     if (f.steuernummer.isNotEmpty) 'Steuernr. ${f.steuernummer}',
     if (f.ustId.isNotEmpty) 'USt-IdNr. ${f.ustId}',
-    if (f.iban.isNotEmpty) 'IBAN ${f.iban}${f.bank.isNotEmpty ? ' (${f.bank})' : ''}',
+    if (f.iban.isNotEmpty) 'IBAN ${_iban(f.iban)}${f.bank.isNotEmpty ? ' (${f.bank})' : ''}',
     if (f.email.isNotEmpty) f.email,
     if (f.telefon.isNotEmpty) f.telefon,
   ].join('  ·  ');
@@ -336,7 +345,7 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle 
           child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
             pw.Text('$titel Nr. ${r.nummer}', style: fett),
             pw.Text('Datum: ${_d(r.datum)}', style: normal),
-            if (r.leistungVon != null)
+            if (r.leistungVon != null && !r.istAngebot)
               pw.Text(
                   r.leistungBis == null || r.leistungBis == r.leistungVon
                       ? 'Leistungsdatum: ${_d(r.leistungVon!)}'
@@ -446,7 +455,7 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle 
           pw.Expanded(
             child: pw.Text(
                 'Bitte überweisen Sie ${_euro(zahlen.brutto)} bis zum ${_d(faelligAm(r))}'
-                '${f.iban.isEmpty ? '' : ' auf das Konto ${f.iban}'} unter Angabe der Rechnungsnummer ${r.nummer}.'
+                '${f.iban.isEmpty ? '' : ' auf das Konto ${_iban(f.iban)}'} unter Angabe der Rechnungsnummer ${r.nummer}.'
                 '${qr.isEmpty ? '' : '\n\nBequem bezahlen: Den GiroCode mit Ihrer Banking-App scannen.'}',
                 style: normal),
           ),
@@ -461,7 +470,8 @@ Future<File> rechnungAlsPdf(Rechnung r, Firma f, Kunde? k, {List<Rechnung> alle 
         ]),
       if (r.notiz.isNotEmpty) ...[pw.SizedBox(height: 4 * mm), pw.Text(r.notiz, style: normal)],
       pw.SizedBox(height: 6 * mm),
-      if (r.art != 'lieferschein' && r.art != 'auftragsbestaetigung') pw.Text('Vielen Dank für Ihren Auftrag!', style: normal),
+      if (r.istAngebot) pw.Text('Wir freuen uns auf Ihren Auftrag.', style: normal),
+      if (r.istRechnung) pw.Text('Vielen Dank für Ihren Auftrag!', style: normal),
     ],
   ));
   return _speichern(doc, '$titel ${r.nummer} ${k?.name ?? ''}');
@@ -488,7 +498,7 @@ Future<File> inventarAlsPdf(List<Gegenstand> liste) async {
         style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey)),
     build: (c) => [
       pw.Header(level: 0, text: 'Inventarliste'),
-      pw.Text('${liste.length} Gegenstände · Gesamtwert ${_euro(summe)} (Kaufpreise)'),
+      pw.Text('${_anzahl(liste.length, 'Gegenstand', 'Gegenstände')} · Gesamtwert ${_euro(summe)} (Kaufpreise)'),
       pw.SizedBox(height: 8),
       pw.TableHelper.fromTextArray(
         headers: ['Gegenstand', 'Raum', 'Kaufdatum', 'Seriennummer', 'Preis'],
@@ -651,7 +661,7 @@ Future<File> berichtAlsPdf(Baubericht b, Projekt p, Firma f, Kunde? k) async {
       pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
         pw.Expanded(
           child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
-            pw.Text('${p.adresse.isEmpty ? '' : '${p.adresse.split(',').last.trim()}, '}${_d(b.unterschriebenAm ?? b.datum)}', style: normal),
+            pw.Text('${p.adresse.isEmpty ? '' : '${p.adresse.split(RegExp(r'[\n,]')).last.replaceAll(RegExp(r'^\s*\d{5}\s*'), '').trim()}, '}${_d(b.unterschriebenAm ?? b.datum)}', style: normal),
             pw.Divider(thickness: 0.5),
             pw.Text('Ort, Datum', style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
           ]),

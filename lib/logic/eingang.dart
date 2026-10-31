@@ -5,6 +5,7 @@ import '../data/models.dart';
 import 'behoerden.dart';
 import 'ordnung.dart';
 import 'zeitplan.dart';
+import 'format.dart';
 
 class Schritt {
   const Schritt(this.art, this.label, this.text);
@@ -20,7 +21,7 @@ class Schritt {
 }
 
 String _d(DateTime d) => '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.';
-String _e(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+String _e(double b) => '${euroBetrag(b)}';
 
 /// Der wichtigste nächste Schritt für einen Brief.
 Schritt naechsterSchritt(Brief b, {DateTime? heute}) {

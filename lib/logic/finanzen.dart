@@ -4,6 +4,7 @@ library;
 
 import '../data/models.dart';
 import 'datum.dart';
+import 'format.dart';
 
 // ---------------------------------------------------------------- IBAN
 
@@ -309,7 +310,7 @@ List<Auffaelligkeit> auffaelligeRechnungen(List<Brief> briefe) {
       // Eine Mahnung zur selben Rechnung ist keine doppelte Rechnung.
       if (a.typ == 'mahnung' || b.typ == 'mahnung') continue;
       out.add(Auffaelligkeit(
-          'Gleicher Betrag ${a.betrag!.toStringAsFixed(2).replaceAll('.', ',')} € von ${a.absenderName} zweimal innerhalb von $tage Tagen – doppelt berechnet?',
+          'Gleicher Betrag ${euroBetrag(a.betrag!)} von ${a.absenderName} zweimal innerhalb von $tage Tagen – doppelt berechnet?',
           [a.id, b.id]));
     }
   }
@@ -326,7 +327,7 @@ List<Auffaelligkeit> auffaelligeRechnungen(List<Brief> briefe) {
       final schnitt = andere.reduce((x, y) => x + y) / andere.length;
       if (schnitt > 0 && b.betrag! > schnitt * 2) {
         out.add(Auffaelligkeit(
-            '${b.absenderName}: ${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} € ist mehr als doppelt so viel wie sonst (Ø ${schnitt.toStringAsFixed(2).replaceAll('.', ',')} €).',
+            '${b.absenderName}: ${euroBetrag(b.betrag!)} ist mehr als doppelt so viel wie sonst (Ø ${euroBetrag(schnitt)}).',
             [b.id]));
       }
     }
@@ -351,7 +352,7 @@ List<String> sparpotenziale({
     if (l.length > 1 && !art.endsWith('Sonstige') && art != 'Sonstiges') {
       final kosten = l.fold(0.0, (s, v) => s + (v.kostenMonat ?? 0));
       out.add('${l.length}× $art (${l.map((v) => v.anbieter).join(', ')})'
-          '${kosten > 0 ? ' – zusammen ${kosten.toStringAsFixed(2).replaceAll('.', ',')} € im Monat' : ''}. Brauchst du alle?');
+          '${kosten > 0 ? ' – zusammen ${euroBetrag(kosten)} im Monat' : ''}. Brauchst du alle?');
     }
   });
   final mahnungen = briefe.where((b) => b.typ == 'mahnung').length;
@@ -359,7 +360,7 @@ List<String> sparpotenziale({
     out.add('$mahnungen ${mahnungen == 1 ? 'Mahnung' : 'Mahnungen'} im Archiv. Mit Erinnerungen vor der Frist sparst du Mahngebühren.');
   }
   for (final b in budgets.where((b) => b.ueberschritten)) {
-    out.add('Budget „${b.kategorie}“ überschritten: ${b.ausgegeben.toStringAsFixed(2).replaceAll('.', ',')} € von ${b.budget.toStringAsFixed(2).replaceAll('.', ',')} €.');
+    out.add('Budget „${b.kategorie}“ überschritten: ${euroBetrag(b.ausgegeben)} von ${euroBetrag(b.budget)}.');
   }
   final teuer = aktiv.where((v) => v.zahlweiseMonate == 1 && (v.kostenMonat ?? 0) >= 20 && v.art == 'Versicherung');
   for (final v in teuer) {

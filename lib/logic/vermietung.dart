@@ -3,9 +3,10 @@ library;
 
 import '../data/vermietung.dart';
 import 'kontoauszug.dart';
+import 'format.dart';
 
 double _rund(double x) => (x * 100).round() / 100;
-String _e(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+String _e(double b) => '${euroBetrag(b)}';
 String _d(DateTime d) => '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 
 /// Tage, die der Mieter im Jahr in der Wohnung war.

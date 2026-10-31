@@ -4,6 +4,7 @@ library;
 import '../data/models.dart';
 import 'brief_analyse.dart';
 import 'kommunikation.dart';
+import 'format.dart';
 
 class Vorlage {
   const Vorlage(this.key, this.titel, this.beschreibung);
@@ -70,7 +71,7 @@ String vorlageText(String key, Brief b, Profil p) {
           'Bis zur Klärung bitte ich Sie, keine weiteren Schritte einzuleiten.'
           '${_fuss(p)}';
     case 'erstattung':
-      final betrag = b.betrag != null ? '${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €' : '[Betrag] €';
+      final betrag = b.betrag != null ? '${euroBetrag(b.betrag!)}' : '[Betrag] €';
       return '${_kopf(p, empfaenger, 'Betreff: $az – Antrag auf Erstattung')}'
           'hiermit beantrage ich die Erstattung von $betrag für [Leistung oder Kauf, z. B. Brille, Behandlung, Rücksendung] '
           'vom [Datum].\n\n'
@@ -88,7 +89,7 @@ String vorlageText(String key, Brief b, Profil p) {
           'Sollten noch Unterlagen fehlen, geben Sie mir bitte Bescheid.'
           '${_fuss(p)}';
     case 'bezahlt':
-      final betrag = b.betrag != null ? ' über ${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €' : '';
+      final betrag = b.betrag != null ? ' über ${euroBetrag(b.betrag!)}' : '';
       final am = b.bezahltAm != null ? 'am ${_datum(b.bezahltAm!)}' : 'am [Datum der Zahlung]';
       return '${_kopf(p, empfaenger, 'Betreff: $az – Ihre Mahnung$vom')}'
           'mit Ihrem Schreiben$vom mahnen Sie eine offene Forderung$betrag an. '
@@ -105,7 +106,7 @@ String vorlageText(String key, Brief b, Profil p) {
           '${_fuss(p)}';
     case 'raten':
       final betrag = b.betrag != null
-          ? 'den Betrag von ${b.betrag!.toStringAsFixed(2).replaceAll('.', ',')} €'
+          ? 'den Betrag von ${euroBetrag(b.betrag!)}'
           : 'den geforderten Betrag';
       return '${_kopf(p, empfaenger, 'Betreff: $az – Antrag auf Ratenzahlung')}'
           'vielen Dank für Ihr Schreiben$vom. Ich kann $betrag derzeit leider nicht auf einmal bezahlen.\n\n'
@@ -170,7 +171,7 @@ String schadenText(Vertrag v, Profil p,
       'Datum: $datum\n'
       '${wo.isEmpty ? '' : 'Ort: $wo\n'}'
       'Was ist passiert: ${was.trim().isEmpty ? '[Beschreibung]' : was.trim()}\n'
-      '${hoehe == null ? '' : 'Geschätzte Schadenshöhe: ${hoehe.toStringAsFixed(2).replaceAll('.', ',')} €\n'}'
+      '${hoehe == null ? '' : 'Geschätzte Schadenshöhe: ${euroBetrag(hoehe)}\n'}'
       '${aktenzeichen.isEmpty ? '' : 'Polizeiliches Aktenzeichen: $aktenzeichen\n'}'
       '\nFotos und Belege füge ich bei. Bitte teilen Sie mir mit, welche Unterlagen Sie noch benötigen, '
       'und bestätigen Sie mir den Eingang der Schadensmeldung.'

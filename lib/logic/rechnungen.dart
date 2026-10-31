@@ -4,6 +4,7 @@ library;
 
 import '../data/geschaeft.dart';
 import '../data/models.dart';
+import 'format.dart';
 
 class Summen {
   Summen(this.netto, this.ust, {this.rabatt = 0});
@@ -298,7 +299,7 @@ int? naechsteMahnstufe(Rechnung r, {required DateTime heute, int abstandTage = 1
 /// [gebuehr] wird nur ab Stufe 2 aufgeführt. Keine Rechtsberatung.
 String mahnText(Rechnung r, Firma f, Kunde k, Summen s, {required int stufe, double gebuehr = 0, DateTime? heute}) {
   String d(DateTime x) => '${x.day.toString().padLeft(2, '0')}.${x.month.toString().padLeft(2, '0')}.${x.year}';
-  String e(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+  String e(double b) => '${euroBetrag(b)}';
   final h = heute ?? DateTime.now();
   final neu = DateTime(h.year, h.month, h.day + (stufe >= 3 ? 7 : 10));
   final mitGebuehr = stufe >= 2 && gebuehr > 0;
@@ -421,7 +422,7 @@ List<String> buchhaltungsLuecken({
 
 /// Kurzer E-Mail-Text zum Beleg.
 String begleitText(Rechnung r, Firma f, Kunde? k, Summen zahlen) {
-  String e(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+  String e(double b) => '${euroBetrag(b)}';
   String d(DateTime x) => '${x.day.toString().padLeft(2, '0')}.${x.month.toString().padLeft(2, '0')}.${x.year}';
   final anrede = k == null || k.name.trim().isEmpty ? 'Guten Tag' : 'Guten Tag ${k.name.trim()}';
   final kern = switch (r.art) {

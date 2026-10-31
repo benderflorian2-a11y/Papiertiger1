@@ -4,6 +4,7 @@ library;
 
 import 'finanzen.dart';
 import 'rechnungen.dart';
+import 'format.dart';
 
 class Zahlauftrag {
   Zahlauftrag({this.empfaenger = '', this.iban = '', this.bic = '', this.betrag, this.zweck = ''});
@@ -22,7 +23,7 @@ class Zahlauftrag {
         'Empfänger: $empfaenger',
         'IBAN: ${ibanLesbar(iban)}',
         if (bic.isNotEmpty) 'BIC: $bic',
-        'Betrag: ${(betrag ?? 0).toStringAsFixed(2).replaceAll('.', ',')} €',
+        'Betrag: ${euroBetrag((betrag ?? 0))}',
         'Verwendungszweck: $zweck',
       ].join('\n');
 }

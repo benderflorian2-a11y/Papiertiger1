@@ -326,7 +326,10 @@ Future<void> _schriftenLaden() async {
   }
 
   final lib = [for (final s in ['Regular', 'Bold', 'Italic', 'BoldItalic']) 'assets/fonts/LiberationSans-$s.ttf'];
-  await laden('Roboto', lib);
+  // Auch als Testschrift laden: Texte ohne eigene Schriftfamilie (z. B. Knöpfe) sonst als schwarze Balken
+  for (final f in ['Roboto', 'FlutterTest', 'Ahem']) {
+    await laden(f, lib);
+  }
   final icons = _schriftOrdner();
   if (icons != null) await laden('MaterialIcons', ['${icons.path}/MaterialIcons-Regular.otf']);
 }

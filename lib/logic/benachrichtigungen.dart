@@ -10,6 +10,7 @@ import 'android_kanal.dart';
 import 'arbeitszeit.dart';
 import 'finanzen.dart';
 import 'widget_text.dart';
+import 'format.dart';
 
 /// Plant Push-Erinnerungen auf dem Handy, offline und ohne Server.
 class Benachrichtigungen {
@@ -150,4 +151,4 @@ class Benachrichtigungen {
 }
 
 
-String euroText(double b) => '${b.toStringAsFixed(2).replaceAll('.', ',')} €';
+String euroText(double b) => '${euroBetrag(b)}';

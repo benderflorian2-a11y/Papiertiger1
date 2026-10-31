@@ -68,7 +68,7 @@ void main() {
     expect(mieterSchreibenText('erhoehung', m, o, vermieter: 'V', adresse: 'A', heute: DateTime(2026, 10, 31)), contains('ab dem 01.01.2027'));
     m.auszug = DateTime(2026, 11, 30);
     expect(mieterSchreibenText('wohnungsgeber', m, o, vermieter: 'V', adresse: 'A', heute: DateTime(2026, 10, 31)), contains('Auszug am 30.11.2026'));
-    expect(mieterSchreibenText('kaution', m, null, vermieter: 'V', adresse: 'A'), contains('Kaution: 1800,00 €'));
+    expect(mieterSchreibenText('kaution', m, null, vermieter: 'V', adresse: 'A'), contains('Kaution: 1.800,00 €'));
     expect(mieterSchreiben.length, 4);
   });
 }

@@ -4,6 +4,7 @@ library;
 
 import '../data/karriere.dart';
 import '../data/models.dart';
+import 'format.dart';
 
 String _d(DateTime d) => '${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')}.${d.year}';
 String _monat(DateTime d) => '${d.month.toString().padLeft(2, '0')}/${d.year}';
@@ -328,7 +329,7 @@ List<String> gehaltsAuffaelligkeiten(List<Gehalt> l, {double prozent = 5}) {
     final diff = (b - a) / a * 100;
     if (diff.abs() >= prozent) {
       out.add('${l[i].monat.month}/${l[i].monat.year}: Netto ${diff > 0 ? '+' : ''}${diff.toStringAsFixed(0)} % '
-          '(${b.toStringAsFixed(2).replaceAll('.', ',')} € statt ${a.toStringAsFixed(2).replaceAll('.', ',')} €)');
+          '(${euroBetrag(b)} statt ${euroBetrag(a)})');
     }
   }
   return out;
