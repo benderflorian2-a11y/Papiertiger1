@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/models.dart';
 import '../logic/export.dart';
 import '../logic/finanzen.dart';
+import '../logic/kostenplan.dart';
 import '../logic/texterkennung.dart';
 import '../logic/vorlagen.dart';
 import '../logic/zahlung.dart';
@@ -18,6 +19,7 @@ import 'ueberweisung.dart';
 import 'vorlage_screen.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
+import 'widgets/kosten_kreis.dart';
 
 const _monate = [
   'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -387,6 +389,7 @@ class _FinanzenScreenState extends State<FinanzenScreen> {
     final budgetListe = budgets(store.notizen, kat);
     final budgetMap = {for (final b in budgetListe) b.kategorie: b};
     final auffaellig = auffaelligeRechnungen(store.briefe);
+    final plan = kostenplan(briefe: store.briefe, vertraege: store.vertraege, belege: store.belege, monat: _monat);
     final hinweise = sparpotenziale(vertraege: store.vertraege, briefe: store.briefe, budgets: budgetListe);
 
     Widget posten(String text, double betrag, {VoidCallback? onTap}) => ListTile(
@@ -401,48 +404,92 @@ class _FinanzenScreenState extends State<FinanzenScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         children: [
+          const SizedBox(height: 4),
+          Container(
+            decoration: BoxDecoration(color: PT.sand.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(30)),
+            child: Row(children: [
+              IconButton(
+                tooltip: 'Monat zurück',
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => setState(() => _monat = DateTime(_monat.year, _monat.month - 1)),
+              ),
+              Expanded(
+                child: Text('${_monate[_monat.month - 1]} ${_monat.year}',
+                    textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              ),
+              IconButton(
+                tooltip: 'Monat vor',
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => setState(() => _monat = DateTime(_monat.year, _monat.month + 1)),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+          PTKarte(
+            padding: const EdgeInsets.fromLTRB(16, 18, 12, 10),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Finanzplanung', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const Text('Tippe auf eine Farbe, um die einzelnen Posten zu sehen.',
+                  style: TextStyle(color: PT.grau, fontSize: 12.5)),
+              const SizedBox(height: 14),
+              KostenKreis(plan: plan, monatName: _monate[_monat.month - 1]),
+            ]),
+          ),
           Row(children: [
-            IconButton(
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () => setState(() => _monat = DateTime(_monat.year, _monat.month - 1)),
-            ),
             Expanded(
-              child: Text('${_monate[_monat.month - 1]} ${_monat.year}',
-                  textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              child: _Kachel(
+                icon: Icons.trending_up,
+                titel: 'Nächster Monat',
+                wert: 'ca. ${euro(prognoseNaechsterMonat(briefe: store.briefe, vertraege: store.vertraege, belege: store.belege, heute: DateTime.now()))}',
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: () => setState(() => _monat = DateTime(_monat.year, _monat.month + 1)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: _Kachel(
+                icon: Icons.check_circle_outline,
+                titel: 'Schon bezahlt',
+                wert: euro(m.bezahlt),
+                farbe: PT.gruenHell,
+              ),
             ),
           ]),
-          PTKarte(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(children: [
-              posten('Verträge und Abos (pro Monat)', m.fixkosten,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VertraegeScreen()))),
-              posten('Offene Zahlungen bis Monatsende', m.faellig),
-              posten('Als bezahlt vermerkt', m.bezahlt),
-              posten('Kassenbons und Belege', m.ausgaben),
-              const Divider(height: 1),
-              ListTile(
-                title: const Text('Zusammen', style: TextStyle(fontWeight: FontWeight.w800)),
-                trailing: Text(euro(m.gesamt), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          if (plan.demnaechst.isNotEmpty) ...[
+            const Abschnitt('Demnächst fällig'),
+            PTKarte(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Column(children: [
+                for (final b in plan.demnaechst.take(5)) _FaelligZeile(brief: b, onTap: () => oeffnen(b)),
+                if (plan.demnaechst.length > 5)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Text('und ${plan.demnaechst.length - 5} weitere unten bei „Offene Zahlungen“',
+                        style: const TextStyle(color: PT.grau, fontSize: 12.5)),
+                  ),
+              ]),
+            ),
+          ],
+          ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 4),
+            title: const Text('Monat im Detail', style: TextStyle(fontWeight: FontWeight.w700)),
+            children: [
+              PTKarte(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Column(children: [
+                  posten('Verträge und Abos (pro Monat)', m.fixkosten,
+                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VertraegeScreen()))),
+                  posten('Offene Zahlungen bis Monatsende', m.faellig),
+                  posten('Als bezahlt vermerkt', m.bezahlt),
+                  posten('Kassenbons und Belege', m.ausgaben),
+                  const Divider(height: 1),
+                  ListTile(
+                    title: const Text('Zusammen', style: TextStyle(fontWeight: FontWeight.w800)),
+                    trailing: Text(euro(m.gesamt), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  ),
+                ]),
               ),
-            ]),
+            ],
           ),
-          PTKarte(
-            farbe: PT.orangeHell,
-            child: Row(children: [
-              const Icon(Icons.trending_up, color: PT.orangeDunkel),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                    'Erwartet im nächsten Monat: ca. ${euro(prognoseNaechsterMonat(briefe: store.briefe, vertraege: store.vertraege, belege: store.belege, heute: DateTime.now()))}',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ]),
-          ),
-          const Abschnitt('Ausgaben nach Kategorie'),
+          const Abschnitt('Budgets je Kategorie'),
           if (kat.isEmpty)
             const PTKarte(child: Text('Noch keine Ausgaben in diesem Monat. Kassenbons und Verträge zählen hier mit.'))
           else
@@ -579,6 +626,84 @@ class _FinanzenScreenState extends State<FinanzenScreen> {
             style: TextStyle(color: PT.grau, fontSize: 12),
           ),
         ],
+      ),
+    );
+  }
+}
+
+
+class _Kachel extends StatelessWidget {
+  const _Kachel({required this.icon, required this.titel, required this.wert, this.farbe = PT.orangeHell});
+
+  final IconData icon;
+  final String titel;
+  final String wert;
+  final Color farbe;
+
+  @override
+  Widget build(BuildContext context) => PTKarte(
+        farbe: farbe,
+        padding: const EdgeInsets.all(14),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(icon, size: 18, color: PT.tinte),
+            const SizedBox(width: 6),
+            Expanded(child: Text(titel, style: const TextStyle(fontSize: 12.5, color: PT.tinte))),
+          ]),
+          const SizedBox(height: 6),
+          FittedBox(
+            alignment: Alignment.centerLeft,
+            fit: BoxFit.scaleDown,
+            child: Text(wert, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          ),
+        ]),
+      );
+}
+
+/// Zahlung mit Datumskästchen links: wann, wer, wie viel.
+class _FaelligZeile extends StatelessWidget {
+  const _FaelligZeile({required this.brief, required this.onTap});
+
+  final Brief brief;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = brief.frist!;
+    final heute = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final tage = DateTime(f.year, f.month, f.day).difference(heute).inDays;
+    final ueberfaellig = tage < 0;
+    const monate = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(children: [
+          Container(
+            width: 48,
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            decoration: BoxDecoration(
+              color: ueberfaellig ? PT.rotHell : PT.orangeHell,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(children: [
+              Text('${f.day}', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: ueberfaellig ? PT.rot : PT.tinte)),
+              Text(monate[f.month - 1], style: TextStyle(fontSize: 11, color: ueberfaellig ? PT.rot : PT.grau)),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(brief.absenderName ?? brief.titel ?? 'Zahlung',
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
+              Text(
+                ueberfaellig ? 'seit ${-tage} ${-tage == 1 ? 'Tag' : 'Tagen'} überfällig' : (tage == 0 ? 'heute' : 'in $tage ${tage == 1 ? 'Tag' : 'Tagen'}'),
+                style: TextStyle(color: ueberfaellig ? PT.rot : PT.grau, fontSize: 12.5),
+              ),
+            ]),
+          ),
+          Text(euro(brief.betrag ?? 0), style: const TextStyle(fontWeight: FontWeight.w800)),
+        ]),
       ),
     );
   }

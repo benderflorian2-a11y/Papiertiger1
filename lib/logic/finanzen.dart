@@ -203,7 +203,7 @@ String belegKategorie(Beleg b) {
   return 'Sonstiges';
 }
 
-String _vertragKategorie(Vertrag v) => switch (v.art) {
+String vertragKategorie(Vertrag v) => switch (v.art) {
       'Strom' || 'Gas' => 'Wohnen',
       'Handy' || 'Internet' || 'Streaming' || 'Zeitschrift' || 'Fitnessstudio' => 'Freizeit',
       'Versicherung' => 'Versicherungen',
@@ -224,7 +224,7 @@ List<(String, double)> ausgabenNachKategorie({
   }
   for (final v in vertraege) {
     if (v.gekuendigt || v.kostenMonat == null) continue;
-    final k = _vertragKategorie(v);
+    final k = vertragKategorie(v);
     m[k] = (m[k] ?? 0) + v.kostenMonat!;
   }
   final l = m.entries.map((e) => (e.key, (e.value * 100).round() / 100)).toList()..sort((a, b) => b.$2.compareTo(a.$2));
