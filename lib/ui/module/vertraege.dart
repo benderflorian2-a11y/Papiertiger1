@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
+import '../../logic/kostenplan.dart';
 import '../../logic/vertrag_logik.dart';
 import '../../logic/vorlagen.dart';
 import '../app.dart';
@@ -9,6 +10,7 @@ import '../theme.dart';
 import '../vorlage_screen.dart';
 import '../widgets/brief_teile.dart';
 import '../widgets/common.dart';
+import '../widgets/kosten_kreis.dart';
 import 'vertrag_hilfen.dart';
 
 Vertrag? _finde(List<Vertrag> l, String id) {
@@ -63,27 +65,18 @@ class VertraegeScreen extends StatelessWidget {
           else ...[
             if (kosten.monat > 0)
               PTKarte(
-                farbe: PT.orangeHell,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Laufende Kosten', style: TextStyle(color: PT.grau)),
-                    Text('${euro(kosten.monat)} im Monat',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-                    Text('${euro(kosten.jahr)} im Jahr', style: const TextStyle(fontWeight: FontWeight.w600)),
-                    if (kosten.nachArt.length > 1) ...[
-                      const SizedBox(height: 10),
-                      for (final (art, betrag) in kosten.nachArt)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(children: [
-                            Expanded(child: Text(art)),
-                            Text('${euro(betrag)} / Monat', style: const TextStyle(fontWeight: FontWeight.w600)),
-                          ]),
-                        ),
-                    ],
-                  ],
-                ),
+                padding: const EdgeInsets.fromLTRB(16, 18, 12, 10),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Deine Fixkosten', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text('${euro(kosten.jahr)} im Jahr · tippe auf eine Farbe für die Verträge',
+                      style: const TextStyle(color: PT.grau, fontSize: 12.5)),
+                  const SizedBox(height: 14),
+                  KostenKreis(
+                    plan: kostenplan(briefe: const [], vertraege: store.vertraege, belege: const [], monat: DateTime.now()),
+                    monatName: '',
+                    mitte: 'Verträge & Abos im Monat',
+                  ),
+                ]),
               ),
             if (versicherungen.isNotEmpty || aktiv.isNotEmpty)
               Align(

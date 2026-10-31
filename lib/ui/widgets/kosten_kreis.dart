@@ -20,10 +20,13 @@ const kostenFarben = <Color>[
 /// Ring mit den Kostengruppen eines Monats, Summe in der Mitte, Legende darunter.
 /// Antippen einer Gruppe zeigt ihre Einzelposten.
 class KostenKreis extends StatefulWidget {
-  const KostenKreis({super.key, required this.plan, required this.monatName});
+  const KostenKreis({super.key, required this.plan, required this.monatName, this.mitte});
 
   final Kostenplan plan;
   final String monatName;
+
+  /// Text über der Summe in der Mitte (Standard: „Steht an im <Monat>“).
+  final String? mitte;
 
   @override
   State<KostenKreis> createState() => _KostenKreisState();
@@ -86,7 +89,7 @@ class _KostenKreisState extends State<KostenKreis> {
                 Padding(
                   padding: EdgeInsets.all(groesse * 0.2),
                   child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Text(auswahl?.name ?? 'Steht an im ${widget.monatName}',
+                    Text(auswahl?.name ?? widget.mitte ?? 'Steht an im ${widget.monatName}',
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         style: const TextStyle(color: PT.grau, fontSize: 12.5, height: 1.2)),
