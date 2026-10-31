@@ -9,6 +9,7 @@ import 'ki_einstellungen.dart';
 import 'termine.dart';
 import 'module/profil.dart';
 import '../logic/lebenslage.dart';
+import 'sicherheit.dart';
 import 'sicherung.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -275,6 +276,27 @@ class MehrScreen extends StatelessWidget {
             ),
           ),
           const Abschnitt('Datenschutz'),
+          PTKarte(
+            onTap: () => oeffne(const SicherheitScreen()),
+            child: Row(children: [
+              const IconKachel(Icons.shield_outlined),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Sicherheit', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                    [
+                      if (store.verschluesselt) 'verschlüsselt',
+                      sperreAn(store) ? 'App-Sperre an' : 'App-Sperre aus',
+                      '${store.protokoll.length} Protokolleinträge',
+                    ].join(' · '),
+                    style: const TextStyle(color: PT.grau, fontSize: 13),
+                  ),
+                ]),
+              ),
+              const Icon(Icons.chevron_right, color: PT.grau),
+            ]),
+          ),
           PTKarte(
             onTap: () => oeffne(const SicherungScreen()),
             child: Row(children: [

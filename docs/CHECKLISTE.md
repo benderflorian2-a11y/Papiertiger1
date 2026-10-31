@@ -273,4 +273,6 @@ Stand: 31.10.2026, Version 1.37
 - ✅ Vermietung: Mieter, Mieteingänge, Mieterhöhung, Nebenkostenabrechnung
 - ✅ Freiberufler-Modus ohne Handwerksfunktionen, Steuer-Rücklage je Zahlungseingang
 - ✅ Startbildschirm-Widget
+- ✅ Sicherheit für Firmen: Daten AES-256 verschlüsselt (Schlüssel im Android-Keystore), App-Sperre mit PIN/Fingerabdruck, Bildschirmschutz, keine Google-Cloud-Sicherung
+- ✅ GoBD: Rechnungen werden beim PDF/Versand festgeschrieben, danach nur Storno + neue Rechnung; verkettetes Änderungsprotokoll mit CSV-Export
 - 🔒 Familie/Angehörige/Team auf mehreren Handys – braucht Server (Entscheidung offen)

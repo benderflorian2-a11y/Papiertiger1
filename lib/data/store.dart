@@ -4,7 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../logic/android_kanal.dart';
 import '../logic/ordnung.dart';
+import '../logic/protokoll.dart';
+import '../logic/tresor.dart';
 import 'alltag.dart';
 import 'familie.dart';
 import 'karriere.dart';
@@ -15,11 +18,72 @@ import 'models.dart';
 
 /// Hält alle Daten der App und speichert sie auf dem Handy.
 class AppStore extends ChangeNotifier {
-  AppStore(this._prefs) {
+  AppStore(this._prefs, {Tresor? tresor, this.schluesselFehler = false}) : _tresor = tresor {
     _laden();
+    if (_umstellen && !lesefehler) Future.microtask(_speichern);
   }
 
   final SharedPreferences _prefs;
+
+  /// Verschlüsselt die gespeicherten Daten (Schlüssel aus dem Android-Keystore). null = unverschlüsselt.
+  final Tresor? _tresor;
+  bool get verschluesselt => _tresor != null;
+
+  /// Der Schlüssel konnte nicht geholt werden.
+  final bool schluesselFehler;
+
+  /// Gespeicherte Daten ließen sich nicht entschlüsseln. Dann wird nichts überschrieben.
+  bool lesefehler = false;
+
+  /// Zuletzt geschriebener Klartext je Schlüssel – unveränderte Werte werden nicht neu verschlüsselt.
+  final Map<String, String> _zuletzt = {};
+  bool _umstellen = false;
+
+  /// Änderungsprotokoll (Rechnungen, Sicherheit).
+  List<ProtokollEintrag> protokoll = [];
+  Map<String, String> _rechnungStand = {};
+
+  /// Werte, die nicht verschlüsselt werden (liest die Android-Seite bzw. andere Teile direkt).
+  static bool _klartext(String key) => key.startsWith('widget_') || key.startsWith('ki');
+
+  String? _get(String key) {
+    final roh = _prefs.getString(key);
+    if (roh == null) return null;
+    if (!istVerschluesselt(roh)) {
+      if (_tresor != null && !_klartext(key)) {
+        _umstellen = true;
+      } else {
+        _zuletzt[key] = roh;
+      }
+      return roh;
+    }
+    if (_tresor == null) {
+      lesefehler = true;
+      return null;
+    }
+    try {
+      final klar = _tresor.entschluesseln(roh);
+      _zuletzt[key] = klar;
+      return klar;
+    } catch (_) {
+      lesefehler = true;
+      return null;
+    }
+  }
+
+  Future<void> _set(String key, String wert) async {
+    if (lesefehler) return;
+    if (_zuletzt[key] == wert) return;
+    final t = _tresor;
+    await _prefs.setString(key, t == null || _klartext(key) ? wert : t.verschluesseln(wert));
+    _zuletzt[key] = wert;
+  }
+
+  /// Sicherheits-Vorgang ins Protokoll schreiben (z. B. App-Sperre eingeschaltet).
+  Future<void> protokollNotiz(String text, {String art = 'sicherheit', String objekt = 'App'}) {
+    protokollieren(protokoll, art: art, objekt: objekt, text: text);
+    return _speichern();
+  }
 
   List<Brief> briefe = [];
   List<Vertrag> vertraege = [];
@@ -82,7 +146,12 @@ class AppStore extends ChangeNotifier {
 
   static Future<AppStore> oeffnen() async {
     final prefs = await SharedPreferences.getInstance();
-    return AppStore(prefs);
+    try {
+      final k = await datenschluesselHolen();
+      return AppStore(prefs, tresor: k == null ? null : Tresor(base64Decode(k)));
+    } catch (_) {
+      return AppStore(prefs, schluesselFehler: true);
+    }
   }
 
   /// Text fürs Startbildschirm-Widget (liest die Android-Seite direkt).
@@ -92,15 +161,26 @@ class AppStore extends ChangeNotifier {
   }
 
   /// Alle gespeicherten Werte (für die Datensicherung).
-  Map<String, Object?> alleWerte() => {for (final k in _prefs.getKeys()) k: _prefs.get(k)};
+  /// Strings kommen entschlüsselt zurück, damit die Sicherung auf jedem Handy lesbar ist
+  /// (die Sicherungsdatei selbst ist mit deinem Passwort verschlüsselt).
+  Map<String, Object?> alleWerte() => {
+        for (final k in _prefs.getKeys())
+          k: switch (_prefs.get(k)) {
+            final String v when istVerschluesselt(v) && _tresor != null => _tresor!.entschluesseln(v),
+            final v => v,
+          },
+      };
 
   /// Ersetzt alle gespeicherten Werte (Datensicherung zurückspielen) und lädt neu.
   Future<void> werteErsetzen(Map<String, Object?> werte) async {
+    if (lesefehler && _tresor == null) return;
     await _prefs.clear();
+    _zuletzt.clear();
+    lesefehler = false;
     for (final e in werte.entries) {
       final v = e.value;
       if (v is String) {
-        await _prefs.setString(e.key, v);
+        await _prefs.setString(e.key, _tresor == null || _klartext(e.key) || istVerschluesselt(v) ? v : _tresor.verschluesseln(v));
       } else if (v is bool) {
         await _prefs.setBool(e.key, v);
       } else if (v is int) {
@@ -117,7 +197,7 @@ class AppStore extends ChangeNotifier {
   }
 
   List<Map<String, dynamic>> _liste(String key) {
-    final roh = _prefs.getString(key);
+    final roh = _get(key);
     if (roh == null) return [];
     try {
       final daten = jsonDecode(roh);
@@ -140,63 +220,65 @@ class AppStore extends ChangeNotifier {
     stempel = _liste('stempel').map(Stempel.fromJson).toList();
     mitarbeiter = _prefs.getStringList('mitarbeiter') ?? [];
     sparziele = _liste('sparziele').map(Sparziel.fromJson).toList();
-    final a = _prefs.getString('alltag');
+    final a = _get('alltag');
     if (a != null) {
       try {
         alltag = Alltag.fromJson(jsonDecode(a) as Map<String, dynamic>);
       } catch (_) {}
     }
-    final fa = _prefs.getString('familie');
+    final fa = _get('familie');
     if (fa != null) {
       try {
         familie = Familie.fromJson(jsonDecode(fa) as Map<String, dynamic>);
       } catch (_) {}
     }
-    final vm = _prefs.getString('vermietung');
+    final vm = _get('vermietung');
     if (vm != null) {
       try {
         vermietung = Vermietung.fromJson(jsonDecode(vm) as Map<String, dynamic>);
       } catch (_) {}
     }
-    final kr = _prefs.getString('karriere');
+    final kr = _get('karriere');
     if (kr != null) {
       try {
         karriere = Karriere.fromJson(jsonDecode(kr) as Map<String, dynamic>);
       } catch (_) {}
     }
     inventar = _liste('inventar').map(Gegenstand.fromJson).toList();
-    final f = _prefs.getString('firma');
+    final f = _get('firma');
     if (f != null) {
       try {
         firma = Firma.fromJson(jsonDecode(f) as Map<String, dynamic>);
       } catch (_) {}
     }
-    final e = _prefs.getString('erinnerungen');
+    final e = _get('erinnerungen');
     if (e != null) {
       try {
         erinnerungen = ErinnerungsEinstellungen.fromJson(jsonDecode(e) as Map<String, dynamic>);
       } catch (_) {}
     }
-    final p = _prefs.getString('profil');
+    final p = _get('profil');
     if (p != null) {
       try {
         profil = Profil.fromJson(jsonDecode(p) as Map<String, dynamic>);
       } catch (_) {}
     }
-    final c = _prefs.getString('checklisten');
+    final c = _get('checklisten');
     if (c != null) {
       try {
         checklisten = (jsonDecode(c) as Map<String, dynamic>)
             .map((k, v) => MapEntry(k, v == true));
       } catch (_) {}
     }
-    final n = _prefs.getString('notizen');
+    final n = _get('notizen');
     if (n != null) {
       try {
         notizen = (jsonDecode(n) as Map<String, dynamic>).map((k, v) => MapEntry(k, '$v'));
       } catch (_) {}
     }
     onboardingFertig = _prefs.getBool('onboardingFertig') ?? false;
+    protokoll = _liste('protokoll').map(ProtokollEintrag.fromJson).toList();
+    _rechnungStand = {for (final r in rechnungen) r.id: jsonEncode(r.toJson())};
     _sortieren();
   }
 
@@ -206,34 +288,41 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> _speichern() async {
+    if (lesefehler) {
+      notifyListeners();
+      return;
+    }
     _sortieren();
-    await _prefs.setString(
-        'briefe', jsonEncode(briefe.map((b) => b.toJson()).toList()));
-    await _prefs.setString(
-        'vertraege', jsonEncode(vertraege.map((v) => v.toJson()).toList()));
-    await _prefs.setString(
-        'belege', jsonEncode(belege.map((b) => b.toJson()).toList()));
-    await _prefs.setString('profil', jsonEncode(profil.toJson()));
-    await _prefs.setString('checklisten', jsonEncode(checklisten));
-    await _prefs.setString('notizen', jsonEncode(notizen));
-    await _prefs.setString('firma', jsonEncode(firma.toJson()));
-    await _prefs.setString('kunden', jsonEncode(kunden.map((k) => k.toJson()).toList()));
-    await _prefs.setString('rechnungen', jsonEncode(rechnungen.map((r) => r.toJson()).toList()));
-    await _prefs.setString('projekte', jsonEncode(projekte.map((p) => p.toJson()).toList()));
-    await _prefs.setString('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
-    await _prefs.setString('artikel', jsonEncode(artikel.map((a) => a.toJson()).toList()));
-    await _prefs.setString('einsaetze', jsonEncode(einsaetze.map((e) => e.toJson()).toList()));
-    await _prefs.setString('stempel', jsonEncode(stempel.map((e) => e.toJson()).toList()));
+    final aenderungen = rechnungsAenderungen(_rechnungStand, rechnungen);
+    for (final (art, objekt, text) in aenderungen) {
+      protokollieren(protokoll, art: art, objekt: objekt, text: text);
+    }
+    if (aenderungen.isNotEmpty) _rechnungStand = {for (final r in rechnungen) r.id: jsonEncode(r.toJson())};
+    await _set('protokoll', jsonEncode(protokoll.map((e) => e.toJson()).toList()));
+    await _set('briefe', jsonEncode(briefe.map((b) => b.toJson()).toList()));
+    await _set('vertraege', jsonEncode(vertraege.map((v) => v.toJson()).toList()));
+    await _set('belege', jsonEncode(belege.map((b) => b.toJson()).toList()));
+    await _set('profil', jsonEncode(profil.toJson()));
+    await _set('checklisten', jsonEncode(checklisten));
+    await _set('notizen', jsonEncode(notizen));
+    await _set('firma', jsonEncode(firma.toJson()));
+    await _set('kunden', jsonEncode(kunden.map((k) => k.toJson()).toList()));
+    await _set('rechnungen', jsonEncode(rechnungen.map((r) => r.toJson()).toList()));
+    await _set('projekte', jsonEncode(projekte.map((p) => p.toJson()).toList()));
+    await _set('zaehler', jsonEncode(zaehler.map((z) => z.toJson()).toList()));
+    await _set('artikel', jsonEncode(artikel.map((a) => a.toJson()).toList()));
+    await _set('einsaetze', jsonEncode(einsaetze.map((e) => e.toJson()).toList()));
+    await _set('stempel', jsonEncode(stempel.map((e) => e.toJson()).toList()));
     await _prefs.setStringList('mitarbeiter', mitarbeiter);
-    await _prefs.setString('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
-    await _prefs.setString('alltag', jsonEncode(alltag.toJson()));
-    await _prefs.setString('karriere', jsonEncode(karriere.toJson()));
-    await _prefs.setString('familie', jsonEncode(familie.toJson()));
-    await _prefs.setString('vermietung', jsonEncode(vermietung.toJson()));
-    await _prefs.setString('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
+    await _set('sparziele', jsonEncode(sparziele.map((z) => z.toJson()).toList()));
+    await _set('alltag', jsonEncode(alltag.toJson()));
+    await _set('karriere', jsonEncode(karriere.toJson()));
+    await _set('familie', jsonEncode(familie.toJson()));
+    await _set('vermietung', jsonEncode(vermietung.toJson()));
+    await _set('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
-    await _prefs.setString('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
-    await _prefs.setString('erinnerungen', jsonEncode(erinnerungen.toJson()));
+    await _set('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
+    await _set('erinnerungen', jsonEncode(erinnerungen.toJson()));
     notifyListeners();
   }
 
@@ -302,7 +391,9 @@ class AppStore extends ChangeNotifier {
     return _speichern();
   }
 
+  /// Festgeschriebene Rechnungen lassen sich nicht löschen, nur stornieren (GoBD).
   Future<void> rechnungLoeschen(Rechnung r) {
+    if (r.festgeschrieben) throw StateError('Festgeschriebene Rechnung ${r.nummer} kann nicht gelöscht werden');
     rechnungen.removeWhere((x) => x.id == r.id);
     return _speichern();
   }
@@ -352,6 +443,8 @@ class AppStore extends ChangeNotifier {
 
   /// Löscht alle Daten und Bilder der App.
   void _leeren() {
+    protokoll = [];
+    _rechnungStand = {};
     briefe = [];
     vertraege = [];
     belege = [];
@@ -390,6 +483,8 @@ class AppStore extends ChangeNotifier {
     }
     _leeren();
     await _prefs.clear();
+    _zuletzt.clear();
+    lesefehler = false;
     notifyListeners();
   }
 

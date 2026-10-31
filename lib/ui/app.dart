@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import '../data/store.dart';
 import 'onboarding.dart';
 import 'shell.dart';
+import 'sicherheit.dart';
 import 'theme.dart';
 
 /// Macht den Datenspeicher überall in der App erreichbar.
@@ -39,9 +40,12 @@ class PapiertigerApp extends StatelessWidget {
         builder: (context, child) {
           final gross = StoreScope.of(context).grossschrift;
           final mq = MediaQuery.of(context);
-          return MediaQuery(
-            data: gross ? mq.copyWith(textScaler: TextScaler.linear(mq.textScaler.scale(1) * 1.25)) : mq,
-            child: child!,
+          return AppSperre(
+            store: store,
+            child: MediaQuery(
+              data: gross ? mq.copyWith(textScaler: TextScaler.linear(mq.textScaler.scale(1) * 1.25)) : mq,
+              child: child!,
+            ),
           );
         },
         home: const _Start(),
@@ -56,6 +60,7 @@ class _Start extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
+    if (store.lesefehler) return const DatenGesperrt();
     return store.onboardingFertig ? const Shell() : const Onboarding();
   }
 }

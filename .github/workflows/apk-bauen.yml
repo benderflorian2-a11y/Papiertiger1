@@ -112,6 +112,11 @@ jobs:
               'android:widgetCategory="home_screen" />\n')
           xml = pathlib.Path('android/app/src/main/res/xml')
           xml.mkdir(parents=True, exist_ok=True)
+          # Sicherheit: keine automatische Sicherung in die Google-Cloud und keine Uebertragung auf neue Geraete
+          bereiche = ''.join('<exclude domain="%s" path="." />' % d for d in ['root', 'file', 'database', 'sharedpref', 'external'])
+          (xml / 'papiertiger_sicherung_regeln.xml').write_text('<?xml version="1.0" encoding="utf-8"?>\n<data-extraction-rules>\n'
+              '<cloud-backup>' + bereiche + '</cloud-backup>\n<device-transfer>' + bereiche + '</device-transfer>\n</data-extraction-rules>\n')
+          x = x.replace('<application', '<application android:allowBackup="false" android:dataExtractionRules="@xml/papiertiger_sicherung_regeln" tools:replace="android:allowBackup"', 1)
           (xml / 'papiertiger_dateien.xml').write_text('<?xml version="1.0" encoding="utf-8"?>\n<paths>\n    <cache-path name="senden" path="senden/" />\n</paths>\n')
           empfaenger = '''
                   <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />

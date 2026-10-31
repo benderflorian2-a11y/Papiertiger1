@@ -249,8 +249,51 @@ class RechnungDetail extends StatelessWidget {
         ? giroCode(name: f.name, iban: f.iban, bic: f.bic, betrag: zahlen.brutto, zweck: '$titel ${r.nummer}')
         : '';
 
+    // Sobald ein PDF die App verlässt, ist die Rechnung festgeschrieben (GoBD).
+    Future<void> festschreiben() async {
+      if (r.istRechnung && r.festAm == null) {
+        r.festAm = DateTime.now();
+        await store.geaendert();
+      }
+    }
+
+    Future<void> korrigieren() async {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (d) => AlertDialog(
+          title: const Text('Rechnung ist festgeschrieben'),
+          content: Text('Rechnung ${r.nummer} wurde schon erzeugt oder verschickt. Nach den GoBD darfst du sie nicht mehr '
+              'ändern. Der Tiger storniert sie und legt eine neue Rechnung mit neuer Nummer an, die du bearbeiten kannst.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Abbrechen')),
+            FilledButton(onPressed: () => Navigator.pop(d, true), child: const Text('Stornieren und neu')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      r.storniert = true;
+      final neu = Rechnung.fromJson({
+        ...r.toJson(),
+        'id': neueId(),
+        'nummer': naechsteNummer(store.rechnungen, art: r.art, jahr: DateTime.now().year),
+        'datum': DateTime.now().toIso8601String(),
+        'bezahltAm': null,
+        'gemahntAm': null,
+        'mahnstufe': 0,
+        'versendetAm': null,
+        'festAm': null,
+        'storniert': false,
+        'notiz': 'Ersetzt Rechnung ${r.nummer}.${r.notiz.isEmpty ? '' : ' ${r.notiz}'}',
+      });
+      await store.rechnungSpeichern(neu);
+      if (context.mounted) {
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => RechnungFormular(art: neu.art, rechnung: neu)));
+      }
+    }
+
     Future<void> pdfTeilen() async {
       final datei = await rechnungAlsPdf(r, f, k, alle: store.rechnungen);
+      await festschreiben();
       await dateiTeilen(datei.path,
           mimeType: 'application/pdf', text: '$titel ${r.nummer} über ${euro(zahlen.brutto)}');
     }
@@ -262,6 +305,7 @@ class RechnungDetail extends StatelessWidget {
 
     Future<void> senden() async {
       final datei = await rechnungAlsPdf(r, f, k, alle: store.rechnungen);
+      await festschreiben();
       final ok = await mailMitAnhang(
         an: k?.email ?? '',
         betreff: '$titel ${r.nummer}${f.name.isEmpty ? '' : ' – ${f.name}'}',
@@ -325,8 +369,10 @@ class RechnungDetail extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.edit_outlined),
             tooltip: 'Bearbeiten',
-            onPressed: () => Navigator.of(context)
-                .push(MaterialPageRoute(builder: (_) => RechnungFormular(art: r.art, rechnung: r))),
+            onPressed: r.festgeschrieben
+                ? (r.storniert ? null : korrigieren)
+                : () => Navigator.of(context)
+                    .push(MaterialPageRoute(builder: (_) => RechnungFormular(art: r.art, rechnung: r))),
           ),
           PopupMenuButton<String>(
             onSelected: (w) async {
@@ -340,6 +386,7 @@ class RechnungDetail extends StatelessWidget {
                   'gemahntAm': null,
                   'mahnstufe': 0,
                   'versendetAm': null,
+                  'festAm': null,
                   'storniert': false,
                 });
                 await store.rechnungSpeichern(neu);
@@ -350,6 +397,8 @@ class RechnungDetail extends StatelessWidget {
               } else if (w == 'storno') {
                 r.storniert = !r.storniert;
                 await store.geaendert();
+              } else if (w == 'fest') {
+                await festschreiben();
               } else if (w == 'loeschen') {
                 Navigator.of(context).pop();
                 await store.rechnungLoeschen(r);
@@ -357,9 +406,10 @@ class RechnungDetail extends StatelessWidget {
             },
             itemBuilder: (_) => [
               PopupMenuItem(value: 'kopie', child: Text('Kopie als neue(s) $titel')),
-              if (r.istRechnung)
+              if (r.istRechnung && !(r.storniert && r.festgeschrieben))
                 PopupMenuItem(value: 'storno', child: Text(r.storniert ? 'Storno aufheben' : 'Stornieren')),
-              const PopupMenuItem(value: 'loeschen', child: Text('Löschen')),
+              if (r.istRechnung && !r.festgeschrieben) const PopupMenuItem(value: 'fest', child: Text('Festschreiben')),
+              if (!r.festgeschrieben) const PopupMenuItem(value: 'loeschen', child: Text('Löschen')),
             ],
           ),
         ],
@@ -413,6 +463,12 @@ class RechnungDetail extends StatelessWidget {
                   const Expanded(child: Text('Noch zu zahlen', style: TextStyle(fontWeight: FontWeight.w800))),
                   Text(euro(zahlen.brutto), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 ]),
+              if (r.festgeschrieben && r.versendetAm == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('Festgeschrieben${r.festAm == null ? '' : ' am ${datumKurz(r.festAm!)}'} – ändern nur über Storno',
+                      style: const TextStyle(color: PT.grau, fontSize: 13)),
+                ),
               if (r.versendetAm != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
@@ -727,6 +783,10 @@ class _RechnungFormularState extends State<RechnungFormular> {
 
   Future<void> _speichern() async {
     final store = StoreScope.of(context);
+    if (widget.rechnung?.festgeschrieben == true) {
+      zeigeHinweis(context, 'Diese Rechnung ist festgeschrieben. Ändern geht nur über Storno und neue Rechnung.');
+      return;
+    }
     final r = widget.rechnung ??
         Rechnung(
           id: neueId(),

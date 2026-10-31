@@ -40,6 +40,23 @@ class MainActivity : FlutterActivity() {
                         call.argument<List<String>>("pfade") ?: emptyList(),
                     )
                 )
+                "datenschluessel" -> try {
+                    result.success(datenschluessel())
+                } catch (e: Exception) {
+                    result.error("schluessel", e.toString(), null)
+                }
+                "bildschirmschutz" -> {
+                    if (call.argument<Boolean>("an") == true) {
+                        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    } else {
+                        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    }
+                    result.success(true)
+                }
+                "geraetGesichert" -> result.success(
+                    (getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager).isDeviceSecure
+                )
+                "geraetEntsperren" -> geraetEntsperren(result)
                 "appOeffnen" -> result.success(appOeffnen(call.argument<List<String>>("pakete") ?: emptyList()))
                 "widget" -> {
                     val mgr = android.appwidget.AppWidgetManager.getInstance(this)
@@ -234,6 +251,64 @@ class MainActivity : FlutterActivity() {
         return false
     }
 
+    /**
+     * Schlüssel für die Datenverschlüsselung der App. Er wird zufällig erzeugt und mit einem Schlüssel
+     * aus dem Android-Keystore (Sicherheitschip) verschlüsselt abgelegt – er verlässt das Gerät nie.
+     */
+    private fun datenschluessel(): String {
+        val alias = "papiertiger_daten"
+        val ks = java.security.KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        if (!ks.containsAlias(alias)) {
+            val gen = javax.crypto.KeyGenerator.getInstance(
+                android.security.keystore.KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore"
+            )
+            gen.init(
+                android.security.keystore.KeyGenParameterSpec.Builder(
+                    alias,
+                    android.security.keystore.KeyProperties.PURPOSE_ENCRYPT or
+                        android.security.keystore.KeyProperties.PURPOSE_DECRYPT
+                )
+                    .setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
+                    .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
+                    .setKeySize(256)
+                    .build()
+            )
+            gen.generateKey()
+        }
+        val haupt = (ks.getEntry(alias, null) as java.security.KeyStore.SecretKeyEntry).secretKey
+        val sp = getSharedPreferences("papiertiger_sicher", MODE_PRIVATE)
+        val gespeichert = sp.getString("schluessel", null)
+        if (gespeichert != null) {
+            val roh = android.util.Base64.decode(gespeichert, android.util.Base64.NO_WRAP)
+            val c = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+            c.init(javax.crypto.Cipher.DECRYPT_MODE, haupt, javax.crypto.spec.GCMParameterSpec(128, roh.copyOfRange(0, 12)))
+            return android.util.Base64.encodeToString(c.doFinal(roh.copyOfRange(12, roh.size)), android.util.Base64.NO_WRAP)
+        }
+        val neu = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
+        val c = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
+        c.init(javax.crypto.Cipher.ENCRYPT_MODE, haupt)
+        val verpackt = c.iv + c.doFinal(neu)
+        sp.edit().putString("schluessel", android.util.Base64.encodeToString(verpackt, android.util.Base64.NO_WRAP)).commit()
+        return android.util.Base64.encodeToString(neu, android.util.Base64.NO_WRAP)
+    }
+
+    private var entsperrErgebnis: MethodChannel.Result? = null
+
+    /** Entsperren mit der Displaysperre des Handys (PIN, Muster, Fingerabdruck). */
+    private fun geraetEntsperren(result: MethodChannel.Result) {
+        val km = getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager
+        @Suppress("DEPRECATION")
+        val i = km.createConfirmDeviceCredentialIntent("Papiertiger entsperren", "Mit deiner Displaysperre")
+        if (i == null) {
+            result.success(false)
+            return
+        }
+        entsperrErgebnis?.success(false)
+        entsperrErgebnis = result
+        @Suppress("DEPRECATION")
+        startActivityForResult(i, ENTSPERREN)
+    }
+
     /** Spracheingabe des Systems: zeigt das Mikrofon-Fenster, liefert den erkannten Text (oder null). */
     private fun diktieren(result: MethodChannel.Result) {
         diktatErgebnis?.success(null)
@@ -256,6 +331,11 @@ class MainActivity : FlutterActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == ENTSPERREN) {
+            entsperrErgebnis?.success(resultCode == android.app.Activity.RESULT_OK)
+            entsperrErgebnis = null
+            return
+        }
         if (requestCode != DIKTAT) return
         val r = diktatErgebnis ?: return
         diktatErgebnis = null
@@ -267,5 +347,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val DIKTAT = 4711
+        private const val ENTSPERREN = 4712
     }
 }

@@ -277,6 +277,7 @@ class Rechnung {
     this.bezugId,
     this.mahnstufe = 0,
     this.versendetAm,
+    this.festAm,
   }) : positionen = positionen ?? [];
 
   /// Rabatt auf die Zwischensumme (netto): Prozent und/oder fester Betrag.
@@ -291,6 +292,12 @@ class Rechnung {
 
   /// Wann an den Kunden verschickt (von dir vermerkt).
   DateTime? versendetAm;
+
+  /// Wann festgeschrieben (PDF erzeugt, verschickt oder von Hand). Danach nur noch stornieren (GoBD).
+  DateTime? festAm;
+
+  /// Rechnung darf inhaltlich nicht mehr geändert oder gelöscht werden.
+  bool get festgeschrieben => istRechnung && (festAm != null || versendetAm != null || bezahltAm != null);
 
   /// Wiederkehrende Rechnung: alle n Monate neu (0 = einmalig).
   int wiederholungMonate;
@@ -343,6 +350,7 @@ class Rechnung {
         'bezugId': bezugId,
         'mahnstufe': mahnstufe,
         'versendetAm': versendetAm?.toIso8601String(),
+        if (festAm != null) 'festAm': festAm!.toIso8601String(),
       };
 
   factory Rechnung.fromJson(Map<String, dynamic> j) => Rechnung(
@@ -370,6 +378,7 @@ class Rechnung {
         bezugId: j['bezugId'] as String?,
         mahnstufe: (j['mahnstufe'] as num?)?.toInt() ?? (j['gemahntAm'] != null ? 1 : 0),
         versendetAm: _datum(j['versendetAm']),
+        festAm: _datum(j['festAm']),
       );
 }
 

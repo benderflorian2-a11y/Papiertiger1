@@ -162,6 +162,7 @@ Rechnung umwandeln(Rechnung r, List<Rechnung> alle, {required String art, requir
     ..['gemahntAm'] = null
     ..['mahnstufe'] = 0
     ..['versendetAm'] = null
+    ..['festAm'] = null
     ..['storniert'] = false
     ..['bezugId'] = r.bezugId ?? r.id;
   return Rechnung.fromJson(j);
