@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../data/models.dart';
@@ -110,6 +111,8 @@ class _KiKarteState extends State<KiKarte> {
         }
 
         if (_installiert == false) {
+          // Im Browser gibt es die KI auf dem Gerät nicht
+          if (kIsWeb) return const SizedBox.shrink();
           return PTKarte(
             onTap: () async {
               final ok = await Navigator.of(context)

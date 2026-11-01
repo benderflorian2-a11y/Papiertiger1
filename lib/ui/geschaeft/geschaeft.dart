@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../../data/geschaeft.dart';
@@ -523,7 +524,7 @@ class RechnungDetail extends StatelessWidget {
               ]),
             ),
           FilledButton.icon(
-            onPressed: senden,
+            onPressed: () => _mitFehlermeldung(context, senden),
             icon: const Icon(Icons.send_outlined),
             label: Text(k != null && k.email.isNotEmpty ? '$titel per E-Mail senden' : '$titel per E-Mail senden (Adresse fehlt)'),
           ),
@@ -531,7 +532,7 @@ class RechnungDetail extends StatelessWidget {
           Row(children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: pdfTeilen,
+                onPressed: () => _mitFehlermeldung(context, pdfTeilen),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 label: const Text('PDF teilen'),
               ),
@@ -961,7 +962,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
             ),
           Row(children: [
             const Expanded(child: Abschnitt('Positionen')),
-            if (!_istRechnung)
+            if (!_istRechnung && !kIsWeb)
               TextButton.icon(
                 onPressed: _kiAngebot,
                 icon: const Icon(Icons.auto_awesome, size: 18),
@@ -1526,5 +1527,15 @@ class _EuerScreenState extends State<EuerScreen> {
         ],
       ),
     );
+  }
+}
+
+
+/// Fehler beim Erzeugen oder Teilen sichtbar machen statt still zu scheitern.
+Future<void> _mitFehlermeldung(BuildContext context, Future<void> Function() aktion) async {
+  try {
+    await aktion();
+  } catch (e) {
+    if (context.mounted) zeigeHinweis(context, 'Das hat nicht geklappt: $e');
   }
 }

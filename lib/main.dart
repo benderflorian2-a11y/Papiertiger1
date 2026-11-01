@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import 'data/store.dart';
@@ -8,6 +9,11 @@ import 'ui/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Browser-Version: keine KI auf dem Gerät, keine geplanten Benachrichtigungen
+  if (kIsWeb) {
+    Ki.deaktiviert = true;
+    Benachrichtigungen.deaktiviert = true;
+  }
   final store = await AppStore.oeffnen();
   // KI im Hintergrund vorbereiten; Fehler dürfen den Start nie verhindern.
   Ki.starten().catchError((Object _) {});
