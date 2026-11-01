@@ -20,10 +20,14 @@ class GiroCodeAnzeige extends StatelessWidget {
   final double groesse;
 
   @override
-  Widget build(BuildContext context) => Container(
-        color: Colors.white,
-        padding: const EdgeInsets.all(8),
-        child: QrImageView(data: daten, size: groesse, errorCorrectionLevel: QrErrorCorrectLevel.M),
+  // Feste Größe: der QR-Baustein kann in Dialogen sonst nicht vermessen werden
+  Widget build(BuildContext context) => SizedBox.square(
+        dimension: groesse + 16,
+        child: Container(
+          color: Colors.white,
+          padding: const EdgeInsets.all(8),
+          child: QrImageView(data: daten, size: groesse, errorCorrectionLevel: QrErrorCorrectLevel.M),
+        ),
       );
 }
 
@@ -57,7 +61,7 @@ Future<void> giroCodeZeigen(BuildContext context, String daten, String titel) =>
       builder: (d) => AlertDialog(
         title: Text(titel),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
-          GiroCodeAnzeige(daten, groesse: 260),
+          GiroCodeAnzeige(daten, groesse: (MediaQuery.of(d).size.width - 160).clamp(160.0, 260.0)),
           const SizedBox(height: 8),
           const Text('Mit der Banking-App scannen („Foto-Überweisung“ bzw. „QR-Code scannen“).',
               textAlign: TextAlign.center, style: TextStyle(color: PT.grau, fontSize: 13)),

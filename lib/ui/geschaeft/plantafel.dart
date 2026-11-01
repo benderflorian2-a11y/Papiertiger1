@@ -71,9 +71,13 @@ class _PlantafelScreenState extends State<PlantafelScreen> {
               if (art == 'Projekt') ...[
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String?>(
+                  isExpanded: true,
                   value: store.projekte.any((p) => p.id == projekt) ? projekt : null,
                   decoration: feld(labelText: 'Projekt'),
-                  items: [for (final p in store.projekte) DropdownMenuItem(value: p.id, child: Text(p.name))],
+                  items: [
+                    for (final p in store.projekte)
+                      DropdownMenuItem(value: p.id, child: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  ],
                   onChanged: (v) => setze(() => projekt = v),
                 ),
               ],

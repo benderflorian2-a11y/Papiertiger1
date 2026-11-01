@@ -560,16 +560,14 @@ class BriefDetail extends StatelessWidget {
           const SizedBox(height: 12),
           const Text('Oder eine feste Vorlage:', style: TextStyle(color: PT.grau)),
           const SizedBox(height: 8),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 0,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.9,
+          // Zwei Spalten, Höhe passt sich an (auch bei großer Schrift)
+          LayoutBuilder(builder: (context, box) => Wrap(
+            spacing: 12,
             children: [
               for (final v in briefVorlagen)
-                PTKarte(
+                SizedBox(
+                  width: (box.maxWidth - 12) / 2,
+                  child: PTKarte(
                   padding: const EdgeInsets.all(12),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => VorlageScreen(
@@ -586,14 +584,15 @@ class BriefDetail extends StatelessWidget {
                           style: const TextStyle(fontWeight: FontWeight.w700, color: PT.tinte)),
                       const SizedBox(height: 2),
                       Text(v.beschreibung,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(color: PT.grau, fontSize: 12)),
                     ],
                   ),
                 ),
+                ),
             ],
-          ),
+          )),
 
           const SizedBox(height: 12),
           OutlinedButton.icon(

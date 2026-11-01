@@ -138,6 +138,7 @@ class _ProjekteScreenState extends State<ProjekteScreen> {
             TextField(controller: name, autofocus: true, decoration: feld(labelText: 'Name', hintText: 'z. B. Bad Meier')),
             const SizedBox(height: 8),
             DropdownButtonFormField<String?>(
+              isExpanded: true,
               value: kunde,
               decoration: feld(labelText: 'Kunde'),
               items: [for (final k in store.kunden) DropdownMenuItem(value: k.id, child: Text(k.name))],

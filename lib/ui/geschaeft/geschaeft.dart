@@ -910,6 +910,7 @@ class _RechnungFormularState extends State<RechnungFormular> {
           Row(children: [
             Expanded(
               child: DropdownButtonFormField<String?>(
+                isExpanded: true,
                 value: store.kunden.any((k) => k.id == _kundeId) ? _kundeId : null,
                 decoration: feld(labelText: 'Kunde'),
                 items: [

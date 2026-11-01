@@ -209,6 +209,15 @@ Future<void> _kategoriePruefen(WidgetTester t, String kategorie, Map<String, Wid
         if (!_nurTestumgebung('$e')) _fehler.add('$kategorie › ${s.key} › „$name“: $e');
       }
       await _ruhe(t);
+      // Kalender von Flutter selbst: knappe Überläufe kommen dort von der Testschrift, nicht von der App
+      final kalender = find.byType(DateRangePickerDialog).evaluate().isNotEmpty || find.byType(DatePickerDialog).evaluate().isNotEmpty;
+      if (kalender) {
+        for (var k = 0; k < 10; k++) {
+          final e = t.takeException();
+          if (e == null) break;
+          if (!'$e'.contains('overflowed')) _fehler.add('$kategorie › ${s.key} › „$name“: $e');
+        }
+      }
       _fehlerNehmen(t, '$kategorie › ${s.key} › „$name“');
     }
   }

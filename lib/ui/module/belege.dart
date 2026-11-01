@@ -366,6 +366,7 @@ class _BelegFormularState extends State<BelegFormular> {
             ),
           if (_geschaeftlich && StoreScope.of(context).projekte.isNotEmpty)
             DropdownButtonFormField<String?>(
+              isExpanded: true,
               value: StoreScope.of(context).projekte.any((x) => x.id == _projekt) ? _projekt : null,
               decoration: feld(labelText: 'Für Projekt (Nachkalkulation)'),
               items: [
