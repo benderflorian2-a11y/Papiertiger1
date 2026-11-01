@@ -27,6 +27,7 @@ import 'package:papiertiger/ui/haushalt/haushalt.dart';
 import 'package:papiertiger/ui/karriere/karriere.dart';
 import 'package:papiertiger/ui/kontoauszug.dart';
 import 'package:papiertiger/ui/mehr.dart';
+import 'package:papiertiger/ui/postfach.dart';
 import 'package:papiertiger/ui/module/angebote_vergleichen.dart';
 import 'package:papiertiger/ui/module/antraege.dart';
 import 'package:papiertiger/ui/module/behoerdengaenge.dart';
@@ -121,6 +122,7 @@ final _kategorien = <String, Map<String, Widget Function()>>{
   'Einstellungen': {
     'Mehr': () => const MehrScreen(),
     'Sicherheit': () => const SicherheitScreen(),
+    'E-Mail-Postfach': () => const PostfachScreen(),
   },
 };
 

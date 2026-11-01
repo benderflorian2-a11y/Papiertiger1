@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../logic/postfach_dienst.dart';
+import 'postfach.dart';
 import 'app.dart';
 import 'module/module_liste.dart';
 import 'erinnerungen_einstellungen.dart';
@@ -275,6 +277,28 @@ class MehrScreen extends StatelessWidget {
               ],
             ),
           ),
+          if (PostfachDienst.verfuegbar) ...[
+            const Abschnitt('Verknüpfungen'),
+            PTKarte(
+              onTap: () => oeffne(const PostfachScreen()),
+              child: Row(children: [
+                const IconKachel(Icons.alternate_email),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('E-Mail-Postfach', style: TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      store.postfach.konto == null
+                          ? 'Wichtige E-Mails automatisch melden lassen'
+                          : '${store.postfach.konto!.adresse} · ${store.postfach.neue.length} neu',
+                      style: const TextStyle(color: PT.grau, fontSize: 13),
+                    ),
+                  ]),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ]),
+            ),
+          ],
           const Abschnitt('Datenschutz'),
           PTKarte(
             onTap: () => oeffne(const SicherheitScreen()),

@@ -41,7 +41,7 @@ class MainActivity : FlutterActivity() {
                     )
                 )
                 "datenschluessel" -> try {
-                    result.success(datenschluessel())
+                    result.success(datenschluessel(this))
                 } catch (e: Exception) {
                     result.error("schluessel", e.toString(), null)
                 }
@@ -53,6 +53,11 @@ class MainActivity : FlutterActivity() {
                     }
                     result.success(true)
                 }
+                "mailPlanen" -> {
+                    MailPruefung.planen(applicationContext, call.argument<Boolean>("an") == true)
+                    result.success(true)
+                }
+                "mailFertig" -> result.success(true)
                 "geraetGesichert" -> result.success(
                     (getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager).isDeviceSecure
                 )
@@ -249,47 +254,6 @@ class MainActivity : FlutterActivity() {
             }
         }
         return false
-    }
-
-    /**
-     * Schlüssel für die Datenverschlüsselung der App. Er wird zufällig erzeugt und mit einem Schlüssel
-     * aus dem Android-Keystore (Sicherheitschip) verschlüsselt abgelegt – er verlässt das Gerät nie.
-     */
-    private fun datenschluessel(): String {
-        val alias = "papiertiger_daten"
-        val ks = java.security.KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
-        if (!ks.containsAlias(alias)) {
-            val gen = javax.crypto.KeyGenerator.getInstance(
-                android.security.keystore.KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore"
-            )
-            gen.init(
-                android.security.keystore.KeyGenParameterSpec.Builder(
-                    alias,
-                    android.security.keystore.KeyProperties.PURPOSE_ENCRYPT or
-                        android.security.keystore.KeyProperties.PURPOSE_DECRYPT
-                )
-                    .setBlockModes(android.security.keystore.KeyProperties.BLOCK_MODE_GCM)
-                    .setEncryptionPaddings(android.security.keystore.KeyProperties.ENCRYPTION_PADDING_NONE)
-                    .setKeySize(256)
-                    .build()
-            )
-            gen.generateKey()
-        }
-        val haupt = (ks.getEntry(alias, null) as java.security.KeyStore.SecretKeyEntry).secretKey
-        val sp = getSharedPreferences("papiertiger_sicher", MODE_PRIVATE)
-        val gespeichert = sp.getString("schluessel", null)
-        if (gespeichert != null) {
-            val roh = android.util.Base64.decode(gespeichert, android.util.Base64.NO_WRAP)
-            val c = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
-            c.init(javax.crypto.Cipher.DECRYPT_MODE, haupt, javax.crypto.spec.GCMParameterSpec(128, roh.copyOfRange(0, 12)))
-            return android.util.Base64.encodeToString(c.doFinal(roh.copyOfRange(12, roh.size)), android.util.Base64.NO_WRAP)
-        }
-        val neu = ByteArray(32).also { java.security.SecureRandom().nextBytes(it) }
-        val c = javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")
-        c.init(javax.crypto.Cipher.ENCRYPT_MODE, haupt)
-        val verpackt = c.iv + c.doFinal(neu)
-        sp.edit().putString("schluessel", android.util.Base64.encodeToString(verpackt, android.util.Base64.NO_WRAP)).commit()
-        return android.util.Base64.encodeToString(neu, android.util.Base64.NO_WRAP)
     }
 
     private var entsperrErgebnis: MethodChannel.Result? = null

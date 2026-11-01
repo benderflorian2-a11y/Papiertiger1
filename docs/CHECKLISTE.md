@@ -1,10 +1,10 @@
 # Papiertiger – Checkliste Gesamtkonzept
 
-Stand: 31.10.2026, Version 1.37
+Stand: 01.11.2026, Version 1.44
 
 ✅ fertig · 🟡 teilweise · ❌ fehlt · 🔒 nur mit Server oder Partner möglich
 
-**Gesamt: 209 Punkte – ✅ 198 fertig, 🟡 6 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste; Erweiterungen unten extra gezählt)
+**Gesamt: 209 Punkte – ✅ 199 fertig, 🟡 5 teilweise, ❌ 0 fehlen, 🔒 5 nur mit Server.** (Bereich 11: nur der sichtbare Teil der Liste; Erweiterungen unten extra gezählt)
 
 ## 1. Dokumente verstehen und Papierkram erledigen
 ✅ 24 · 🟡 0 · ❌ 0 · 🔒 0
@@ -47,7 +47,7 @@ Stand: 31.10.2026, Version 1.37
 - ✅ E-Mails zusammenfassen und beantworten – über E-Mail teilen/importieren
 - ✅ Höflich, sachlich oder bestimmt reagieren
 - 🟡 Aus Sprachnachrichten fertige Schreiben machen – Diktieren mit Brief/E-Mail daraus ja; WhatsApp-Sprachdateien abhören nicht
-- 🟡 E-Mails nach Dringlichkeit sortieren – importierte E-Mails ja; ganzes Postfach braucht Server
+- ✅ E-Mails nach Dringlichkeit sortieren – Postfach verknüpfen (IMAP, nur lesen): Rechnungen, Mahnungen, Behördenpost, Vertragsänderungen und Briefankündigungen werden gemeldet, mit einem Tipp als Brief übernommen
 - ✅ Unbeantwortete Nachrichten nachverfolgen
 - ✅ Antwortvorschläge in der Sprache des Absenders
 - ✅ Dokumente als Anlagen ergänzen

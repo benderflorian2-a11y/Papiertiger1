@@ -141,3 +141,17 @@ Future<bool> geraetEntsperren() async {
     return false;
   }
 }
+
+/// Regelmäßiges Nachsehen im Postfach im Hintergrund ein- oder ausschalten (Android, alle 30 Minuten).
+Future<void> mailPruefungPlanen(bool an) async {
+  try {
+    await const MethodChannel('papiertiger/android').invokeMethod<bool>('mailPlanen', {'an': an});
+  } catch (_) {}
+}
+
+/// Meldet der Android-Seite, dass das Nachsehen im Hintergrund fertig ist.
+Future<void> mailFertig() async {
+  try {
+    await const MethodChannel('papiertiger/android').invokeMethod<bool>('mailFertig');
+  } catch (_) {}
+}

@@ -4,7 +4,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdaten;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../data/postfach.dart';
 import '../data/store.dart';
+import 'postfach_pruefung.dart';
 import 'zeitplan.dart';
 import 'android_kanal.dart';
 import 'arbeitszeit.dart';
@@ -28,6 +30,32 @@ class Benachrichtigungen {
   );
   static const _details = NotificationDetails(android: _kanal);
   static const wochenId = 1;
+  static const mailId = 900;
+
+  static const _mailKanal = AndroidNotificationDetails(
+    'postfach',
+    'Wichtige E-Mails',
+    channelDescription: 'Rechnungen, Mahnungen, Behördenpost und Briefankündigungen aus deinem Postfach',
+    importance: Importance.high,
+    priority: Priority.high,
+    // Auf dem Sperrbildschirm ohne Absender und Betrag
+    visibility: NotificationVisibility.private,
+  );
+
+  /// Neue wichtige E-Mails sofort melden.
+  static Future<void> mailMelden(List<MailHinweis> neu) async {
+    if (deaktiviert || neu.isEmpty) return;
+    try {
+      await starten();
+      final (titel, text) = hinweisText(neu);
+      await _plugin.show(
+        id: mailId,
+        title: titel,
+        body: text,
+        notificationDetails: const NotificationDetails(android: _mailKanal, iOS: DarwinNotificationDetails()),
+      );
+    } catch (_) {}
+  }
 
   static Future<void> starten() async {
     if (_bereit || deaktiviert) return;

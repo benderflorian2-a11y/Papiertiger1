@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../logic/android_kanal.dart';
+import '../logic/postfach_dienst.dart';
+import 'app.dart';
 import 'archiv.dart';
 import 'fristen.dart';
 import 'home.dart';
@@ -15,7 +17,7 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int _tab = 0;
 
   @override
@@ -23,7 +25,28 @@ class _ShellState extends State<Shell> {
     super.initState();
     // „Teilen → Papiertiger“ aus anderen Apps: beim Start und während die App läuft.
     AndroidKanal.beiNeuem(_geteiltAbholen);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _geteiltAbholen());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _geteiltAbholen();
+      _postfach();
+    });
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _postfach();
+  }
+
+  /// Verknüpftes Postfach: beim Öffnen nachsehen (höchstens alle 10 Minuten).
+  void _postfach() {
+    if (!mounted) return;
+    PostfachDienst.wennFaellig(StoreScope.of(context)).catchError((Object _) {});
   }
 
   Future<void> _geteiltAbholen() async {

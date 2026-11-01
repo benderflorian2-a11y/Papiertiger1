@@ -15,6 +15,7 @@ import 'vermietung.dart';
 import 'geschaeft.dart';
 import 'haushalt.dart';
 import 'models.dart';
+import 'postfach.dart';
 
 /// Hält alle Daten der App und speichert sie auf dem Handy.
 class AppStore extends ChangeNotifier {
@@ -103,6 +104,9 @@ class AppStore extends ChangeNotifier {
   List<Projekt> projekte = [];
 
   List<Sparziel> sparziele = [];
+
+  /// Verknüpftes E-Mail-Postfach und gemeldete wichtige E-Mails.
+  Postfach postfach = Postfach();
 
   // Haushalt
   List<Zaehler> zaehler = [];
@@ -245,6 +249,7 @@ class AppStore extends ChangeNotifier {
       } catch (_) {}
     }
     inventar = _liste('inventar').map(Gegenstand.fromJson).toList();
+    postfach = _postfachLesen();
     final f = _get('firma');
     if (f != null) {
       try {
@@ -319,6 +324,7 @@ class AppStore extends ChangeNotifier {
     await _set('karriere', jsonEncode(karriere.toJson()));
     await _set('familie', jsonEncode(familie.toJson()));
     await _set('vermietung', jsonEncode(vermietung.toJson()));
+    await _set('postfach', jsonEncode(postfach.toJson()));
     await _set('inventar', jsonEncode(inventar.map((g) => g.toJson()).toList()));
     await _prefs.setBool('onboardingFertig', onboardingFertig);
     await _set('termine', jsonEncode(termine.map((t) => t.toJson()).toList()));
@@ -343,6 +349,25 @@ class AppStore extends ChangeNotifier {
     onboardingFertig = true;
     if (name.trim().isNotEmpty) profil.name = name.trim();
     return _speichern();
+  }
+
+  Postfach _postfachLesen() {
+    final roh = _get('postfach');
+    if (roh == null) return Postfach();
+    try {
+      return Postfach.fromJson(jsonDecode(roh) as Map<String, dynamic>);
+    } catch (_) {
+      return Postfach();
+    }
+  }
+
+  /// Postfach neu einlesen – die Prüfung im Hintergrund schreibt es getrennt von der laufenden App.
+  Future<void> postfachNeuLaden() async {
+    await _prefs.reload();
+    final neu = _postfachLesen();
+    if (jsonEncode(neu.toJson()) == jsonEncode(postfach.toJson())) return;
+    postfach = neu;
+    notifyListeners();
   }
 
   Future<void> briefHinzufuegen(Brief b) {
@@ -464,6 +489,7 @@ class AppStore extends ChangeNotifier {
     mitarbeiter = [];
     inventar = [];
     sparziele = [];
+    postfach = Postfach();
     alltag = Alltag();
     karriere = Karriere();
     familie = Familie();

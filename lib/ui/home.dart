@@ -11,6 +11,7 @@ import '../logic/zahlung.dart';
 import '../logic/heute.dart';
 import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
+import '../logic/postfach_pruefung.dart' show mailArten;
 import 'app.dart';
 import 'archiv.dart';
 import 'brief_detail.dart';
@@ -22,6 +23,7 @@ import 'karriere/karriere.dart';
 import 'kommunikation.dart';
 import 'module/angebote_vergleichen.dart';
 import 'module/module_liste.dart';
+import 'postfach.dart';
 import 'scan.dart';
 import 'sicherung.dart';
 import 'theme.dart';
@@ -90,6 +92,37 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
+
+          // Wichtige E-Mails aus dem verknüpften Postfach
+          if (store.postfach.neue.isNotEmpty) ...[
+            PTKarte(
+              farbe: PT.orangeHell,
+              onTap: () => oeffne(const PostfachScreen()),
+              child: Row(children: [
+                IconKachel(mailSymbol(store.postfach.neue.last.art), farbe: Colors.white),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(
+                        store.postfach.neue.length == 1
+                            ? 'Wichtige E-Mail'
+                            : '${store.postfach.neue.length} wichtige E-Mails',
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                    for (final h in store.postfach.neue.reversed.take(2))
+                      Text(
+                          h.art == 'briefankuendigung'
+                              ? 'Die Post kündigt einen Brief an'
+                              : '${mailArten[h.art]} · ${h.absender}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(color: PT.tinte, fontSize: 13)),
+                  ]),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ]),
+            ),
+            const SizedBox(height: 12),
+          ],
 
           // Hauptaktion
           Container(
