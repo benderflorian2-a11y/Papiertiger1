@@ -276,7 +276,7 @@ jobs:
             echo '```'
             echo "## Rundgang"
             echo '```'
-            cat build/rundgang/fehler.txt build/rundgang/pdf_fehler.txt 2>/dev/null | head -n 60
+            cat build/rundgang/fehler.txt build/rundgang/pdf_fehler.txt build/klicktest.txt 2>/dev/null | head -n 80
             echo '```'
             echo "## E-Rechnung (KoSIT)"
             echo '```'

@@ -1,7 +1,7 @@
 name: papiertiger
 description: "Papiertiger – Keine Angst vor Post."
 publish_to: 'none'
-version: 1.41.1+50
+version: 1.41.2+51
 
 environment:
   sdk: ^3.5.0
