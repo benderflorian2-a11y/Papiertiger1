@@ -23,9 +23,16 @@ jobs:
           rm -f test/widget_test.dart
           sed -i 's#<title>.*</title>#<title>Papiertiger</title>#' web/index.html
           sed -i 's#"name": "papiertiger"#"name": "Papiertiger"#; s#"short_name": "papiertiger"#"short_name": "Papiertiger"#' web/manifest.json
+          sed -i 's#A new Flutter project.#Briefe verstehen, Rechnungen schreiben, Finanzen im Blick.#' web/index.html web/manifest.json
+          sed -i 's#content="papiertiger"#content="Papiertiger"#' web/index.html
+          sed -i 's#</title>#</title>\n  <style>html,body{margin:0;background:\#FFF8F0;}</style>#' web/index.html
 
       - name: Pakete laden
         run: flutter pub get
+
+      - name: App-Icon erzeugen
+        continue-on-error: true
+        run: dart run flutter_launcher_icons
 
       - name: Bauen
         run: |

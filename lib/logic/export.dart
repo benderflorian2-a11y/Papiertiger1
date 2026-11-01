@@ -220,23 +220,23 @@ String _mimeVon(String pfad) => switch (pfad.split('.').last.toLowerCase()) {
     };
 
 /// Im Browser: herunterladen (Teilen von Dateien können dort viele Browser nicht).
-bool _browserLaden(List<String> pfade) {
+Future<bool> _browserLaden(List<String> pfade) async {
   if (!kIsWeb) return false;
   for (final p in pfade) {
     final d = webDateien[p];
-    if (d != null) browserHerunterladen(d, p.split('/').last, _mimeVon(p));
+    if (d != null) await browserHerunterladen(d, p.split('/').last, _mimeVon(p));
   }
   return true;
 }
 
 Future<void> dateiTeilen(String pfad, {String? text, String? mimeType}) async {
-  if (_browserLaden([pfad])) return;
+  if (await _browserLaden([pfad])) return;
   await SharePlus.instance.share(ShareParams(files: [XFile(pfad, mimeType: mimeType)], text: text));
 }
 
 /// Mehrere Dateien auf einmal teilen, z. B. Brief-PDF mit Anlagen an die E-Mail-App.
 Future<void> dateienTeilen(List<String> pfade, {String? text, String? betreff}) async {
-  if (_browserLaden(pfade)) return;
+  if (await _browserLaden(pfade)) return;
   await SharePlus.instance.share(ShareParams(files: [for (final p in pfade) XFile(p)], text: text, subject: betreff));
 }
 

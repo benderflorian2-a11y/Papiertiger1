@@ -1,7 +1,7 @@
 name: papiertiger
 description: "Papiertiger – Keine Angst vor Post."
 publish_to: 'none'
-version: 1.43.1+55
+version: 1.43.2+56
 
 environment:
   sdk: ^3.5.0
@@ -48,3 +48,8 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFF8F0"
   adaptive_icon_foreground: "assets/icon/icon_fg.png"
   remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/icon/icon.png"
+    background_color: "#FFF8F0"
+    theme_color: "#F28C28"
