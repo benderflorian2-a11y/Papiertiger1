@@ -31,8 +31,10 @@ jobs:
         run: |
           set -o pipefail
           # Alles lokal (keine Schriften/CanvasKit von fremden Servern), kein Service Worker
-          if flutter build web --release --no-web-resources-cdn --pwa-strategy=none --base-href ./ 2>&1 | tee bau.txt; then
+          if flutter build web --release --no-web-resources-cdn --pwa-strategy=none 2>&1 | tee bau.txt; then
             echo "WEB OK" > status.txt
+            # Relativ, damit die Seite auch in einem Unterordner läuft
+            sed -i 's#<base href="/">#<base href="./">#' build/web/index.html
             (cd build/web && zip -q -r ../../papiertiger-web.zip .)
             ls -la papiertiger-web.zip
           else
