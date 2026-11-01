@@ -1,0 +1,64 @@
+name: Browser bauen
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Browser-Projekt erzeugen
+        run: |
+          flutter create --project-name papiertiger --org de.papiertiger.tiger --platforms web .
+          rm -f test/widget_test.dart
+          sed -i 's#<title>.*</title>#<title>Papiertiger</title>#' web/index.html
+          sed -i 's#"name": "papiertiger"#"name": "Papiertiger"#; s#"short_name": "papiertiger"#"short_name": "Papiertiger"#' web/manifest.json
+
+      - name: Pakete laden
+        run: flutter pub get
+
+      - name: Bauen
+        run: |
+          set -o pipefail
+          # Alles lokal (keine Schriften/CanvasKit von fremden Servern), kein Service Worker
+          if flutter build web --release --no-web-resources-cdn --pwa-strategy=none --base-href ./ 2>&1 | tee bau.txt; then
+            echo "WEB OK" > status.txt
+            (cd build/web && zip -q -r ../../papiertiger-web.zip .)
+            ls -la papiertiger-web.zip
+          else
+            echo "WEB FEHLER" > status.txt
+          fi
+
+      - name: Bericht
+        if: always()
+        run: |
+          {
+            echo "## Browser"
+            cat status.txt 2>/dev/null || echo "nicht gelaufen"
+            echo '```'
+            grep -iE "error|fehler|failed" bau.txt 2>/dev/null | head -n 80
+            tail -n 25 bau.txt 2>/dev/null
+            echo '```'
+          } > bericht_web.md
+          cut -c1-60000 bericht_web.md > bericht_web_kurz.md
+
+      - name: Ergebnis veröffentlichen
+        if: always() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: web-${{ github.run_number }}
+          name: Browser-Build ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          body_path: bericht_web_kurz.md
+          files: papiertiger-web.zip
