@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../logic/android_kanal.dart';
@@ -49,10 +48,7 @@ Future<File> giroCodeAlsBild(String daten, String name) async {
   painter.paint(canvas, const Size(groesse, groesse));
   final bild = await rec.endRecording().toImage((groesse + 2 * rand).toInt(), (groesse + 2 * rand).toInt());
   final bytes = await bild.toByteData(format: ui.ImageByteFormat.png);
-  final ordner = await getTemporaryDirectory();
-  final datei = File('${ordner.path}/GiroCode_${name.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_')}.png');
-  await datei.writeAsBytes(bytes!.buffer.asUint8List());
-  return datei;
+  return dateiAblegen('GiroCode_${name.replaceAll(RegExp(r'[^A-Za-z0-9]'), '_')}.png', bytes!.buffer.asUint8List());
 }
 
 /// Kunde zahlt vor Ort: GiroCode groß zeigen.

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
 import '../data/models.dart';
@@ -113,7 +114,7 @@ class HomeScreen extends StatelessWidget {
                     key: const ValueKey('brief-scannen'),
                     style: FilledButton.styleFrom(
                         backgroundColor: PT.tinte, foregroundColor: Colors.white),
-                    onPressed: () => oeffne(const ScanScreen(mitKamera: true)),
+                    onPressed: () => kIsWeb ? _nurInDerApp(context) : oeffne(const ScanScreen(mitKamera: true)),
                     icon: const Icon(Icons.photo_camera_outlined),
                     label: const Text('Brief fotografieren'),
                   ),
@@ -124,13 +125,13 @@ class HomeScreen extends StatelessWidget {
                     _Quelle(
                       icon: Icons.photo_library_outlined,
                       text: 'Galerie',
-                      onTap: () => oeffne(const ScanScreen(mitKamera: false)),
+                      onTap: () => kIsWeb ? _nurInDerApp(context) : oeffne(const ScanScreen(mitKamera: false)),
                     ),
                     _Quelle(
                       key: const ValueKey('pdf-import-start'),
                       icon: Icons.upload_file_outlined,
                       text: 'PDF / E-Mail',
-                      onTap: () => oeffne(const DateiImportScreen()),
+                      onTap: () => kIsWeb ? _nurInDerApp(context) : oeffne(const DateiImportScreen()),
                     ),
                     _Quelle(
                       key: const ValueKey('text-einfuegen-start'),
@@ -407,3 +408,24 @@ class _Quelle extends StatelessWidget {
     );
   }
 }
+
+
+/// Browser-Version: Fotos und PDFs liest der Tiger nur in der App auf dem Handy.
+void _nurInDerApp(BuildContext context) => showDialog<void>(
+      context: context,
+      builder: (d) => AlertDialog(
+        title: const Text('Nur in der App'),
+        content: const Text('Fotos und PDFs liest der Tiger mit der Texterkennung auf dem Handy. '
+            'Im Browser kopierst du den Text des Briefs und fügst ihn über „Text“ ein.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(d), child: const Text('Abbrechen')),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(d);
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TextEinfuegenScreen()));
+            },
+            child: const Text('Text einfügen'),
+          ),
+        ],
+      ),
+    );

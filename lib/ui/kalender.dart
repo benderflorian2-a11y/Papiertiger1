@@ -1,7 +1,4 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../logic/export.dart';
 import '../logic/zeitplan.dart';
@@ -13,9 +10,7 @@ Future<void> inKalender(BuildContext context, String titel, DateTime datum,
   try {
     final ics = icsErstellen(titel, datum,
         ganztags: !mitUhrzeit, beschreibung: '$beschreibung\n\nErstellt mit Papiertiger.');
-    final ordner = await getTemporaryDirectory();
-    final datei = File('${ordner.path}/termin_${stabileId(titel + datum.toIso8601String())}.ics');
-    await datei.writeAsString(ics);
+    final datei = await textDatei('termin_${stabileId(titel + datum.toIso8601String())}.ics', ics);
     await dateiTeilen(datei.path, mimeType: 'text/calendar');
   } catch (e) {
     if (context.mounted) zeigeHinweis(context, 'Kalendereintrag konnte nicht erstellt werden: $e');

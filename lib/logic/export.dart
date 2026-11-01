@@ -1,4 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
@@ -10,6 +14,7 @@ import '../data/geschaeft.dart';
 import '../data/haushalt.dart';
 import '../data/karriere.dart';
 import '../data/models.dart';
+import 'browser_datei_stub.dart' if (dart.library.js_interop) 'browser_datei_web.dart';
 import 'formular_eintrag.dart';
 import 'kalkulation.dart';
 import 'kommunikation.dart';
@@ -81,12 +86,23 @@ Future<List<pw.Widget>> _bilder(Brief b) async {
   return out;
 }
 
-Future<File> _speichern(pw.Document doc, String name) async {
+/// Im Browser gibt es keine Dateien: Erzeugtes liegt hier im Speicher (Pfad → Inhalt).
+final webDateien = <String, Uint8List>{};
+
+/// Datei ablegen: auf dem Handy im Zwischenspeicher, im Browser im Arbeitsspeicher.
+Future<File> dateiAblegen(String name, Uint8List daten) async {
+  if (kIsWeb) {
+    final pfad = 'browser/$name';
+    webDateien[pfad] = daten;
+    return File(pfad);
+  }
   final ordner = await getTemporaryDirectory();
-  final datei = File('${ordner.path}/${_dateiname(name)}.pdf');
-  await datei.writeAsBytes(await doc.save());
+  final datei = File('${ordner.path}/$name');
+  await datei.writeAsBytes(daten);
   return datei;
 }
+
+Future<File> _speichern(pw.Document doc, String name) async => dateiAblegen('${_dateiname(name)}.pdf', await doc.save());
 
 const _fuss = 'Erstellt mit Papiertiger. Die Erklärungen sind automatisch erstellt und ersetzen keine Beratung.';
 
@@ -193,12 +209,36 @@ Future<File> antwortAlsPdf(String text, {String titel = 'Antwort'}) async {
   return _speichern(doc, titel);
 }
 
-Future<void> dateiTeilen(String pfad, {String? text, String? mimeType}) =>
-    SharePlus.instance.share(ShareParams(files: [XFile(pfad, mimeType: mimeType)], text: text));
+String _mimeVon(String pfad) => switch (pfad.split('.').last.toLowerCase()) {
+      'pdf' => 'application/pdf',
+      'png' => 'image/png',
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'csv' => 'text/csv',
+      'xml' => 'application/xml',
+      'ics' => 'text/calendar',
+      _ => 'application/octet-stream',
+    };
+
+/// Im Browser: herunterladen (Teilen von Dateien können dort viele Browser nicht).
+bool _browserLaden(List<String> pfade) {
+  if (!kIsWeb) return false;
+  for (final p in pfade) {
+    final d = webDateien[p];
+    if (d != null) browserHerunterladen(d, p.split('/').last, _mimeVon(p));
+  }
+  return true;
+}
+
+Future<void> dateiTeilen(String pfad, {String? text, String? mimeType}) async {
+  if (_browserLaden([pfad])) return;
+  await SharePlus.instance.share(ShareParams(files: [XFile(pfad, mimeType: mimeType)], text: text));
+}
 
 /// Mehrere Dateien auf einmal teilen, z. B. Brief-PDF mit Anlagen an die E-Mail-App.
-Future<void> dateienTeilen(List<String> pfade, {String? text, String? betreff}) => SharePlus.instance
-    .share(ShareParams(files: [for (final p in pfade) XFile(p)], text: text, subject: betreff));
+Future<void> dateienTeilen(List<String> pfade, {String? text, String? betreff}) async {
+  if (_browserLaden(pfade)) return;
+  await SharePlus.instance.share(ShareParams(files: [for (final p in pfade) XFile(p)], text: text, subject: betreff));
+}
 
 Future<void> textTeilen(String text) => SharePlus.instance.share(ShareParams(text: text));
 
@@ -281,12 +321,9 @@ Future<File> steuerAlsPdf(int jahr, List<SteuerPosten> posten, {Werbungskosten? 
 }
 
 /// Speichert Text als Datei (z. B. CSV) zum Teilen.
-Future<File> textDatei(String name, String inhalt) async {
-  final ordner = await getTemporaryDirectory();
-  final datei = File('${ordner.path}/${_dateiname(name.replaceAll(RegExp(r'\.[a-z]+$'), ''))}${RegExp(r'\.[a-z]+$').firstMatch(name)?.group(0) ?? ''}');
-  await datei.writeAsString(inhalt);
-  return datei;
-}
+Future<File> textDatei(String name, String inhalt) => dateiAblegen(
+    '${_dateiname(name.replaceAll(RegExp(r'\.[a-z]+$'), ''))}${RegExp(r'\.[a-z]+$').firstMatch(name)?.group(0) ?? ''}',
+    Uint8List.fromList(utf8.encode(inhalt)));
 
 String _menge(double m) => m == m.roundToDouble() ? m.toStringAsFixed(0) : m.toStringAsFixed(2).replaceAll('.', ',');
 
