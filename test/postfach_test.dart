@@ -199,6 +199,6 @@ void main() {
   test('Text der Benachrichtigung', () {
     final (t, x) = hinweisText([MailHinweis(uid: 1, art: 'rechnung', absender: 'Telekom', betreff: '', betrag: 49.99, frist: DateTime(2026, 11, 15))]);
     expect(t, 'Neu im Postfach: Rechnung');
-    expect(x, 'Rechnung von Telekom · 49,99 € bis 15.11.');
+    expect(x, 'Rechnung von Telekom · 49,99 € · bis 15.11.');
   });
 }
