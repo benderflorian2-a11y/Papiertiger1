@@ -35,7 +35,10 @@ class Benachrichtigungen {
     // Papiertiger ist für Deutschland gemacht.
     tz.setLocalLocation(tz.getLocation('Europe/Berlin'));
     await _plugin.initialize(
-      settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
+      settings: const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
     );
     _bereit = true;
   }
@@ -44,6 +47,8 @@ class Benachrichtigungen {
   static Future<bool> erlaubnisAnfragen() async {
     if (deaktiviert) return false;
     await starten();
+    final ios = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+    if (ios != null) return await ios.requestPermissions(alert: true, badge: true, sound: true) ?? false;
     final android =
         _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     return await android?.requestNotificationsPermission() ?? true;

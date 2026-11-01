@@ -1,0 +1,18 @@
+name: papiertiger_ios
+description: iPhone-Seite des Papiertigers (Schlüsselbund, Face ID, E-Mail mit Anhang, Links).
+version: 1.0.0
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      ios:
+        pluginClass: PapiertigerIosPlugin

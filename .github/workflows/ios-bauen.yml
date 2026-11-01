@@ -1,0 +1,115 @@
+name: iPhone bauen
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    env:
+      # Werden unter Settings → Secrets → Actions hinterlegt, sobald es ein Apple-Entwicklerkonto gibt.
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: iPhone-Projekt erzeugen
+        run: |
+          flutter create --project-name papiertiger --org de.papiertiger.tiger --platforms ios .
+          rm -f test/widget_test.dart
+          plist=ios/Runner/Info.plist
+          pb=/usr/libexec/PlistBuddy
+          setze() { $pb -c "Delete :$1" "$plist" >/dev/null 2>&1 || true; $pb -c "Add :$1 string $2" "$plist"; }
+          setze CFBundleDisplayName "Papiertiger"
+          setze NSCameraUsageDescription "Damit du Briefe, Belege und Baustellenfotos fotografieren kannst."
+          setze NSPhotoLibraryUsageDescription "Damit du Fotos von Briefen und Belegen aus deiner Mediathek übernehmen kannst."
+          setze NSPhotoLibraryAddUsageDescription "Damit du GiroCodes und PDFs in deinen Fotos speichern kannst."
+          setze NSMicrophoneUsageDescription "Damit du Briefe und Notizen diktieren kannst."
+          setze NSSpeechRecognitionUsageDescription "Damit aus deinem Diktat Text wird."
+          setze NSFaceIDUsageDescription "Damit du den Papiertiger mit Face ID entsperren kannst."
+          $pb -c "Delete :ITSAppUsesNonExemptEncryption" "$plist" >/dev/null 2>&1 || true
+          $pb -c "Add :ITSAppUsesNonExemptEncryption bool false" "$plist"
+          $pb -c "Delete :LSApplicationQueriesSchemes" "$plist" >/dev/null 2>&1 || true
+          $pb -c "Add :LSApplicationQueriesSchemes array" "$plist"
+          $pb -c "Add :LSApplicationQueriesSchemes:0 string mailto" "$plist"
+          $pb -c "Add :LSApplicationQueriesSchemes:1 string tel" "$plist"
+          # Texterkennung und KI brauchen ein neueres iOS
+          if [ -f ios/Podfile ]; then
+            sed -i '' "s/^# platform :ios, .*/platform :ios, '16.0'/" ios/Podfile
+            grep -q "^platform :ios" ios/Podfile || sed -i '' "1s/^/platform :ios, '16.0'\n/" ios/Podfile
+          fi
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*;/IPHONEOS_DEPLOYMENT_TARGET = 16.0;/g' ios/Runner.xcodeproj/project.pbxproj
+          head -5 ios/Podfile || true
+
+      - name: Pakete laden
+        run: flutter pub get
+
+      - name: App-Icon erzeugen
+        continue-on-error: true
+        run: dart run flutter_launcher_icons
+
+      - name: Bauen (ohne Signatur)
+        run: |
+          set -o pipefail
+          if flutter build ios --release --no-codesign 2>&1 | tee bau.txt; then echo "IOS OK" > status.txt; else echo "IOS FEHLER" > status.txt; fi
+          cat status.txt
+
+      - name: Für TestFlight signieren und hochladen
+        if: env.ASC_KEY_ID != '' && env.APPLE_TEAM_ID != ''
+        run: |
+          mkdir -p ~/private_keys
+          echo "$ASC_KEY_P8" | base64 --decode > ~/private_keys/AuthKey_$ASC_KEY_ID.p8
+          # Build-Nummer = Lauf-Nummer, damit TestFlight jede Version annimmt
+          sed -i '' "s/^version: \(.*\)+.*/version: \1+${{ github.run_number }}/" pubspec.yaml
+          flutter build ios --release --config-only
+          cat > export.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          EOF
+          auth="-allowProvisioningUpdates -authenticationKeyPath $HOME/private_keys/AuthKey_$ASC_KEY_ID.p8 -authenticationKeyID $ASC_KEY_ID -authenticationKeyIssuerID $ASC_ISSUER_ID"
+          xcodebuild -workspace ios/Runner.xcworkspace -scheme Runner -configuration Release \
+            -archivePath build/Papiertiger.xcarchive -destination 'generic/platform=iOS' \
+            DEVELOPMENT_TEAM=$APPLE_TEAM_ID CODE_SIGN_STYLE=Automatic $auth archive | tail -n 40
+          xcodebuild -exportArchive -archivePath build/Papiertiger.xcarchive -exportOptionsPlist export.plist \
+            -exportPath build/ipa $auth | tail -n 40
+          echo "TESTFLIGHT HOCHGELADEN" >> status.txt
+
+      - name: Bericht
+        if: always()
+        run: |
+          {
+            echo "## iPhone"
+            cat status.txt 2>/dev/null || echo "nicht gelaufen"
+            if [ -z "$ASC_KEY_ID" ]; then echo "Ohne Apple-Entwicklerkonto: nur geprüft, ob die App baut (nicht installierbar)."; fi
+            echo '```'
+            grep -iE "error|fehler|failed|warning: .*deprecated" bau.txt 2>/dev/null | head -n 60
+            tail -n 30 bau.txt 2>/dev/null
+            echo '```'
+          } > bericht_ios.md
+          cut -c1-60000 bericht_ios.md > bericht_ios_kurz.md
+
+      - name: Ergebnis veröffentlichen
+        if: always() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ios-${{ github.run_number }}
+          name: iPhone-Build ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          body_path: bericht_ios_kurz.md
