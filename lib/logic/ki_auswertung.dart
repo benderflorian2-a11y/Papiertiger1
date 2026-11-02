@@ -30,8 +30,8 @@ BEDEUTUNG:
 - <Was heißt das konkret für dich? 2 bis 4 Punkte>
 ZU TUN:
 - <Was musst du tun? Wenn nichts zu tun ist, schreibe genau: - Nichts>
-GELD: <ZAHLEN Betrag | BEKOMMEN Betrag | KEINS>
-FRIST: <TT.MM.JJJJ | KEINE>
+GELD: <genau eins davon: ZAHLEN 12,34 € oder BEKOMMEN 12,34 € oder KEINS>
+FRIST: <genau eins davon: ein Datum wie 15.11.2026 oder das Wort KEINE>
 DRINGLICHKEIT: <HOCH | MITTEL | NIEDRIG>
 UNTERLAGEN:
 - <Unterlagen oder Nachweise, die der Absender verlangt. Wenn keine verlangt werden, schreibe genau: - Keine>
@@ -145,7 +145,9 @@ KiErgebnis kiAntwortLesen(String antwort) {
   final g = eins('geld');
   if (g != null) {
     final gl = g.toLowerCase();
-    if (gl.startsWith('zahlen')) {
+    if (gl.contains('|')) {
+      // Vorlage abgeschrieben – nicht verwerten
+    } else if (gl.startsWith('zahlen')) {
       geld = Geldrichtung.zahlen;
     } else if (gl.startsWith('bekommen')) {
       geld = Geldrichtung.bekommen;
@@ -158,7 +160,8 @@ KiErgebnis kiAntwortLesen(String antwort) {
   DateTime? frist;
   var keineFrist = false;
   final f = eins('frist');
-  if (f != null) {
+  // Hat die KI die Vorlage abgeschrieben („15.11.2026 | KEINE“), ist die Angabe nicht sicher
+  if (f != null && !f.contains('|')) {
     final d = datumsFunde(f);
     if (d.isNotEmpty) {
       frist = d.first.wert;

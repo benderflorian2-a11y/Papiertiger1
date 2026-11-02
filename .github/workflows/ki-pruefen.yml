@@ -78,10 +78,11 @@ jobs:
             python3 - "$f" > anfrage.json <<'PY'
           import json, sys
           print(json.dumps({"messages": [{"role": "user", "content": open(sys.argv[1]).read()}],
-                            "temperature": 0.2, "max_tokens": 900}))
+                            "temperature": 0.2, "max_tokens": 1200,
+                            "chat_template_kwargs": {"enable_thinking": False}}))
           PY
             curl -s --max-time 600 localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d @anfrage.json \
-              | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["choices"][0]["message"].get("content") or "")' \
+              | python3 -c 'import json,sys; d=json.load(sys.stdin); m=d["choices"][0]["message"]; print(len(m.get("reasoning_content") or ""), "Zeichen Nachdenken,", d.get("usage",{}).get("completion_tokens"), "Token", file=sys.stderr); print(m.get("content") or "")' \
               > "antworten/$name" || echo "FEHLER" > "antworten/$name"
             echo "$name: $(( $(date +%s) - start )) s"
           done

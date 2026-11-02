@@ -139,7 +139,8 @@ class Ki {
     await p.setBool('kiLaeuft', true);
     try {
       final modell = await _laden();
-      final sitzung = await modell.createSession(temperature: temperatur, maxOutputTokens: maxAusgabe);
+      // Ohne „Nachdenken“: Sonst verbraucht Gemma 4 das Antwort-Budget dafür und die Antwort bricht ab.
+      final sitzung = await modell.createSession(temperature: temperatur, maxOutputTokens: maxAusgabe, enableThinking: false);
       try {
         await sitzung.addQueryChunk(Message(text: anfrage, isUser: true));
         yield* sitzung.getResponseAsync();
@@ -152,7 +153,7 @@ class Ki {
   }
 
   /// Lässt die KI den Brief lesen. Liefert den Antworttext Stück für Stück.
-  static Stream<String> lesen(String brieftext) => text(kiAnfrage(brieftext), maxAusgabe: 900);
+  static Stream<String> lesen(String brieftext) => text(kiAnfrage(brieftext), maxAusgabe: 1200);
 
   /// Liest Text aus einem Foto, auch Handschrift (Bilderkennung der KI).
   static Future<String> bildLesen(List<String> pfade) async {
@@ -163,7 +164,7 @@ class Ki {
       final teile = <String>[];
       for (final pfad in pfade) {
         final sitzung = await modell.createSession(
-            temperature: 0.1, maxOutputTokens: 1500, enableVisionModality: true);
+            temperature: 0.1, maxOutputTokens: 1500, enableVisionModality: true, enableThinking: false);
         try {
           await sitzung.addQueryChunk(Message(
             text: 'Lies den gesamten Text auf diesem Bild ab, auch Handschrift. '
