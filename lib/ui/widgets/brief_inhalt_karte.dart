@@ -30,6 +30,19 @@ class BriefInhaltKarte extends StatelessWidget {
       const Abschnitt('Das steht im Brief'),
       PTKarte(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (inhalt.kurz.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: PT.orangeHell, borderRadius: BorderRadius.circular(12)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Kurz gesagt', style: TextStyle(fontWeight: FontWeight.w800, color: PT.orangeDunkel)),
+                const SizedBox(height: 4),
+                Text(inhalt.kurz, style: const TextStyle(height: 1.45, color: PT.tinte)),
+              ]),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (inhalt.betreff != null) ...[
             const Text('Betreff', style: TextStyle(color: PT.grau, fontSize: 13)),
             Text(inhalt.betreff!, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: PT.tinte)),

@@ -89,6 +89,12 @@ void main() {
       expect(alles, isNot(contains('Sehr geehrter')));
     });
 
+    test('Kurz gesagt', () {
+      expect(i.kurz, startsWith('Es geht um: Jahresabrechnung Strom'));
+      expect(i.kurz, contains('erstatten'));
+      expect(i.kurz.length, lessThan(500));
+    });
+
     test('Nummern', () {
       expect(wert('Kundennummer'), '4711 0815');
       expect(wert('Vertragsnummer'), '300 123 456');

@@ -19,12 +19,15 @@ class InhaltPunkt {
 }
 
 class BriefInhalt {
-  BriefInhalt({this.betreff, required this.kernaussagen, required this.punkte});
+  BriefInhalt({this.betreff, required this.kernaussagen, required this.punkte, this.kurz = ''});
 
   final String? betreff;
 
   /// Die wichtigsten Sätze aus dem Brief, in ihrer Reihenfolge.
   final List<String> kernaussagen;
+
+  /// „Kurz gesagt“: worum es geht und das Wichtigste in zwei, drei Sätzen.
+  final String kurz;
   final List<InhaltPunkt> punkte;
 
   bool get leer => betreff == null && kernaussagen.isEmpty && punkte.isEmpty;
@@ -170,7 +173,7 @@ const _gewicht = <String, int>{
 };
 
 /// Die wichtigsten Sätze aus dem Hauptteil (zwischen Anrede und Gruß).
-List<String> kernaussagen(String text, {int max = 6}) {
+List<String> kernaussagen(String text, {int max = 6, bool nachWichtigkeit = false}) {
   var rumpf = text.replaceAll('\r', '');
   final a = _anrede.firstMatch(rumpf);
   if (a != null) {
@@ -203,7 +206,8 @@ List<String> kernaussagen(String text, {int max = 6}) {
     bewertet.add((punkte, i, s));
   }
   final beste = [...bewertet]..sort((x, y) => y.$1 != x.$1 ? y.$1.compareTo(x.$1) : x.$2.compareTo(y.$2));
-  final auswahl = beste.where((b) => b.$1 > 0).take(max).toList()..sort((x, y) => x.$2.compareTo(y.$2));
+  final auswahl = beste.where((b) => b.$1 > 0).take(max).toList();
+  if (!nachWichtigkeit) auswahl.sort((x, y) => x.$2.compareTo(y.$2));
   // Brief ganz ohne Signalwörter: dann die ersten Sätze
   if (auswahl.isEmpty) return bewertet.take(3).map((b) => b.$3).toList();
   return auswahl.map((b) => b.$3).toList();
@@ -346,5 +350,26 @@ BriefInhalt inhaltLesen(String text, {DateTime? briefDatum}) {
     }
   }
 
-  return BriefInhalt(betreff: _betreff(text), kernaussagen: kernaussagen(text), punkte: punkte);
+  final betreff = _betreff(text);
+  return BriefInhalt(
+    betreff: betreff,
+    kernaussagen: kernaussagen(text),
+    punkte: punkte,
+    kurz: kurzFassen(betreff, kernaussagen(text, max: 2, nachWichtigkeit: true)),
+  );
+}
+
+/// Zwei, drei Sätze: Betreff und die wichtigsten Aussagen (lange Sätze gekürzt).
+String kurzFassen(String? betreff, List<String> wichtigste) {
+  String kuerzen(String s) {
+    if (s.length <= 180) return s;
+    final i = s.lastIndexOf(' ', 175);
+    return '${s.substring(0, i < 0 ? 175 : i)} …';
+  }
+
+  final teile = <String>[
+    if (betreff != null) 'Es geht um: ${betreff.replaceAll(RegExp(r'[.:]+$'), '')}.',
+    for (final s in wichtigste) kuerzen(s[0].toUpperCase() + s.substring(1)),
+  ];
+  return teile.join(' ');
 }
