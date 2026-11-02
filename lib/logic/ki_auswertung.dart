@@ -261,24 +261,39 @@ void kiUebernehmen(Brief b, KiErgebnis k) {
 
   // Geld
   final betragBelegt = k.betrag != null && _centImText(b.text).contains((k.betrag! * 100).round());
+  final lower = b.text.toLowerCase();
+  // „Bekommen“ nur, wenn im Brief nichts von Abbuchen oder Bezahlen steht (Kfz-Steuer wird abgebucht!)
+  final abbuchen = RegExp(r'abgebucht|lastschrift|eingezogen|zahlen sie|überweisen sie|bitte zahlen|bitte überweisen').hasMatch(lower);
   switch (k.geld) {
     case Geldrichtung.zahlen:
       if (betragBelegt) b.betrag = k.betrag;
       b.guthaben = false;
     case Geldrichtung.bekommen:
-      if (betragBelegt) b.betrag = k.betrag;
-      b.guthaben = true;
+      if (!abbuchen) {
+        if (betragBelegt) b.betrag = k.betrag;
+        b.guthaben = true;
+      }
     case Geldrichtung.keins:
-      b.betrag = null;
+      // Bei Mahnbescheid und Anhörung bleibt der Betrag sichtbar – er steht im Raum, auch wenn noch nichts zu zahlen ist
+      if (!const {'mahnbescheid', 'anhoerung'}.contains(b.typ)) b.betrag = null;
       b.guthaben = false;
     case Geldrichtung.unbekannt:
       break;
   }
 
-  // Frist
-  if (k.frist != null && _datumImText(b.text, k.frist!)) {
-    b.frist = k.frist;
-    b.fristUnsicher = false;
+  // Frist: nur ein Datum, das im Brief steht und nach dem Briefdatum liegt. Bekommt man Geld,
+  // ist ein Datum meist nur der Auszahlungstag. Gibt es schon eine frühere sichere Frist, bleibt sie.
+  final kf = k.frist;
+  final fristOk = kf != null &&
+      _datumImText(b.text, kf) &&
+      (b.briefDatum == null || kf.isAfter(b.briefDatum!)) &&
+      k.geld != Geldrichtung.bekommen;
+  if (fristOk) {
+    final frueher = b.frist != null && !b.fristUnsicher && b.frist!.isBefore(kf);
+    if (!frueher) {
+      b.frist = kf;
+      b.fristUnsicher = false;
+    }
   } else if (k.keineFrist && b.fristUnsicher) {
     b.frist = null;
     b.fristUnsicher = false;
