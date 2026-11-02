@@ -121,7 +121,8 @@ class Ki {
           .install();
     }
     _modell = await FlutterEdgeAi.getActiveModel(
-      maxTokens: 4096,
+      // Platz für Anweisungen, langen Brief (bis 7.000 Zeichen) und Antwort – 4096 war bei langen Briefen zu knapp
+      maxTokens: 8192,
       preferredBackend: cpu ? PreferredBackend.cpu : PreferredBackend.gpu,
       // Volle Genauigkeit, damit Zahlen und Daten nicht verfälscht werden.
       activationDataType: ActivationDataType.float32,

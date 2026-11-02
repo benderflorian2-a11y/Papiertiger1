@@ -47,6 +47,8 @@ Brief:
 """
 $text
 """
+
+Antworte jetzt genau im Format oben: ABSENDER, ART, KURZFASSUNG, BEDEUTUNG, ZU TUN, GELD, FRIST, DRINGLICHKEIT, UNTERLAGEN, FÜR, PRÜFEN.
 ''';
 }
 

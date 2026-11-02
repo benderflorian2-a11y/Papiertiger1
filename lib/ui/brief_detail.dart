@@ -219,6 +219,12 @@ class BriefDetail extends StatelessWidget {
               children: [
                 Text(b.erklaerung,
                     style: const TextStyle(fontSize: 16, height: 1.5, color: PT.tinte)),
+                if (!b.kiFertig)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: Text('Schnell-Erkennung über Stichworte – kann danebenliegen. Genauer wird es, wenn der Tiger den Brief mit der KI liest.',
+                        style: TextStyle(color: PT.grau, fontSize: 12)),
+                  ),
                 if (b.kiFertig) ...[
                   const SizedBox(height: 10),
                   const Row(
