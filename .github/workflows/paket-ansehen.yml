@@ -19,11 +19,10 @@ jobs:
           channel: stable
       - name: Paket holen
         run: |
-          dart create -t console tmp_paket && cd tmp_paket
-          dart pub add fints
-          ordner=$(find ~/.pub-cache/hosted/pub.dev -maxdepth 1 -type d -name 'fints-*' | head -1)
-          echo "$ordner"
-          tar czf ../fints-quelle.tar.gz -C "$(dirname "$ordner")" "$(basename "$ordner")"
+          flutter create --platforms android tmp_paket && cd tmp_paket
+          flutter pub add 'google_mlkit_text_recognition:>=0.13.0 <1.0.0' google_mlkit_document_scanner fints
+          grep -A2 "google_mlkit\|fints" pubspec.lock | head -40
+          cd ~/.pub-cache/hosted/pub.dev && ls && tar czf $GITHUB_WORKSPACE/fints-quelle.tar.gz $(ls -d fints-* google_mlkit_document_scanner-* google_mlkit_commons-* 2>/dev/null)
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: paket-fints-${{ github.run_number }}
@@ -31,4 +30,4 @@ jobs:
           prerelease: true
           make_latest: false
           body: Quelltext des Pakets fints zum Nachlesen der Schnittstelle.
-          files: fints-quelle.tar.gz
+          files: ${{ github.workspace }}/fints-quelle.tar.gz
