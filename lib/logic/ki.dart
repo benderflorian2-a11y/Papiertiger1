@@ -2,12 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState;
 import 'package:flutter_edge_ai/flutter_edge_ai.dart';
 import 'package:flutter_edge_ai_litertlm/flutter_edge_ai_litertlm.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/models.dart';
 import '../data/store.dart';
+import 'benachrichtigungen.dart';
 import 'ki_auswertung.dart';
 
 /// Die KI auf dem Handy: Googles Gemma 4 E2B, läuft komplett offline.
@@ -215,6 +218,10 @@ class KiAuftraege extends ChangeNotifier {
       if (ergebnis.brauchbar) {
         kiUebernehmen(brief, ergebnis);
         await store.geaendert();
+        // App inzwischen verlassen? Dann Bescheid geben.
+        if (SchedulerBinding.instance.lifecycleState != AppLifecycleState.resumed) {
+          await Benachrichtigungen.briefGelesen(brief);
+        }
       } else {
         _fehler[brief.id] = 'Die KI hat keine verwertbare Antwort gegeben. Versuch es bitte noch einmal.';
       }

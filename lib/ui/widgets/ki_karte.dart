@@ -82,7 +82,8 @@ class _KiKarteState extends State<KiKarte> {
                   zwischen.isNotEmpty
                       ? zwischen
                       : roh.isEmpty
-                          ? 'Das kann je nach Handy bis zu 2 Minuten dauern. Du kannst die Seite verlassen.'
+                          ? 'Das kann je nach Handy bis zu 2 Minuten dauern. Du kannst die App verlassen – '
+                              'der Tiger meldet sich, wenn er fertig ist.'
                           : 'Schreibt die Erklärung …',
                   style: const TextStyle(color: PT.tinte, height: 1.4),
                 ),

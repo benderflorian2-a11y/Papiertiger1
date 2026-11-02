@@ -4,9 +4,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdaten;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../data/models.dart';
 import '../data/postfach.dart';
 import '../data/store.dart';
 import 'postfach_pruefung.dart';
+import 'brief_inhalt.dart';
 import 'zeitplan.dart';
 import 'android_kanal.dart';
 import 'arbeitszeit.dart';
@@ -41,6 +43,22 @@ class Benachrichtigungen {
     // Auf dem Sperrbildschirm ohne Absender und Betrag
     visibility: NotificationVisibility.private,
   );
+
+  static const gelesenId = 901;
+
+  /// Meldet, dass der Tiger einen Brief fertig gelesen hat (wenn die App gerade nicht offen ist).
+  static Future<void> briefGelesen(Brief b) async {
+    if (deaktiviert) return;
+    try {
+      await starten();
+      await _plugin.show(
+        id: gelesenId,
+        title: 'Der Tiger hat deinen Brief gelesen',
+        body: briefKopf(b),
+        notificationDetails: const NotificationDetails(android: _mailKanal, iOS: DarwinNotificationDetails()),
+      );
+    } catch (_) {}
+  }
 
   /// Neue wichtige E-Mails sofort melden.
   static Future<void> mailMelden(List<MailHinweis> neu) async {
