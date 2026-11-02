@@ -5,6 +5,7 @@ import '../logic/rechnungen.dart';
 import '../logic/kontoauszug.dart';
 import '../logic/ordnung.dart';
 import 'app.dart';
+import 'bankkonto.dart';
 import 'module/vertraege.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -23,10 +24,15 @@ mixin AuszugQuelle<T extends StatefulWidget> on State<T> {
   final Set<String> gewaehlt = {};
   String eingefuegt = '';
 
-  bool get hatQuelle => gewaehlt.isNotEmpty || eingefuegt.isNotEmpty;
+  /// Umsätze vom verbundenen Bankkonto ausblenden.
+  bool bankAus = false;
+
+  String get _bank => bankAus ? '' : (StoreScope.of(context).notizen[bankUmsaetzeSchluessel] ?? '');
+
+  bool get hatQuelle => gewaehlt.isNotEmpty || eingefuegt.isNotEmpty || _bank.isNotEmpty;
 
   String auszugText(List<Brief> briefe) =>
-      [for (final b in briefe) if (gewaehlt.contains(b.id)) b.text, eingefuegt].join('\n');
+      [for (final b in briefe) if (gewaehlt.contains(b.id)) b.text, eingefuegt, _bank].join('\n');
 
   Future<void> umsaetzeEinfuegen() async {
     final c = TextEditingController(text: eingefuegt);
@@ -55,7 +61,22 @@ mixin AuszugQuelle<T extends StatefulWidget> on State<T> {
         .where((b) => RegExp(r'kontoauszug|umsätze|umsatzliste|kontostand', caseSensitive: false)
             .hasMatch('${b.titel ?? ''} ${b.kiArt ?? ''} ${b.text.length > 600 ? b.text.substring(0, 600) : b.text}'))
         .toList();
+    final bank = StoreScope.of(context).notizen[bankUmsaetzeSchluessel];
     return [
+      const Abschnitt('Bankkonto'),
+      if (bank != null)
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: !bankAus,
+          title: const Text('Umsätze vom verbundenen Konto'),
+          subtitle: const Text('Nur gelesen, letzte 12 Monate'),
+          onChanged: (v) => setState(() => bankAus = v != true),
+        ),
+      TextButton.icon(
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const BankkontoScreen())),
+        icon: const Icon(Icons.account_balance_outlined),
+        label: Text(bank == null ? 'Bankkonto verbinden' : 'Umsätze neu abrufen'),
+      ),
       const Abschnitt('Kontoauszüge'),
       if (auszuege.isEmpty)
         const Text(

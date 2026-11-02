@@ -13,6 +13,7 @@ import 'package:papiertiger/logic/inhalte.dart';
 import 'package:papiertiger/logic/ki.dart';
 import 'package:papiertiger/ui/app.dart';
 import 'package:papiertiger/ui/archiv.dart';
+import 'package:papiertiger/ui/bankkonto.dart';
 import 'package:papiertiger/ui/brief_detail.dart';
 import 'package:papiertiger/ui/familie/familie.dart';
 import 'package:papiertiger/ui/finanzen.dart';
@@ -123,6 +124,7 @@ final _kategorien = <String, Map<String, Widget Function()>>{
     'Mehr': () => const MehrScreen(),
     'Sicherheit': () => const SicherheitScreen(),
     'E-Mail-Postfach': () => const PostfachScreen(),
+    'Bankkonto': () => const BankkontoScreen(),
   },
 };
 

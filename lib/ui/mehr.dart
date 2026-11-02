@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../logic/postfach_dienst.dart';
+import 'bankkonto.dart';
 import 'postfach.dart';
 import 'app.dart';
 import 'module/module_liste.dart';
@@ -299,6 +300,26 @@ class MehrScreen extends StatelessWidget {
               ]),
             ),
           ],
+          if (PostfachDienst.verfuegbar)
+            PTKarte(
+              onTap: () => oeffne(const BankkontoScreen()),
+              child: Row(children: [
+                const IconKachel(Icons.account_balance_outlined),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    const Text('Bankkonto', style: TextStyle(fontWeight: FontWeight.w700)),
+                    Text(
+                      store.notizen.containsKey(bankZugangSchluessel)
+                          ? 'Verbunden – Abos und Verträge erkennen'
+                          : 'Online-Banking verbinden (nur lesen)',
+                      style: const TextStyle(color: PT.grau, fontSize: 13),
+                    ),
+                  ]),
+                ),
+                const Icon(Icons.chevron_right, color: PT.grau),
+              ]),
+            ),
           const Abschnitt('Datenschutz'),
           PTKarte(
             onTap: () => oeffne(const SicherheitScreen()),
