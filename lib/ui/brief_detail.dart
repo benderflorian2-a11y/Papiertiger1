@@ -8,6 +8,7 @@ import '../logic/angebotsvergleich.dart';
 import '../logic/brief_analyse.dart';
 import '../logic/brief_inhalt.dart';
 import '../logic/export.dart';
+import '../logic/ki.dart';
 import '../logic/ki_anfragen.dart';
 import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
@@ -123,11 +124,17 @@ class BriefDetail extends StatelessWidget {
                   const Tiger(size: 48),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      b.frist != null && !b.erledigt
-                          ? 'Fertig! Achte auf die Frist am ${datumKurz(b.frist!)}.'
-                          : 'Fertig! Das hat der Tiger verstanden.',
-                      style: const TextStyle(fontWeight: FontWeight.w700, color: PT.tinte),
+                    // Solange die KI liest, ist das nur ein erster Überblick
+                    child: AnimatedBuilder(
+                      animation: KiAuftraege.instanz,
+                      builder: (context, _) => Text(
+                        KiAuftraege.instanz.laeuft(b.id)
+                            ? 'Erster Überblick – der Tiger liest den Brief gerade genau und korrigiert, falls nötig.'
+                            : b.frist != null && !b.erledigt
+                                ? 'Fertig! Achte auf die Frist am ${datumKurz(b.frist!)}.'
+                                : 'Fertig! Das hat der Tiger verstanden.',
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: PT.tinte),
+                      ),
                     ),
                   ),
                 ],
@@ -220,10 +227,17 @@ class BriefDetail extends StatelessWidget {
                 Text(b.erklaerung,
                     style: const TextStyle(fontSize: 16, height: 1.5, color: PT.tinte)),
                 if (!b.kiFertig)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Text('Schnell-Erkennung über Stichworte – kann danebenliegen. Genauer wird es, wenn der Tiger den Brief mit der KI liest.',
-                        style: TextStyle(color: PT.grau, fontSize: 12)),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: AnimatedBuilder(
+                      animation: KiAuftraege.instanz,
+                      builder: (context, _) => Text(
+                        KiAuftraege.instanz.laeuft(b.id)
+                            ? 'Vorläufig (Stichworte) – die KI liest gerade den ganzen Brief und ersetzt das gleich.'
+                            : 'Schnell-Erkennung über Stichworte – kann danebenliegen. Genauer wird es, wenn der Tiger den Brief mit der KI liest.',
+                        style: const TextStyle(color: PT.grau, fontSize: 12),
+                      ),
+                    ),
                   ),
                 if (b.kiFertig) ...[
                   const SizedBox(height: 10),
