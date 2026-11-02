@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import '../data/models.dart';
 import '../logic/angebotsvergleich.dart';
 import '../logic/brief_analyse.dart';
+import '../logic/brief_inhalt.dart';
 import '../logic/export.dart';
 import '../logic/ki_anfragen.dart';
 import '../logic/kommunikation.dart';
@@ -28,6 +29,7 @@ import 'termine.dart';
 import 'ki_text.dart';
 import 'textvergleich.dart';
 import 'theme.dart';
+import 'widgets/brief_inhalt_karte.dart';
 import 'vorlage_screen.dart';
 import 'widgets/brief_teile.dart';
 import 'widgets/common.dart';
@@ -244,6 +246,7 @@ class BriefDetail extends StatelessWidget {
               label: Text('In meiner Sprache erklären (${store.notizen['ansicht:sprache']})'),
             ),
           KiKarte(brief: b),
+          BriefInhaltKarte(inhaltLesen(b.text, briefDatum: b.briefDatum)),
 
           if (b.fakten.isNotEmpty) ...[
             const Abschnitt('Das steht drin'),

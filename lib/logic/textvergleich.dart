@@ -6,7 +6,8 @@ enum Aenderung { gleich, entfernt, neu }
 /// Abkürzungen, nach denen kein neuer Satz beginnt.
 final _abkuerzung = RegExp(r'(?:^|\s)(?:Nr|MwSt|USt|z\.\s?B|ca|bzw|ggf|inkl|zzgl|Str|Abs|Art|Tel|Hr|Fr|Dr|vgl|evtl|u\.\s?a|d\.\s?h|bspw|max|min|Std|Mo|Di|Mi|Do|Fr|Sa|So)\.$');
 
-List<String> _saetze(String t) {
+/// Text in Sätze teilen (Zeilen bleiben Grenzen; Abkürzungen wie „z. B.“ beenden keinen Satz).
+List<String> saetzeTrennen(String t) {
   final out = <String>[];
   for (final zeile in t.replaceAll('\r', '').split(RegExp(r'\n+'))) {
     var rest = '';
@@ -26,7 +27,7 @@ String _norm(String s) => s.toLowerCase().replaceAll(RegExp(r'[^a-zäöüß0-9]'
 
 /// Satzweise Unterschiede in Reihenfolge; gleiche Sätze bleiben mit [Aenderung.gleich] drin.
 List<(Aenderung, String)> textUnterschiede(String alt, String neu, {int max = 600}) {
-  final a = _saetze(alt).take(max).toList(), b = _saetze(neu).take(max).toList();
+  final a = saetzeTrennen(alt).take(max).toList(), b = saetzeTrennen(neu).take(max).toList();
   final na = a.map(_norm).toList(), nb = b.map(_norm).toList();
   // Längste gemeinsame Teilfolge
   final l = List.generate(a.length + 1, (_) => List.filled(b.length + 1, 0));
