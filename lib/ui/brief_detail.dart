@@ -246,7 +246,8 @@ class BriefDetail extends StatelessWidget {
               label: Text('In meiner Sprache erklären (${store.notizen['ansicht:sprache']})'),
             ),
           KiKarte(brief: b),
-          BriefInhaltKarte(inhaltLesen(b.text, briefDatum: b.briefDatum)),
+          BriefInhaltKarte(inhaltLesen(b.text, briefDatum: b.briefDatum),
+              kiKurz: b.kiFertig && b.erklaerung.trim().isNotEmpty ? b.erklaerung : null),
 
           if (b.fakten.isNotEmpty) ...[
             const Abschnitt('Das steht drin'),

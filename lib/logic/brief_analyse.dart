@@ -83,6 +83,11 @@ const kategorien = <Kategorie>[
        'kfz-versicherung', 'lebensversicherung', 'unfallversicherung', 'versicherungsnehmer']),
   Kategorie('stadt', 'Stadt / Gemeinde', 'von deiner Stadt oder Gemeinde',
       ['stadtverwaltung', 'bürgeramt', 'einwohnermeldeamt', 'gemeinde', 'landratsamt', 'wohngeldstelle', 'grundsteuer', 'ordnungsamt', 'stadt ']),
+  Kategorie('handel', 'Händler / Online-Shop', 'von einem Händler oder Online-Shop',
+      ['bestellung', 'bestellnummer', 'bestelldatum', 'auftragsnummer', 'lieferung', 'lieferschein', 'lieferdatum',
+       'artikelnummer', 'artikel-nr', 'versandkosten', 'versand', 'retoure', 'rücksendung', 'warenwert', 'kundenkonto', 'otto'],
+      stark: ['otto gmbh', 'otto.de', 'otto payments', 'amazon', 'zalando', 'about you', 'bonprix', 'baur versand',
+       'universal versand', 'mediamarkt', 'saturn', 'ikea', 'tchibo', 'klarna', 'shop-apotheke', 'docmorris']),
   // Bewusst ohne „Bank“ oder „Sparkasse“: Die stehen in fast jeder Fußzeile.
   Kategorie('bank', 'Bank', 'von deiner Bank',
       ['kontoauszug', 'girokonto', 'kreditkartenabrechnung', 'dispositionskredit']),
@@ -258,6 +263,32 @@ const _fristWoerter = [
   'fällig bis', 'fälligkeit', 'frist', 'einzureichen bis', 'bis '
 ];
 
+/// Fußzeilen mit Firmenangaben (Registergericht, Geschäftsführung, USt-ID …).
+/// „Amtsgericht Hamburg HRA 12345“ in der Fußzeile macht eine Rechnung nicht zu Gerichtspost.
+final _impressum = RegExp(
+    r'handelsregister|registergericht|registernummer|\bhr[ab]\s*\d|\bhrb\b|\bhra\b|sitz der gesellschaft|sitz:|'
+    r'geschäftsführ|vorstand|aufsichtsrat|ust-?id|umsatzsteuer-?id|ust\.-?id|komplementär|persönlich haftende',
+    caseSensitive: false);
+
+/// Text ohne Impressums-Zeilen – zum Erkennen von Absender und Art.
+String ohneImpressum(String text) =>
+    text.split('\n').where((z) => !_impressum.hasMatch(z)).join('\n');
+
+/// Eindeutige Beschriftungen für den Endbetrag einer Rechnung. Haben Vorrang vor allgemeinen Wörtern.
+const _endbetragWoerter = [
+  'rechnungsbetrag', 'gesamtbetrag', 'endbetrag', 'zahlbetrag', 'zu zahlen', 'zu zahlender betrag', 'fälliger betrag',
+  'offener betrag', 'noch offen', 'gesamtsumme', 'rechnungssumme', 'bruttobetrag', 'summe brutto', 'gesamt brutto',
+  'forderungsbetrag', 'nachzahlung', 'erstattungsbetrag', 'guthaben',
+];
+
+/// Bekannte Händler: Stichwort → Name.
+const _marken = <String, String>{
+  'otto gmbh': 'OTTO', 'otto.de': 'OTTO', 'otto payments': 'OTTO', 'amazon': 'Amazon', 'zalando': 'Zalando',
+  'about you': 'ABOUT YOU', 'bonprix': 'bonprix', 'baur versand': 'BAUR', 'universal versand': 'Universal',
+  'mediamarkt': 'MediaMarkt', 'ikea': 'IKEA', 'tchibo': 'Tchibo', 'klarna': 'Klarna', 'shop-apotheke': 'Shop Apotheke',
+  'docmorris': 'DocMorris',
+};
+
 const _betragWoerter = [
   'gesamtbetrag', 'zu zahlen', 'zahlbetrag', 'offener betrag', 'offen',
   'nachzahlung', 'betrag', 'summe', 'gesamt', 'überweisen', 'forderung',
@@ -267,6 +298,8 @@ const _betragWoerter = [
 Analyse analysiereBrief(String text, {DateTime? heute}) {
   final jetzt = nurTag(heute ?? DateTime.now());
   final lower = text.toLowerCase();
+  // Zum Einordnen ohne Firmen-Fußzeilen
+  final kern = ohneImpressum(text).toLowerCase();
 
   // Absender
   var kategorie = sonstigeKategorie;
@@ -274,10 +307,10 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
   for (final k in kategorien) {
     var punkte = 0;
     for (final w in k.stichworte) {
-      punkte += wortanfangTreffer(lower, w);
+      punkte += wortanfangTreffer(kern, w);
     }
     for (final w in k.stark) {
-      punkte += 5 * wortanfangTreffer(lower, w);
+      punkte += 5 * wortanfangTreffer(kern, w);
     }
     if (punkte > bester) {
       bester = punkte;
@@ -288,10 +321,16 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
   // Art des Briefs
   var typ = sonstigerTyp;
   for (final t in briefTypen) {
-    if (t.stichworte.any(lower.contains)) {
+    if (t.stichworte.any(kern.contains)) {
       typ = t;
       break;
     }
+  }
+  // Eindeutige Rechnung: Rechnungsnummer oder -datum, aber keine Mahnung
+  final rechnungsKopf = RegExp(r'rechnungs-?(nummer|nr|datum)|rechnung nr|rechnung\s*:\s*\d|^\s*rechnung\s*$', multiLine: true);
+  if (rechnungsKopf.hasMatch(kern) &&
+      const {'schreiben', 'abrechnung', 'bescheid', 'kuendigung', 'erhoehung', 'mitwirkung', 'anhoerung'}.contains(typ.key)) {
+    typ = typFuer('rechnung');
   }
 
   // Daten: Briefdatum und Frist
@@ -354,12 +393,19 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
   final betraege = betragsFunde(text);
   double? betrag;
   var istGuthaben = false;
-  for (final f in betraege) {
-    final davor = _davor(lower, f.start, 50);
-    if (_betragWoerter.any(davor.contains)) {
-      betrag = f.wert;
-      istGuthaben = davor.contains('erstattung') || davor.contains('guthaben');
+  // Zuerst eindeutige Endbeträge („Rechnungsbetrag“, „Zu zahlen“ …), sonst allgemeine Wörter
+  for (final woerter in [_endbetragWoerter, _betragWoerter]) {
+    for (final f in betraege) {
+      final davor = _davor(lower, f.start, 50);
+      // Nur die eigene Zeile zählt, nicht die Beschriftung der Zeile darüber
+      final zeile = davor.contains('\n') ? davor.substring(davor.lastIndexOf('\n') + 1) : davor;
+      final kontext = zeile.trim().isEmpty ? davor : zeile;
+      if (woerter.any(kontext.contains)) {
+        betrag = f.wert;
+        istGuthaben = kontext.contains('erstattung') || kontext.contains('guthaben');
+      }
     }
+    if (betrag != null) break;
   }
   if (betrag == null && betraege.isNotEmpty) {
     betrag = betraege.map((f) => f.wert).reduce((a, b) => a > b ? a : b);
@@ -389,12 +435,20 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
 
   // Absendername: erste Zeile, die zum Absender passt
   String? absenderName;
-  for (final zeile in text.split('\n')) {
-    final z = zeile.trim();
-    if (z.length < 3 || z.length > 70) continue;
-    if (kategorie.stichworte.any(z.toLowerCase().contains)) {
-      absenderName = z;
+  for (final m in _marken.entries) {
+    if (wortanfangTreffer(kern, m.key) > 0) {
+      absenderName = m.value;
       break;
+    }
+  }
+  final zeilen = ohneImpressum(text).split('\n');
+  // Erst Zeilen mit eindeutigen Namen, dann allgemeine Stichworte
+  for (final woerter in [kategorie.stark, kategorie.stichworte]) {
+    for (final zeile in zeilen) {
+      if (absenderName != null) break;
+      final z = zeile.trim();
+      if (z.length < 3 || z.length > 70) continue;
+      if (woerter.any(z.toLowerCase().contains)) absenderName = z;
     }
   }
 

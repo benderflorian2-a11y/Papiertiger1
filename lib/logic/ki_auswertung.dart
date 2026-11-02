@@ -229,6 +229,25 @@ void kiUebernehmen(Brief b, KiErgebnis k) {
   b.erklaerung = k.kurzfassung;
   if (k.bedeutung.isNotEmpty) b.bedeutung = k.bedeutung;
   if (k.art != null && k.art!.length <= 40) b.kiArt = k.art;
+  // Die KI hat den ganzen Brief gelesen: Bei der Art hat sie Vorrang vor den Stichworten
+  final art = (k.art ?? '').toLowerCase();
+  final typNeu = art.contains('mahnbescheid')
+      ? 'mahnbescheid'
+      : art.contains('mahnung') || art.contains('zahlungserinnerung')
+          ? 'mahnung'
+          : art.contains('abrechnung')
+              ? 'abrechnung'
+              : art.contains('rechnung')
+                  ? 'rechnung'
+                  : null;
+  if (typNeu != null) b.typ = typNeu;
+  // Gericht oder Inkasso nur behalten, wenn die KI das auch so sieht
+  final absender = (k.absender ?? '').toLowerCase();
+  if ((b.kategorie == 'gericht' && !absender.contains('gericht') && !art.contains('gericht') && !art.contains('mahnbescheid')) ||
+      (b.kategorie == 'inkasso' && !absender.contains('inkasso') && !art.contains('inkasso'))) {
+    b.kategorie = 'sonstiges';
+    if (k.absender != null && k.absender!.length <= 70) b.absenderName = k.absender;
+  }
   if ((b.absenderName == null || b.kategorie == 'sonstiges') &&
       k.absender != null &&
       k.absender!.length <= 70) {

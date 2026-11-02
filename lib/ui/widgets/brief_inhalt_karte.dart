@@ -18,9 +18,12 @@ IconData _gruppenSymbol(String g) => switch (g) {
 /// „Das steht im Brief“: Betreff, wichtigste Aussagen und alle erkannten Angaben.
 /// Antippen einer Angabe kopiert sie (z. B. IBAN oder Aktenzeichen).
 class BriefInhaltKarte extends StatelessWidget {
-  const BriefInhaltKarte(this.inhalt, {super.key});
+  const BriefInhaltKarte(this.inhalt, {super.key, this.kiKurz});
 
   final BriefInhalt inhalt;
+
+  /// Kurzfassung der KI, wenn sie den Brief gelesen hat – hat Vorrang.
+  final String? kiKurz;
 
   @override
   Widget build(BuildContext context) {
@@ -30,15 +33,16 @@ class BriefInhaltKarte extends StatelessWidget {
       const Abschnitt('Das steht im Brief'),
       PTKarte(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (inhalt.kurz.isNotEmpty) ...[
+          if ((kiKurz ?? inhalt.kurz).isNotEmpty) ...[
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: PT.orangeHell, borderRadius: BorderRadius.circular(12)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Kurz gesagt', style: TextStyle(fontWeight: FontWeight.w800, color: PT.orangeDunkel)),
+                Text(kiKurz != null ? 'Kurz gesagt – vom Tiger gelesen' : 'Kurz gesagt',
+                    style: const TextStyle(fontWeight: FontWeight.w800, color: PT.orangeDunkel)),
                 const SizedBox(height: 4),
-                Text(inhalt.kurz, style: const TextStyle(height: 1.45, color: PT.tinte)),
+                Text(kiKurz ?? inhalt.kurz, style: const TextStyle(height: 1.45, color: PT.tinte)),
               ]),
             ),
             const SizedBox(height: 12),

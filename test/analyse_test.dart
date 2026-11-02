@@ -179,4 +179,55 @@ Gegen diesen Bescheid kann innerhalb eines Monats nach Bekanntgabe Widerspruch e
   test('Wort „Versicherung“ in „Krankenversicherung“ macht keinen Versicherungsbrief', () {
     expect(wortanfangTreffer('die krankenversicherung und die versicherung', 'versicherung'), 1);
   });
+
+  test('Otto-Rechnung: Fußzeile mit Amtsgericht macht keine Gerichtspost', () {
+    const text = '''
+OTTO
+Otto (GmbH & Co KG) · Werner-Otto-Straße 1-7 · 22179 Hamburg
+
+Herrn Florian Bender
+Hauptstraße 5
+12345 Musterstadt
+
+Rechnung
+Rechnungsnummer: 4100 2233 44
+Rechnungsdatum: 28.10.2026
+Kundennummer: 12 345 678
+Bestellnummer: 987654321
+
+Artikel                     Menge   Preis
+Wasserkocher Edelstahl        1     39,99 €
+Handtuch-Set                  2     24,90 €
+Versandkosten                       5,95 €
+Gesamtbetrag                       95,74 €
+darin enthaltene MwSt. 19 %        15,29 €
+
+Bitte überweisen Sie den Rechnungsbetrag bis zum 11.11.2026.
+
+Vielen Dank für Ihre Bestellung bei otto.de
+
+Otto (GmbH & Co KG), Sitz: Hamburg, Amtsgericht Hamburg HRA 62024
+Persönlich haftende Gesellschafterin: Verwaltungsgesellschaft Otto mbH, Amtsgericht Hamburg HRB 13762
+Geschäftsführung: Max Muster · USt-IdNr. DE 118475690
+''';
+    final a = analysiereBrief(text, heute: heute);
+    expect(a.kategorie.key, 'handel');
+    expect(a.typ.key, 'rechnung');
+    expect(a.betrag, 95.74);
+    expect(a.frist, DateTime(2026, 11, 11));
+    expect(a.absenderName, 'OTTO');
+    expect(ohneImpressum(text), isNot(contains('Amtsgericht')));
+  });
+
+  test('Echte Gerichtspost bleibt Gericht', () {
+    const text = '''
+Amtsgericht Hagen – Zentrales Mahngericht
+Mahnbescheid
+Geschäftszeichen: 26-1234567-0-1
+Der Antragsteller macht folgende Forderung geltend: 450,00 €
+''';
+    final a = analysiereBrief(text, heute: heute);
+    expect(a.kategorie.key, 'gericht');
+    expect(a.typ.key, 'mahnbescheid');
+  });
 }
