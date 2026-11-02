@@ -35,31 +35,35 @@ jobs:
       - name: Anfragen erzeugen (ohne KI)
         run: flutter test test/briefpruefung_test.dart
 
-      - name: llama.cpp holen
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: llama.cpp bauen
         run: |
-          gh api repos/ggml-org/llama.cpp/releases/latest -q '.assets[].name'
-          url=$(gh api repos/ggml-org/llama.cpp/releases/latest -q '.assets[] | select((.name | test("ubuntu")) and (.name | test("x64")) and (.name | test("vulkan|cuda|rocm|sycl|openvino|kleidi|s390|arm") | not)) | .browser_download_url' | head -1)
-          echo "$url"
-          mkdir -p llama && cd llama
-          curl -sSL -o paket "$url"
-          case "$url" in *.zip) unzip -q paket ;; *) tar xzf paket ;; esac
-          server=$(find . -type f -name 'llama-server' | head -1)
-          chmod +x "$server"
+          git clone --depth 1 https://github.com/ggml-org/llama.cpp
+          cmake -S llama.cpp -B llama.cpp/build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF
+          cmake --build llama.cpp/build --target llama-server -j $(nproc)
+          server=$(find llama.cpp/build -type f -name 'llama-server' | head -1)
           echo "SERVER=$PWD/$server" >> "$GITHUB_ENV"
-          echo "LD_LIBRARY_PATH=$PWD/$(dirname "$server")" >> "$GITHUB_ENV"
 
       - name: Modell aus dem Zwischenspeicher
         uses: actions/cache@v4
         with:
-          path: ~/.cache/llama.cpp
-          key: gemma-4-E2B-it-Q8_0
+          path: modell
+          key: gemma-4-E2B-it-Q8_0-v2
+
+      - name: Modell laden
+        run: |
+          mkdir -p modell
+          if ! ls modell/*.gguf >/dev/null 2>&1; then
+            datei=$(curl -s https://huggingface.co/api/models/ggml-org/gemma-4-E2B-it-GGUF | python3 -c 'import json,sys; s=[x["rfilename"] for x in json.load(sys.stdin)["siblings"]]; print(s); print([f for f in s if "Q8_0" in f and "mtp" not in f.lower() and f.endswith(".gguf")][0])' | tail -1)
+            echo "$datei"
+            curl -sSL -o "modell/$(basename "$datei")" "https://huggingface.co/ggml-org/gemma-4-E2B-it-GGUF/resolve/main/$datei"
+          fi
+          ls -la modell
+          echo "MODELL=$(ls $PWD/modell/*.gguf | head -1)" >> "$GITHUB_ENV"
 
       - name: KI starten
         run: |
-          nohup "$SERVER" -hf ggml-org/gemma-4-E2B-it-GGUF:Q8_0 -c 8192 --jinja --port 8080 -t $(nproc) > server.log 2>&1 &
-          for i in $(seq 1 240); do
+          nohup "$SERVER" -m "$MODELL" -c 8192 --jinja --port 8080 -t $(nproc) > server.log 2>&1 &
+          for i in $(seq 1 120); do
             if curl -sf localhost:8080/health > /dev/null; then echo "bereit nach $((i*5)) s"; exit 0; fi
             sleep 5
           done
