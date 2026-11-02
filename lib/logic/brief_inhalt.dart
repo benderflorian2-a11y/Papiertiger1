@@ -3,6 +3,7 @@
 /// Kontakt und Anlagen. Reines Dart, ohne Internet, testbar.
 library;
 
+import '../data/models.dart';
 import 'brief_analyse.dart';
 import 'textvergleich.dart';
 
@@ -99,6 +100,8 @@ String _label(String kontext, String art) {
   if (hat(['jährlich', 'pro jahr', 'jahresbeitrag'])) return 'Jährlich';
   if (hat(['nachzahl'])) return 'Nachzahlung';
   if (hat(['gebühr', 'kosten', 'mahngebühr'])) return 'Gebühr';
+  if (hat(['bereits gezahlt', 'bereits bezahlt', 'abzüglich', 'vorauszahlungen', 'geleistet'])) return 'Bereits bezahlt';
+  if (hat(['mwst', 'umsatzsteuer', 'mehrwertsteuer'])) return 'MwSt';
   if (hat(['überweis', 'zahl', 'offen', 'fällig', 'ausgleich'])) return 'Zu zahlen';
   return 'Betrag';
 }
@@ -129,7 +132,7 @@ String _ibanSchoen(String s) {
 const _nummern = <String, String>{
   r'aktenzeichen|az\.|geschäftszeichen|gesch\.-z(?:eichen|\.)|unser zeichen|ihr zeichen': 'Aktenzeichen',
   r'steuernummer|st\.-?nr\.?': 'Steuernummer',
-  r'steuer-?id(?:entifikationsnummer)?|identifikationsnummer|idnr\.?': 'Steuer-ID',
+  r'steuer-?id(?:entifikationsnummer)?|(?<!ust-)identifikationsnummer|steuer-identifikationsnummer': 'Steuer-ID',
   r'kundennummer|kunden-nr\.?|kd\.-?nr\.?': 'Kundennummer',
   r'vertragsnummer|vertrags-nr\.?|vertragskonto': 'Vertragsnummer',
   r'rechnungsnummer|rechnungs-nr\.?|rg\.-?nr\.?|re\.-?nr\.?': 'Rechnungsnummer',
@@ -183,9 +186,25 @@ List<String> kernaussagen(String text, {int max = 6, bool nachWichtigkeit = fals
   final g = _gruss.firstMatch(rumpf);
   if (g != null) rumpf = rumpf.substring(0, g.start);
   // Umbrochene Zeilen zu Absätzen zusammenfügen (Leerzeile = neuer Absatz)
+  // Tabellenzeilen („Gesamtbetrag     95,74 €“) und Angaben („Kundennummer: 123“) sind keine Aussagen
+  final tabelle = RegExp(r'\S {3,}\S|\t');
+  final angabe = RegExp(r'^[\wÄÖÜäöüß .\-/()]{2,35}:\s*\S');
   final absaetze = rumpf
       .split(RegExp(r'\n\s*\n'))
-      .map((p) => p.replaceAll(RegExp(r'-\n(?=[a-zäöü])'), '').replaceAll(RegExp(r'\s*\n\s*'), ' ').trim())
+      .map((p) {
+        final zeilen = [
+          for (final z in p.split('\n'))
+            if (z.trim().isNotEmpty && !tabelle.hasMatch(z) && !(angabe.hasMatch(z.trim()) && z.trim().length < 70)) z.trim(),
+        ];
+        // Umbrochene Zeilen nur zusammenfügen, wenn die vorige Zeile Fließtext ist
+        final out = StringBuffer();
+        for (var i = 0; i < zeilen.length; i++) {
+          final vorige = i == 0 ? '' : zeilen[i - 1];
+          if (i > 0) out.write(vorige.length >= 35 && !RegExp(r'[.:!?]$').hasMatch(vorige) ? ' ' : '\n');
+          out.write(zeilen[i]);
+        }
+        return out.toString().replaceAll(RegExp(r'-\s(?=[a-zäöü])'), '').trim();
+      })
       .where((p) => p.isNotEmpty)
       .join('\n');
   final saetze = saetzeTrennen(absaetze);
@@ -232,7 +251,8 @@ String? _betreff(String text) {
 }
 
 /// Alles herauslesen, was im Brief steht.
-BriefInhalt inhaltLesen(String text, {DateTime? briefDatum}) {
+BriefInhalt inhaltLesen(String rohtext, {DateTime? briefDatum, String? kopf}) {
+  final text = ocrGlaetten(rohtext);
   final punkte = <InhaltPunkt>[];
   final gesehen = <String>{};
   void neu(String gruppe, String label, String wert) {
@@ -355,12 +375,12 @@ BriefInhalt inhaltLesen(String text, {DateTime? briefDatum}) {
     betreff: betreff,
     kernaussagen: kernaussagen(text),
     punkte: punkte,
-    kurz: kurzFassen(betreff, kernaussagen(text, max: 2, nachWichtigkeit: true)),
+    kurz: kurzFassen(betreff, kernaussagen(text, max: 2, nachWichtigkeit: true), kopf: kopf),
   );
 }
 
 /// Zwei, drei Sätze: Betreff und die wichtigsten Aussagen (lange Sätze gekürzt).
-String kurzFassen(String? betreff, List<String> wichtigste) {
+String kurzFassen(String? betreff, List<String> wichtigste, {String? kopf}) {
   String kuerzen(String s) {
     if (s.length <= 180) return s;
     final i = s.lastIndexOf(' ', 175);
@@ -368,8 +388,28 @@ String kurzFassen(String? betreff, List<String> wichtigste) {
   }
 
   final teile = <String>[
+    if (kopf != null && kopf.isNotEmpty) kopf,
     if (betreff != null) 'Es geht um: ${betreff.replaceAll(RegExp(r'[.:]+$'), '')}.',
     for (final s in wichtigste) kuerzen(s[0].toUpperCase() + s.substring(1)),
   ];
   return teile.join(' ');
 }
+
+/// Einleitungssatz aus dem, was der Tiger erkannt hat:
+/// „Rechnung von OTTO über 95,74 € – zahlen bis 11.11.2026.“
+String kopfSatz({required String art, String? absender, double? betrag, bool guthaben = false, DateTime? frist}) {
+  final teile = StringBuffer(art == 'Schreiben' && absender != null ? 'Schreiben' : art);
+  if (absender != null && absender.trim().isNotEmpty) teile.write(' von ${absender.trim()}');
+  if (betrag != null) teile.write(guthaben ? ' – du bekommst ${_euro(betrag)}' : ' über ${_euro(betrag)}');
+  if (frist != null) teile.write(' – wichtig bis ${_d(frist)}');
+  return '$teile.';
+}
+
+/// Einleitungssatz für einen gespeicherten Brief.
+String briefKopf(Brief b) => kopfSatz(
+      art: b.kiArt ?? typFuer(b.typ).name,
+      absender: b.absenderName ?? (b.kategorie == 'sonstiges' ? null : kategorieFuer(b.kategorie).name),
+      betrag: b.bezahltAm == null ? b.betrag : null,
+      guthaben: b.guthaben,
+      frist: b.erledigt ? null : b.frist,
+    );

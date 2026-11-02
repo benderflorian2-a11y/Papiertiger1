@@ -71,7 +71,7 @@ void main() {
       File('${aus.path}/$name.txt').writeAsStringSync(kiAnfrage(text));
 
       final b = _briefAus(name, text);
-      final inhalt = inhaltLesen(text, briefDatum: b.briefDatum);
+      final inhalt = inhaltLesen(text, briefDatum: b.briefDatum, kopf: briefKopf(b));
       final f = _abweichungen(b, e);
       fehlerRegeln += f.length;
       regeln

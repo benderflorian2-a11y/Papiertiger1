@@ -38,6 +38,16 @@ IconData kategorieIcon(String key) {
       return Icons.location_city_outlined;
     case 'bank':
       return Icons.credit_card_outlined;
+    case 'handel':
+      return Icons.shopping_bag_outlined;
+    case 'gesundheit':
+      return Icons.medical_services_outlined;
+    case 'arbeit':
+      return Icons.badge_outlined;
+    case 'schule':
+      return Icons.school_outlined;
+    case 'zoll':
+      return Icons.directions_car_outlined;
   }
   return Icons.mail_outline;
 }

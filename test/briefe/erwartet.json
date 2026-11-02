@@ -118,7 +118,6 @@
   "betrag": 39.95
  },
  "25_zahnarzt_hkp": {
-  "kategorie": "gesundheit",
-  "typ": "schreiben"
+  "kategorie": "gesundheit"
  }
 }

@@ -83,6 +83,22 @@ const kategorien = <Kategorie>[
        'kfz-versicherung', 'lebensversicherung', 'unfallversicherung', 'versicherungsnehmer']),
   Kategorie('stadt', 'Stadt / Gemeinde', 'von deiner Stadt oder Gemeinde',
       ['stadtverwaltung', 'bürgeramt', 'einwohnermeldeamt', 'gemeinde', 'landratsamt', 'wohngeldstelle', 'grundsteuer', 'ordnungsamt', 'stadt ']),
+  Kategorie('gesundheit', 'Arzt / Praxis', 'von einer Arztpraxis, Klinik oder Apotheke',
+      ['arztpraxis', 'praxis', 'zahnarzt', 'zahnarztpraxis', 'dr. med', 'fachärztin', 'facharzt', 'patient', 'behandlung',
+       'klinik', 'krankenhaus', 'labor', 'physiotherapie', 'apotheke', 'goä', 'goz'],
+      stark: ['goä', 'goz', 'privatliquidation', 'heil- und kostenplan', 'zahnarztpraxis', 'arztpraxis', 'dr. med.']),
+  Kategorie('arbeit', 'Arbeitgeber', 'von deinem Arbeitgeber',
+      ['arbeitgeber', 'personalabteilung', 'personalnummer', 'gesamtbrutto', 'nettoverdienst', 'auszahlungsbetrag',
+       'arbeitsvertrag', 'arbeitszeugnis', 'steuerklasse'],
+      stark: ['entgeltabrechnung', 'gehaltsabrechnung', 'lohnabrechnung', 'verdienstabrechnung', 'bezügemitteilung']),
+  Kategorie('schule', 'Schule / Kita', 'von der Schule oder Kita',
+      ['schule', 'grundschule', 'gymnasium', 'realschule', 'gesamtschule', 'klassenfahrt', 'klassenleitung', 'elternabend',
+       'kita', 'kindergarten', 'förderverein', 'schulleitung', 'liebe eltern'],
+      stark: ['elternbrief', 'grundschule', 'schulleitung', 'liebe eltern']),
+  Kategorie('zoll', 'Hauptzollamt (Kfz-Steuer)', 'vom Hauptzollamt',
+      ['hauptzollamt', 'kraftfahrzeugsteuer', 'kfz-steuer', 'zoll'],
+      stark: ['hauptzollamt', 'kraftfahrzeugsteuer'],
+      hinweis: 'Gegen einen Kfz-Steuerbescheid kannst du innerhalb eines Monats Einspruch einlegen.'),
   Kategorie('handel', 'Händler / Online-Shop', 'von einem Händler oder Online-Shop',
       ['bestellung', 'bestellnummer', 'bestelldatum', 'auftragsnummer', 'lieferung', 'lieferschein', 'lieferdatum',
        'artikelnummer', 'artikel-nr', 'versandkosten', 'versand', 'retoure', 'rücksendung', 'warenwert', 'kundenkonto', 'otto'],
@@ -90,7 +106,8 @@ const kategorien = <Kategorie>[
        'universal versand', 'mediamarkt', 'saturn', 'ikea', 'tchibo', 'klarna', 'shop-apotheke', 'docmorris']),
   // Bewusst ohne „Bank“ oder „Sparkasse“: Die stehen in fast jeder Fußzeile.
   Kategorie('bank', 'Bank', 'von deiner Bank',
-      ['kontoauszug', 'girokonto', 'kreditkartenabrechnung', 'dispositionskredit']),
+      ['kontoauszug', 'girokonto', 'kreditkartenabrechnung', 'dispositionskredit', 'kontostand', 'kontoführung'],
+      stark: ['kontoauszug', 'kontostand', 'kreditkartenabrechnung']),
 ];
 
 const sonstigeKategorie =
@@ -125,7 +142,8 @@ const briefTypen = <BriefTyp>[
       ['mitwirkung', 'fehlende unterlagen', 'reichen sie bitte', 'bitte reichen sie', 'bitte senden sie', 'benötigen wir noch', 'nachweise ein']),
   BriefTyp('erhoehung', 'Preiserhöhung',
       'eine Preis- oder Beitragserhöhung. Oft hast du in so einem Fall ein Sonderkündigungsrecht.',
-      ['preiserhöhung', 'preisanpassung', 'beitragserhöhung', 'beitragsanpassung', 'mieterhöhung']),
+      ['preiserhöhung', 'preisanpassung', 'beitragserhöhung', 'beitragsanpassung', 'mieterhöhung', 'änderung der preise',
+       'preisänderung', 'änderung der entgelte', 'entgeltänderung', 'neue preise']),
   BriefTyp('kuendigung', 'Kündigung',
       'eine Kündigung oder eine Kündigungsbestätigung.',
       ['kündigung', 'kündigungsbestätigung']),
@@ -136,7 +154,7 @@ const briefTypen = <BriefTyp>[
       'ein Bescheid: Die Behörde teilt dir eine Entscheidung mit, zum Beispiel wie viel du zahlen musst oder bekommst.',
       ['bescheid']),
   BriefTyp('rechnung', 'Rechnung', 'eine Rechnung: Du sollst einen Betrag bezahlen.',
-      ['rechnung', 'rechnungsbetrag', 'zahlbar bis', 'bitte überweisen']),
+      ['rechnung', 'rechnungsbetrag', 'zahlbar bis', 'privatliquidation']),
 ];
 
 const sonstigerTyp = BriefTyp('schreiben', 'Schreiben', 'ein Informationsschreiben.', []);
@@ -263,6 +281,20 @@ const _fristWoerter = [
   'fällig bis', 'fälligkeit', 'frist', 'einzureichen bis', 'bis '
 ];
 
+/// Typische Lesefehler der Texterkennung glätten: „Te1ekom“ → „Telekom“, „lhre“ → „Ihre“, „O2.10.“ → „02.10.“.
+String ocrGlaetten(String t) => t
+    .replaceAllMapped(RegExp(r'(?<=[A-Za-zÄÖÜäöüß])1(?=[a-zäöüß])'), (_) => 'l')
+    .replaceAllMapped(RegExp(r'(?<=[a-zäöüß])0(?=[a-zäöüß])'), (_) => 'o')
+    .replaceAllMapped(RegExp(r'\bl(?=hr|hnen)'), (_) => 'I')
+    .replaceAllMapped(RegExp(r'\b[O](?=\d\.\d)'), (_) => '0');
+
+/// „Telekom Deutschland GmbH · 53171 Bonn“ → „Telekom Deutschland GmbH“.
+String absenderBereinigen(String z) {
+  var t = z.split(RegExp(r'\s+[·|•]\s+|\s+\.\s+|\s+–\s+(?=\d)')).first.trim();
+  t = t.replaceAll(RegExp(r',?\s*\d{5}\s+\S+.*$'), '').trim();
+  return t.isEmpty ? z.trim() : t;
+}
+
 /// Fußzeilen mit Firmenangaben (Registergericht, Geschäftsführung, USt-ID …).
 /// „Amtsgericht Hamburg HRA 12345“ in der Fußzeile macht eine Rechnung nicht zu Gerichtspost.
 final _impressum = RegExp(
@@ -278,7 +310,7 @@ String ohneImpressum(String text) =>
 const _endbetragWoerter = [
   'rechnungsbetrag', 'gesamtbetrag', 'endbetrag', 'zahlbetrag', 'zu zahlen', 'zu zahlender betrag', 'fälliger betrag',
   'offener betrag', 'noch offen', 'gesamtsumme', 'rechnungssumme', 'bruttobetrag', 'summe brutto', 'gesamt brutto',
-  'forderungsbetrag', 'nachzahlung', 'erstattungsbetrag', 'guthaben',
+  'forderungsbetrag', 'nachzahlung', 'erstattungsbetrag', 'guthaben', 'eigenanteil', 'auszahlungsbetrag',
 ];
 
 /// Bekannte Händler: Stichwort → Name.
@@ -295,8 +327,9 @@ const _betragWoerter = [
   'erstattung', 'guthaben'
 ];
 
-Analyse analysiereBrief(String text, {DateTime? heute}) {
+Analyse analysiereBrief(String rohtext, {DateTime? heute}) {
   final jetzt = nurTag(heute ?? DateTime.now());
+  final text = ocrGlaetten(rohtext);
   final lower = text.toLowerCase();
   // Zum Einordnen ohne Firmen-Fußzeilen
   final kern = ohneImpressum(text).toLowerCase();
@@ -337,13 +370,25 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
   final daten = datumsFunde(text);
   DateTime? briefDatum;
   final fristKandidaten = <DateTime>[];
+  bool geburt(int start) => RegExp(r'geb\.|geboren|geburtsdatum').hasMatch(_davor(lower, start, 25));
+  // Briefdatum: zuerst ein ausdrücklich beschriftetes („Datum:“, „Rechnungsdatum“), sonst ein frühes
   for (final f in daten) {
+    final nah = _davor(lower, f.start, 20);
+    if (!geburt(f.start) && nah.contains('datum') && !RegExp(r'(liefer|bestell|geburts)datum').hasMatch(nah)) {
+      briefDatum = f.wert;
+      break;
+    }
+  }
+  final zeitraumEnde = RegExp(r'\d{1,2}\.\s?\d{1,2}\.\s?\d{2,4}\s*(bis|–|-)\s*(zum\s*)?$');
+  for (final f in daten) {
+    if (geburt(f.start)) continue;
     final davor = _davor(lower, f.start, 40);
-    if (_fristWoerter.any(davor.contains)) {
+    // „vom 01.08.2026 bis 31.07.2027“: Ende eines Zeitraums, keine Frist
+    if (_fristWoerter.any(davor.contains) && !zeitraumEnde.hasMatch(davor)) {
       fristKandidaten.add(f.wert);
     } else if (briefDatum == null &&
-        (_davor(lower, f.start, 20).contains('datum') ||
-            f.start < text.length * 0.35)) {
+        f.start < text.length * 0.35 &&
+        f.wert.isAfter(jetzt.subtract(const Duration(days: 3 * 365)))) {
       briefDatum = f.wert;
     }
   }
@@ -413,7 +458,17 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
   if (betrag != null && !istGuthaben) {
     istGuthaben = lower.contains('erstatten wir') ||
         lower.contains('wird ihnen erstattet') ||
-        lower.contains('ihr guthaben');
+        lower.contains('ihr guthaben') ||
+        lower.contains('überweisen wir') ||
+        lower.contains('auf ihr konto überwiesen') ||
+        lower.contains('bewilligen wir') ||
+        lower.contains('auszahlungsbetrag') ||
+        lower.contains('die auszahlung erfolgt');
+  }
+  // Kontoauszug: Kontostände sind nichts zum Bezahlen
+  if (kategorie.key == 'bank' && lower.contains('kontostand')) {
+    betrag = null;
+    istGuthaben = false;
   }
 
   // Aktenzeichen
@@ -433,23 +488,48 @@ Analyse analysiereBrief(String text, {DateTime? heute}) {
     }
   }
 
-  // Absendername: erste Zeile, die zum Absender passt
+  // Absendername: Marke (nur Händler), sonst Briefkopf-Zeile, die zum Absender passt
   String? absenderName;
-  for (final m in _marken.entries) {
-    if (wortanfangTreffer(kern, m.key) > 0) {
-      absenderName = m.value;
-      break;
+  if (kategorie.key == 'handel') {
+    for (final m in _marken.entries) {
+      if (wortanfangTreffer(kern, m.key) > 0) {
+        absenderName = m.value;
+        break;
+      }
     }
   }
-  final zeilen = ohneImpressum(text).split('\n');
-  // Erst Zeilen mit eindeutigen Namen, dann allgemeine Stichworte
-  for (final woerter in [kategorie.stark, kategorie.stichworte]) {
-    for (final zeile in zeilen) {
-      if (absenderName != null) break;
-      final z = zeile.trim();
-      if (z.length < 3 || z.length > 70) continue;
-      if (woerter.any(z.toLowerCase().contains)) absenderName = z;
+  final zeilen = [
+    for (final z in ohneImpressum(text).split('\n'))
+      if (z.trim().isNotEmpty) z.trim(),
+  ];
+  bool alsName(String z) =>
+      z.length >= 3 &&
+      z.length <= 80 &&
+      !RegExp(r'^[\wäöüß .\-/]{2,30}:\s').hasMatch(z) && // „Krankenkasse: …“, „Steuernummer: …“
+      !RegExp(r'\d+,\d{2}').hasMatch(z) &&
+      datumsFunde(z).isEmpty;
+  // Briefkopf: erste Zeile, wenn sie nach Absender aussieht
+  const firmenHinweise = ['gmbh', ' ag', ' kg', 'e.v.', 'bank', 'sparkasse', 'amt', 'gericht', 'schule', 'praxis',
+    'versicherung', 'kasse', 'stadt ', 'gemeinde', 'landkreis', 'verwaltung', 'jobcenter', 'agentur', 'werke'];
+  if (absenderName == null && zeilen.isNotEmpty && alsName(zeilen.first)) {
+    final l = zeilen.first.toLowerCase();
+    if ([...kategorie.stark, ...kategorie.stichworte, ...firmenHinweise].any(l.contains)) {
+      absenderName = absenderBereinigen(zeilen.first);
     }
+  }
+  // Erst eindeutige Namen, dann allgemeine Stichworte – im Briefkopf (erste 8 Zeilen) zuerst
+  for (final bereich in [zeilen.take(8), zeilen]) {
+    for (final woerter in [kategorie.stark, kategorie.stichworte]) {
+      for (final z in bereich) {
+        if (absenderName != null) break;
+        if (alsName(z) && woerter.any(z.toLowerCase().contains)) absenderName = absenderBereinigen(z);
+      }
+    }
+  }
+  // Unbekannter Absender: erste Zeile, wenn sie wie ein Name aussieht
+  if (absenderName == null && zeilen.isNotEmpty && alsName(zeilen.first)) {
+    final z = absenderBereinigen(zeilen.first);
+    if (RegExp(r'\d').allMatches(z).length <= 2 && z.split(' ').length <= 8) absenderName = z;
   }
 
   final spezial = renteErklaeren(text);

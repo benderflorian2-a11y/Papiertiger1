@@ -39,7 +39,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          url=$(gh api repos/ggml-org/llama.cpp/releases/latest -q '.assets[] | select(.name | test("bin-ubuntu-x64\\.(zip|tar\\.gz)$")) | .browser_download_url' | head -1)
+          gh api repos/ggml-org/llama.cpp/releases/latest -q '.assets[].name'
+          url=$(gh api repos/ggml-org/llama.cpp/releases/latest -q '.assets[] | select((.name | test("ubuntu")) and (.name | test("x64")) and (.name | test("vulkan|cuda|rocm|sycl|openvino|kleidi|s390|arm") | not)) | .browser_download_url' | head -1)
           echo "$url"
           mkdir -p llama && cd llama
           curl -sSL -o paket "$url"
