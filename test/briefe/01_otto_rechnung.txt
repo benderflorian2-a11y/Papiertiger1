@@ -1,0 +1,29 @@
+OTTO
+Otto (GmbH & Co KG) · Werner-Otto-Straße 1-7 · 22179 Hamburg
+
+Herrn Florian Bender
+Hauptstraße 5
+12345 Musterstadt
+
+Rechnung
+Rechnungsnummer: 4100 2233 44
+Rechnungsdatum: 28.10.2026
+Kundennummer: 12 345 678
+Bestellnummer: 987654321
+
+Artikel                     Menge   Preis
+Wasserkocher Edelstahl        1     39,99 €
+Handtuch-Set                  2     24,90 €
+Versandkosten                       5,95 €
+Gesamtbetrag                       95,74 €
+darin enthaltene MwSt. 19 %        15,29 €
+
+Bitte überweisen Sie den Rechnungsbetrag bis zum 11.11.2026.
+IBAN: DE89 3704 0044 0532 0130 00
+Verwendungszweck: 4100223344
+
+Vielen Dank für Ihre Bestellung bei otto.de
+
+Otto (GmbH & Co KG), Sitz: Hamburg, Amtsgericht Hamburg HRA 62024
+Persönlich haftende Gesellschafterin: Verwaltungsgesellschaft Otto mbH, Amtsgericht Hamburg HRB 13762
+Geschäftsführung: Max Muster · USt-IdNr. DE 118475690

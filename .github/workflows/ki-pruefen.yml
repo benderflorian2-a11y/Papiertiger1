@@ -1,0 +1,111 @@
+name: KI prüfen
+
+# Prüfstand: Alle Testbriefe aus test/briefe gehen an dieselbe KI wie in der App (Gemma 4 E2B,
+# hier über llama.cpp auf dem Prozessor). Ergebnis: Bericht als Vorabversion „ki-pruefung-N“.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'test/briefe/**'
+      - 'test/briefpruefung_test.dart'
+      - 'lib/logic/ki_auswertung.dart'
+      - 'lib/logic/brief_analyse.dart'
+      - 'lib/logic/brief_inhalt.dart'
+      - '.github/workflows/ki-pruefen.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Pakete laden
+        run: |
+          rm -f test/widget_test.dart
+          flutter pub get
+
+      - name: Anfragen erzeugen (ohne KI)
+        run: flutter test test/briefpruefung_test.dart
+
+      - name: llama.cpp holen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(gh api repos/ggml-org/llama.cpp/releases/latest -q '.assets[] | select(.name | test("bin-ubuntu-x64\\.(zip|tar\\.gz)$")) | .browser_download_url' | head -1)
+          echo "$url"
+          mkdir -p llama && cd llama
+          curl -sSL -o paket "$url"
+          case "$url" in *.zip) unzip -q paket ;; *) tar xzf paket ;; esac
+          server=$(find . -type f -name 'llama-server' | head -1)
+          chmod +x "$server"
+          echo "SERVER=$PWD/$server" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$PWD/$(dirname "$server")" >> "$GITHUB_ENV"
+
+      - name: Modell aus dem Zwischenspeicher
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/llama.cpp
+          key: gemma-4-E2B-it-Q8_0
+
+      - name: KI starten
+        run: |
+          nohup "$SERVER" -hf ggml-org/gemma-4-E2B-it-GGUF:Q8_0 -c 8192 --jinja --port 8080 -t $(nproc) > server.log 2>&1 &
+          for i in $(seq 1 240); do
+            if curl -sf localhost:8080/health > /dev/null; then echo "bereit nach $((i*5)) s"; exit 0; fi
+            sleep 5
+          done
+          tail -n 50 server.log; exit 1
+
+      - name: Briefe von der KI lesen lassen
+        run: |
+          mkdir -p antworten
+          for f in build/briefpruefung/prompts/*.txt; do
+            name=$(basename "$f")
+            start=$(date +%s)
+            python3 - "$f" > anfrage.json <<'PY'
+          import json, sys
+          print(json.dumps({"messages": [{"role": "user", "content": open(sys.argv[1]).read()}],
+                            "temperature": 0.2, "max_tokens": 900}))
+          PY
+            curl -s --max-time 600 localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d @anfrage.json \
+              | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["choices"][0]["message"].get("content") or "")' \
+              > "antworten/$name" || echo "FEHLER" > "antworten/$name"
+            echo "$name: $(( $(date +%s) - start )) s"
+          done
+
+      - name: Antworten auswerten
+        run: KI_ANTWORTEN=$PWD/antworten flutter test test/briefpruefung_test.dart
+
+      - name: Bericht
+        if: always()
+        run: |
+          {
+            head -n 1 build/briefpruefung/ki.md 2>/dev/null
+            echo
+            cat build/briefpruefung/ki.md 2>/dev/null | tail -n +2
+            echo
+            cat build/briefpruefung/regeln.md 2>/dev/null
+          } | cut -c1-2000 | head -c 120000 > bericht.md
+          head -c 60000 bericht.md > bericht_kurz.md
+
+      - name: Ergebnis veröffentlichen
+        if: always() && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ki-pruefung-${{ github.run_number }}
+          name: KI-Prüfstand ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          body_path: bericht_kurz.md
+          files: |
+            build/briefpruefung/ki.md
+            build/briefpruefung/regeln.md
+            server.log

@@ -1,0 +1,15 @@
+Sparkasse Musterstadt
+Kontoauszug Nr. 10/2026      Girokonto
+IBAN: DE12 5001 0517 0648 4898 90
+Florian Bender
+
+Datum       Vorgang                                     Betrag
+01.10.2026  Gehalt Muster GmbH                       +2.413,87
+02.10.2026  Miete Hausverwaltung Schulz              -  850,00
+05.10.2026  Lastschrift Telekom Deutschland          -   39,95
+12.10.2026  Kartenzahlung REWE Markt                 -   67,32
+15.10.2026  Lastschrift FitnessPark                  -   29,90
+28.10.2026  Überweisung Otto GmbH                    -   95,74
+
+Alter Kontostand 31.09.2026                           1.245,10 EUR
+Neuer Kontostand 31.10.2026                           2.576,16 EUR

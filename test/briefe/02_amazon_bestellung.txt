@@ -1,0 +1,21 @@
+amazon.de
+Bestellbestätigung
+
+Hallo Florian Bender,
+
+vielen Dank für Ihre Bestellung. Wir senden Ihnen eine Nachricht, sobald Ihr Artikel versandt wurde.
+
+Bestellnummer 302-1234567-7654321
+Bestelldatum: 30.10.2026
+Voraussichtliche Lieferung: Dienstag, 04.11.2026
+
+Anker USB-C Ladegerät 30W        1   24,99 €
+USB-C Kabel 2 m                  1    9,99 €
+Zwischensumme                        34,98 €
+Versand                               0,00 €
+Gesamtsumme                          34,98 €
+
+Zahlungsart: Visa endet auf 1234. Der Betrag wurde bereits belastet.
+
+Amazon EU S.à r.l., 38 avenue John F. Kennedy, L-1855 Luxemburg
+Handelsregister: R.C.S. Luxembourg B 101818

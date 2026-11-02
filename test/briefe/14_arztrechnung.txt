@@ -1,0 +1,17 @@
+Dr. med. Anna Berger
+Fachärztin für Innere Medizin · Praxis am Markt · Marktplatz 2 · 12345 Musterstadt
+
+Patient: Florian Bender, geb. 12.03.1990
+Rechnungsnummer: 2026-1187
+Rechnungsdatum: 22.10.2026
+
+Privatliquidation nach GOÄ für Behandlung am 08.10.2026
+
+GOÄ 1   Beratung                         2,3   10,72 €
+GOÄ 5   Symptombezogene Untersuchung     2,3   10,72 €
+GOÄ 250 Blutentnahme                     1,8    4,20 €
+GOÄ 3550 Blutbild                        1,15   4,02 €
+Rechnungsbetrag                                29,66 €
+
+Zahlbar innerhalb von 30 Tagen ohne Abzug.
+Bankverbindung: IBAN DE44 5001 0517 5407 3249 31

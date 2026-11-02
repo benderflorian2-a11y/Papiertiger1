@@ -1,0 +1,124 @@
+{
+ "01_otto_rechnung": {
+  "kategorie": "handel",
+  "typ": "rechnung",
+  "betrag": 95.74,
+  "frist": "2026-11-11"
+ },
+ "02_amazon_bestellung": {
+  "kategorie": "handel",
+  "typ": "schreiben"
+ },
+ "03_telekom_rechnung": {
+  "kategorie": "telefon",
+  "typ": "rechnung",
+  "betrag": 39.95
+ },
+ "04_stadtwerke_abrechnung": {
+  "kategorie": "energie",
+  "typ": "abrechnung",
+  "betrag": 86.4,
+  "guthaben": true
+ },
+ "05_finanzamt_bescheid": {
+  "kategorie": "finanzamt",
+  "typ": "bescheid",
+  "betrag": 345.0,
+  "frist": "2026-11-23"
+ },
+ "06_jobcenter_einladung": {
+  "kategorie": "jobcenter",
+  "typ": "schreiben"
+ },
+ "07_krankenkasse_beitrag": {
+  "kategorie": "krankenkasse",
+  "typ": "erhoehung"
+ },
+ "08_vermieter_nebenkosten": {
+  "kategorie": "vermieter",
+  "typ": "abrechnung",
+  "betrag": 212.37,
+  "frist": "2026-11-15"
+ },
+ "09_inkasso_mahnung": {
+  "kategorie": "inkasso",
+  "typ": "mahnung",
+  "betrag": 187.5,
+  "frist": "2026-11-12"
+ },
+ "10_mahnbescheid": {
+  "kategorie": "gericht",
+  "typ": "mahnbescheid",
+  "betrag": 213.5
+ },
+ "11_rundfunk_festsetzung": {
+  "kategorie": "rundfunk",
+  "typ": "bescheid",
+  "betrag": 63.08
+ },
+ "12_kfz_versicherung": {
+  "kategorie": "versicherung",
+  "typ": "erhoehung"
+ },
+ "13_bussgeld_anhoerung": {
+  "kategorie": "bussgeld",
+  "typ": "anhoerung",
+  "betrag": 50.0
+ },
+ "14_arztrechnung": {
+  "kategorie": "gesundheit",
+  "typ": "rechnung",
+  "betrag": 29.66
+ },
+ "15_fitness_kuendigung": {
+  "kategorie": "sonstiges",
+  "typ": "kuendigung"
+ },
+ "16_familienkasse_kindergeld": {
+  "kategorie": "familienkasse",
+  "typ": "bescheid",
+  "guthaben": true
+ },
+ "17_kontoauszug": {
+  "kategorie": "bank",
+  "typ": "schreiben"
+ },
+ "18_gehaltsabrechnung": {
+  "kategorie": "arbeit",
+  "typ": "abrechnung"
+ },
+ "19_sparkasse_entgelte": {
+  "kategorie": "bank",
+  "typ": "erhoehung",
+  "frist": "2026-12-31"
+ },
+ "20_vodafone_preis": {
+  "kategorie": "telefon",
+  "typ": "erhoehung"
+ },
+ "21_schule_elternbrief": {
+  "kategorie": "schule",
+  "typ": "schreiben",
+  "betrag": 185.0,
+  "frist": "2026-11-07"
+ },
+ "22_wohngeld_bescheid": {
+  "kategorie": "stadt",
+  "typ": "bescheid",
+  "guthaben": true
+ },
+ "23_kfz_steuer": {
+  "kategorie": "zoll",
+  "typ": "bescheid",
+  "betrag": 152.0
+ },
+ "24_telekom_ocr_fehler": {
+  "kategorie": "telefon",
+  "typ": "rechnung",
+  "betrag": 39.95
+ },
+ "25_zahnarzt_hkp": {
+  "kategorie": "gesundheit",
+  "typ": "schreiben"
+ }
+}

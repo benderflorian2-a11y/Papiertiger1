@@ -1,0 +1,19 @@
+Muster GmbH · Personalabteilung
+Entgeltabrechnung für Oktober 2026
+
+Personalnummer: 1042
+Florian Bender · Steuerklasse 1 · Steuer-ID 12 345 678 901
+
+Bezeichnung                         Betrag
+Grundgehalt                       3.650,00 €
+Gesamtbrutto                      3.650,00 €
+Lohnsteuer                          512,33 €
+Solidaritätszuschlag                  0,00 €
+Krankenversicherung                 312,08 €
+Rentenversicherung                  339,45 €
+Arbeitslosenversicherung             47,45 €
+Pflegeversicherung                   72,82 €
+Nettoverdienst                    2.365,87 €
+Auszahlungsbetrag                 2.413,87 €
+
+Die Auszahlung erfolgt am 30.10.2026 auf Ihr Konto.
