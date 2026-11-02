@@ -71,6 +71,14 @@ class _ScanScreenState extends State<ScanScreen> {
   }
 
   Future<void> _seiteHolen(bool kamera) async {
+    if (kamera) {
+      // Erst der Dokumenten-Scanner (Ränder, gerade ausrichten, mehrere Seiten), sonst die normale Kamera
+      final gescannt = await Texterkennung.scannen();
+      if (gescannt != null) {
+        if (mounted) setState(() => _seiten.addAll(gescannt));
+        return;
+      }
+    }
     try {
       final pfad = await Texterkennung.bildHolen(kamera: kamera);
       if (pfad != null && mounted) setState(() => _seiten.add(pfad));
@@ -166,7 +174,8 @@ class _ScanScreenState extends State<ScanScreen> {
           if (_seiten.isEmpty)
             const LeerHinweis(
               icon: Icons.document_scanner_outlined,
-              text: 'Fotografiere jede Seite des Briefs gerade von oben, bei gutem Licht.',
+              text: 'Halte das Handy über den Brief – der Tiger findet die Ränder selbst und richtet ihn gerade aus. '
+                  'Mehrere Seiten kannst du nacheinander aufnehmen.',
             )
           else
             GridView.count(
@@ -208,7 +217,7 @@ class _ScanScreenState extends State<ScanScreen> {
           OutlinedButton.icon(
             onPressed: () => _seiteHolen(true),
             icon: const Icon(Icons.photo_camera_outlined),
-            label: Text(_seiten.isEmpty ? 'Seite fotografieren' : 'Weitere Seite fotografieren'),
+            label: Text(_seiten.isEmpty ? 'Brief scannen' : 'Weitere Seiten scannen'),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
