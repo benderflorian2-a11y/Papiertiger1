@@ -11,6 +11,7 @@ import 'package:papiertiger/logic/android_kanal.dart';
 import 'package:papiertiger/logic/benachrichtigungen.dart';
 import 'package:papiertiger/logic/inhalte.dart';
 import 'package:papiertiger/logic/ki.dart';
+import 'package:papiertiger/ui/anleitung.dart';
 import 'package:papiertiger/ui/app.dart';
 import 'package:papiertiger/ui/archiv.dart';
 import 'package:papiertiger/ui/bankkonto.dart';
@@ -125,6 +126,7 @@ final _kategorien = <String, Map<String, Widget Function()>>{
     'Sicherheit': () => const SicherheitScreen(),
     'E-Mail-Postfach': () => const PostfachScreen(),
     'Bankkonto': () => const BankkontoScreen(),
+    'Anleitung': () => const AnleitungScreen(),
   },
 };
 

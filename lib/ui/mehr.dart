@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../logic/postfach_dienst.dart';
 import 'bankkonto.dart';
 import 'postfach.dart';
+import 'anleitung.dart';
 import 'app.dart';
 import 'module/module_liste.dart';
 import 'erinnerungen_einstellungen.dart';
@@ -52,6 +53,20 @@ class MehrScreen extends StatelessWidget {
                 const Icon(Icons.chevron_right, color: PT.grau),
               ],
             ),
+          ),
+          PTKarte(
+            onTap: () => oeffne(const AnleitungScreen()),
+            child: const Row(children: [
+              IconKachel(Icons.menu_book_outlined),
+              SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('Anleitung & Hilfe', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  Text('Was der Tiger kann und wie du es einrichtest', style: TextStyle(color: PT.grau, fontSize: 13)),
+                ]),
+              ),
+              Icon(Icons.chevron_right, color: PT.grau),
+            ]),
           ),
           const Abschnitt('Module'),
           for (final m in module)

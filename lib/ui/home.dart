@@ -12,6 +12,7 @@ import '../logic/heute.dart';
 import '../logic/kommunikation.dart';
 import '../logic/ordnung.dart';
 import '../logic/postfach_pruefung.dart' show mailArten;
+import 'anleitung.dart';
 import 'app.dart';
 import 'archiv.dart';
 import 'brief_detail.dart';
@@ -178,6 +179,9 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
+
+          // Für neue Nutzer: Einrichtung Schritt für Schritt
+          const ErsteSchritteKarte(),
 
           Row(
             children: [
