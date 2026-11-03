@@ -11,6 +11,7 @@ import '../logic/texterkennung.dart';
 import '../logic/vorlagen.dart';
 import '../logic/zahlung.dart';
 import 'app.dart';
+import 'bankkonto.dart';
 import 'brief_detail.dart';
 import 'kontoauszug.dart';
 import 'module/vertraege.dart';
@@ -621,9 +622,12 @@ class _FinanzenScreenState extends State<FinanzenScreen> {
             label: const Text('Ratenplan ausrechnen'),
           ),
           const SizedBox(height: 12),
-          const Text(
-            'Ohne Bankzugang: Der Tiger kennt nur, was in deinen Briefen, Verträgen und Belegen steht.',
-            style: TextStyle(color: PT.grau, fontSize: 12),
+          Text(
+            store.notizen.containsKey(bankZugangSchluessel)
+                ? 'Mit deinem verbundenen Bankkonto (nur lesen) und deinen Briefen, Verträgen und Belegen.'
+                : 'Der Tiger kennt nur, was in deinen Briefen, Verträgen und Belegen steht. '
+                    'Mehr sieht er, wenn du unter „Mehr → Bankkonto“ dein Konto verbindest (nur lesen).',
+            style: const TextStyle(color: PT.grau, fontSize: 12),
           ),
         ],
       ),

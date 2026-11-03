@@ -73,7 +73,8 @@ List<Faelligkeit> faelligkeiten({
           'Probezeit endet – vorher kündigen, wenn du es nicht behalten willst', v.id));
     }
     final info = kuendigungsInfo(v, heute: jetzt);
-    if (info.kuendigenBis.difference(jetzt).inDays > 120) continue;
+    // Jederzeit kündbar: kein Stichtag, an den erinnert werden müsste
+    if (info.jederzeit || info.kuendigenBis.difference(jetzt).inDays > 120) continue;
     liste.add(Faelligkeit(FaelligArt.vertrag, info.kuendigenBis, v.anbieter,
         'Kündigen bis ${_d(info.kuendigenBis)}, sonst läuft der Vertrag weiter', v.id));
   }

@@ -147,5 +147,12 @@ void main() {
     expect(Vertrag.fromJson(v.toJson()).probeBis, DateTime(2026, 11, 1));
     expect(Beleg.fromJson(b.toJson()).rueckgabeBis, DateTime(2026, 11, 3));
   });
-}
 
+  test('Jederzeit kündbare Verträge erzeugen keine tägliche „Kündigen bis heute“-Frist', () {
+    final heute = DateTime(2026, 11, 3);
+    final v = Vertrag(id: 'n', anbieter: 'Netflix', art: 'Streaming', beginn: heute, laufzeitMonate: 0);
+    expect(kuendigungsInfo(v, heute: heute).jederzeit, isTrue);
+    final f = faelligkeiten(briefe: const [], vertraege: [v], belege: const [], termine: const [], heute: heute);
+    expect(f.where((x) => x.text.startsWith('Kündigen bis')), isEmpty);
+  });
+}

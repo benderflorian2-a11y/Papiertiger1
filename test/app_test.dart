@@ -46,7 +46,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('text-auswerten')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Einfach erklärt'), findsOneWidget);
+    expect(find.text('Kurz gesagt'), findsOneWidget);
     expect(store.briefe.length, 1);
     expect(store.briefe.first.kategorie, 'finanzamt');
   });

@@ -24,6 +24,8 @@ void main() {
   test('Abgabefristen', () {
     expect(abgabefrist(2025), DateTime(2026, 7, 31));
     expect(abgabefrist(2026), DateTime(2027, 8, 2));
+    expect(abgabefristBerater(2025), DateTime(2027, 3, 1)); // 28.02.2027 ist ein Sonntag
+    expect(abgabefristBerater(2026), DateTime(2028, 2, 29));
     expect(freiwilligBis(2022), DateTime(2026, 12, 31));
   });
 

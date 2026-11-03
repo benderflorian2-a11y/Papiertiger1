@@ -71,6 +71,11 @@ class Werbungskosten {
 /// (fällt sie aufs Wochenende oder einen Feiertag, am nächsten Werktag).
 DateTime abgabefrist(int steuerjahr) => naechsterWerktag(DateTime(steuerjahr + 1, 7, 31));
 
+/// Abgabefrist mit Steuerberater oder Lohnsteuerhilfeverein: letzter Tag im Februar des
+/// übernächsten Jahres (§ 149 Abs. 3 AO), bei Wochenende oder Feiertag am nächsten Werktag.
+DateTime abgabefristBerater(int steuerjahr) =>
+    naechsterWerktag(DateTime(steuerjahr + 2, 3, 1).subtract(const Duration(days: 1)));
+
 /// Freiwillige Erklärung (Antragsveranlagung): bis zu 4 Jahre rückwirkend.
 DateTime freiwilligBis(int steuerjahr) => DateTime(steuerjahr + 4, 12, 31);
 

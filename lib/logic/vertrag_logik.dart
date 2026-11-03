@@ -6,7 +6,10 @@ import '../data/models.dart';
 import 'datum.dart';
 
 class KuendigungsInfo {
-  KuendigungsInfo(this.kuendigenBis, this.endetAm, this.hinweis);
+  KuendigungsInfo(this.kuendigenBis, this.endetAm, this.hinweis, {this.jederzeit = false});
+
+  /// Jederzeit kündbar (keine Mindestlaufzeit mehr) – dann gibt es keinen Stichtag, den man verpassen kann.
+  final bool jederzeit;
 
   /// Letzter Tag, an dem die Kündigung beim Anbieter sein muss.
   final DateTime kuendigenBis;
@@ -33,7 +36,7 @@ KuendigungsInfo kuendigungsInfo(Vertrag v, {DateTime? heute}) {
 
   if (v.laufzeitMonate <= 0) {
     return KuendigungsInfo(jetzt, _plusFrist(jetzt, v),
-        'Ohne Mindestlaufzeit: Kündigung jederzeit mit der vereinbarten Frist.');
+        'Ohne Mindestlaufzeit: Kündigung jederzeit mit der vereinbarten Frist.', jederzeit: true);
   }
 
   final mindestEnde = plusMonate(v.beginn, v.laufzeitMonate);
@@ -48,7 +51,8 @@ KuendigungsInfo kuendigungsInfo(Vertrag v, {DateTime? heute}) {
     final ende = plusMonate(jetzt, 1);
     final mitFrist = _plusFrist(jetzt, v);
     return KuendigungsInfo(jetzt, mitFrist.isBefore(ende) ? mitFrist : ende,
-        'Die Mindestlaufzeit ist vorbei. Verträge ab März 2022 kannst du dann jederzeit mit höchstens einem Monat Frist kündigen.');
+        'Die Mindestlaufzeit ist vorbei. Verträge ab März 2022 kannst du dann jederzeit mit höchstens einem Monat Frist kündigen.',
+        jederzeit: true);
   }
 
   // Ältere Verträge verlängern sich meist um je 12 Monate.

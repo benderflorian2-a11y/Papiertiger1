@@ -150,6 +150,10 @@ const briefTypen = <BriefTyp>[
   BriefTyp('abrechnung', 'Abrechnung',
       'eine Abrechnung: Hier wird abgerechnet, was du verbraucht oder bezahlt hast. Das kann eine Nachzahlung oder ein Guthaben ergeben.',
       ['abrechnung', 'jahresabrechnung']),
+  BriefTyp('einladung', 'Einladung / Termin',
+      'eine Einladung zu einem Termin. Geh hin – oder sag rechtzeitig mit Begründung ab, wenn du nicht kannst.',
+      ['einladung', 'meldeaufforderung', 'bitte kommen sie', 'vorsprache', 'gesprächstermin', 'persönlich vorsprechen',
+       'laden wir sie', 'laden sie ein']),
   BriefTyp('bescheid', 'Bescheid',
       'ein Bescheid: Die Behörde teilt dir eine Entscheidung mit, zum Beispiel wie viel du zahlen musst oder bekommst.',
       ['bescheid']),
@@ -395,6 +399,7 @@ Analyse analysiereBrief(String rohtext, {DateTime? heute}) {
 
   DateTime? frist;
   var fristUnsicher = false;
+  String? terminZeit;
   final zukunft = fristKandidaten.where((d) => !d.isBefore(jetzt)).toList()..sort();
   if (zukunft.isNotEmpty) {
     frist = zukunft.first;
@@ -405,6 +410,19 @@ Analyse analysiereBrief(String rohtext, {DateTime? heute}) {
     final letzte = fristKandidaten.last;
     final grenze = briefDatum ?? jetzt.subtract(const Duration(days: 60));
     if (!letzte.isBefore(grenze)) frist = letzte;
+  }
+
+  // Einladung: der Termin ist das wichtige Datum
+  if (frist == null && typ.key == 'einladung') {
+    for (final m in RegExp(r'(\d{1,2})\.\s?(\d{1,2})\.\s?(\d{4})\D{0,12}?(\d{1,2})[:.](\d{2})\s*uhr', caseSensitive: false)
+        .allMatches(text)) {
+      final d = _gueltig(int.parse(m[1]!), int.parse(m[2]!), int.parse(m[3]!));
+      if (d != null && !d.isBefore(jetzt)) {
+        frist = d;
+        terminZeit = '${m[4]!.padLeft(2, '0')}:${m[5]} Uhr';
+        break;
+      }
+    }
   }
 
   if (frist == null) {
@@ -551,7 +569,11 @@ Analyse analysiereBrief(String rohtext, {DateTime? heute}) {
     );
   }
 
-  final erklaerung = _erklaerung(kategorie, typ, betrag, istGuthaben, frist, fristUnsicher);
+  var erklaerung = _erklaerung(kategorie, typ, betrag, istGuthaben, frist, fristUnsicher);
+  if (typ.key == 'einladung' && frist != null) {
+    erklaerung = erklaerung.replaceFirst('Wichtig: Du musst bis zum ${_d(frist)} reagieren.',
+        'Wichtig: Dein Termin ist am ${_d(frist)}${terminZeit == null ? '' : ' um $terminZeit'}.');
+  }
   final aufgaben = _aufgaben(kategorie, typ, betrag, istGuthaben, frist, fristUnsicher, aktenzeichen);
 
   return Analyse(

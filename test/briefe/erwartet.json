@@ -28,7 +28,8 @@
  },
  "06_jobcenter_einladung": {
   "kategorie": "jobcenter",
-  "typ": "schreiben"
+  "typ": "einladung",
+  "frist": "2026-11-12"
  },
  "07_krankenkasse_beitrag": {
   "kategorie": "krankenkasse",

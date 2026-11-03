@@ -6,6 +6,7 @@ import '../../logic/vertrag_logik.dart';
 import '../../logic/vorlagen.dart';
 import '../app.dart';
 import '../brief_detail.dart';
+import '../kontoauszug.dart';
 import '../theme.dart';
 import '../vorlage_screen.dart';
 import '../widgets/brief_teile.dart';
@@ -41,7 +42,11 @@ class VertraegeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final store = StoreScope.of(context);
     final aktiv = store.vertraege.where((v) => !v.gekuendigt).toList()
-      ..sort((a, b) => kuendigungsInfo(a).kuendigenBis.compareTo(kuendigungsInfo(b).kuendigenBis));
+      ..sort((a, b) {
+        final ia = kuendigungsInfo(a), ib = kuendigungsInfo(b);
+        if (ia.jederzeit != ib.jederzeit) return ia.jederzeit ? 1 : -1;
+        return ia.kuendigenBis.compareTo(ib.kuendigenBis);
+      });
     final gekuendigt = store.vertraege.where((v) => v.gekuendigt).toList();
     final kosten = kostenUebersicht(store.vertraege);
     final versicherungen = aktiv.where((v) => v.art == 'Versicherung').toList();
@@ -56,13 +61,19 @@ class VertraegeScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
         children: [
-          if (store.vertraege.isEmpty)
+          if (store.vertraege.isEmpty) ...[
             const LeerHinweis(
                 icon: Icons.description_outlined,
                 text: 'Trag deine Verträge ein – Handy, Strom, Versicherungen, Fitnessstudio. '
                     'Oder öffne einen Brief deines Anbieters und tippe auf „Als Vertrag speichern“. '
-                    'Der Tiger sagt dir, bis wann du kündigen musst.')
-          else ...[
+                    'Der Tiger sagt dir, bis wann du kündigen musst.'),
+            // Schneller Start: Abos aus dem Kontoauszug finden lassen
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KontoauszugScreen())),
+              icon: const Icon(Icons.search),
+              label: const Text('Abos automatisch finden (Kontoauszug)'),
+            ),
+          ] else ...[
             if (kosten.monat > 0)
               PTKarte(
                 padding: const EdgeInsets.fromLTRB(16, 18, 12, 10),
@@ -127,6 +138,8 @@ class VertragZeile extends StatelessWidget {
                     if (v.kostenMonat != null) '${euro(v.kostenMonat!)}/Monat',
                     if (v.gekuendigt)
                       v.bestaetigt ? 'gekündigt, bestätigt' : 'gekündigt, Bestätigung fehlt'
+                    else if (info.jederzeit)
+                      'jederzeit kündbar, Vertrag endet dann am ${datumKurz(info.endetAm)}'
                     else
                       'kündigen bis ${datumKurz(info.kuendigenBis)}',
                   ].join(' · '),
@@ -135,7 +148,9 @@ class VertragZeile extends StatelessWidget {
               ],
             ),
           ),
-          if (!v.gekuendigt)
+          if (!v.gekuendigt && info.jederzeit)
+            const Etikett('jederzeit', farbe: PT.gruen, hintergrund: PT.gruenHell)
+          else if (!v.gekuendigt)
             FristEtikett(info.kuendigenBis)
           else if (pruefen != null)
             const Etikett('Bestätigung?', farbe: PT.gelb, hintergrund: PT.gelbHell),
@@ -215,12 +230,14 @@ class VertragDetail extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text('Der Vertrag endet voraussichtlich am ${datumLang(info.endetAm)}.'),
                 ] else ...[
-                  const Text('Spätestens kündigen bis', style: TextStyle(color: PT.grau)),
+                  Text(info.jederzeit ? 'Kündigen' : 'Spätestens kündigen bis', style: const TextStyle(color: PT.grau)),
                   const SizedBox(height: 4),
-                  Text(datumLang(info.kuendigenBis),
+                  Text(info.jederzeit ? 'jederzeit möglich' : datumLang(info.kuendigenBis),
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 4),
-                  Text('Der Vertrag endet dann am ${datumLang(info.endetAm)}.'),
+                  Text(info.jederzeit
+                      ? 'Kündigst du heute, endet der Vertrag am ${datumLang(info.endetAm)}.'
+                      : 'Der Vertrag endet dann am ${datumLang(info.endetAm)}.'),
                   const SizedBox(height: 8),
                   Text(info.hinweis, style: const TextStyle(color: PT.grau, fontSize: 13)),
                 ],
@@ -509,6 +526,18 @@ class _VertragFormularState extends State<VertragFormular> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  /// Typische Mindestlaufzeit (Monate) und Kündigungsfrist (Monate) je Art.
+  static const _typisch = <String, (int, int)>{
+    'Handy': (24, 1),
+    'Internet': (24, 1),
+    'Strom': (12, 1),
+    'Gas': (12, 1),
+    'Fitnessstudio': (12, 1),
+    'Streaming': (0, 1),
+    'Versicherung': (12, 3),
+    'Zeitschrift': (12, 1),
+  };
+
   Widget _chips<T>(List<(T, String)> werte, T gewaehlt, void Function(T) setzen) => Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -545,7 +574,22 @@ class _VertragFormularState extends State<VertragFormular> {
           const SizedBox(height: 16),
           const Text('Art', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          _chips([for (final a in vertragsArten) (a, a)], _art, (a) => _art = a),
+          _chips([for (final a in vertragsArten) (a, a)], _art, (a) {
+            _art = a;
+            // Neuer Vertrag: typische Laufzeit und Frist der Art vorschlagen (änderbar)
+            if (widget.vertrag == null && widget.vorschlag == null) {
+              final (laufzeit, frist) = _typisch[a] ?? (12, 1);
+              _laufzeit = laufzeit;
+              _fristWert = frist;
+              _wochen = false;
+            }
+          }),
+          if (widget.vertrag == null && widget.vorschlag == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Text('Laufzeit und Frist sind typische Werte für diese Art – bitte mit deinem Vertrag vergleichen.',
+                  style: TextStyle(color: PT.grau, fontSize: 12.5)),
+            ),
           if (_art == 'Versicherung') ...[
             const SizedBox(height: 16),
             const Text('Welche Versicherung?', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -645,7 +689,11 @@ class BriefVertragKarte extends StatelessWidget {
             child: ListTile(
               leading: Icon(vertragIcon(v), color: PT.orangeDunkel),
               title: Text('Vertrag: ${v.anbieter}'),
-              subtitle: Text(v.gekuendigt ? 'gekündigt' : 'kündigen bis ${datumKurz(info.kuendigenBis)}'),
+              subtitle: Text(v.gekuendigt
+                  ? 'gekündigt'
+                  : info.jederzeit
+                      ? 'jederzeit kündbar'
+                      : 'kündigen bis ${datumKurz(info.kuendigenBis)}'),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => VertragDetail(vertragId: v.id))),

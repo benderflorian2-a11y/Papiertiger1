@@ -213,6 +213,8 @@ List<String> kernaussagen(String text, {int max = 6, bool nachWichtigkeit = fals
     final s = saetze[i];
     final w = s.split(' ').length;
     if (w < 5 || s.length > 400 || _beiwerk.hasMatch(s)) continue;
+    // Briefkopf und Adressen („… · Werner-Otto-Straße 1-7 · 22179 Hamburg“) sind keine Aussagen
+    if (s.contains(' · ') || RegExp(r'\b\d{5}\s+[A-ZÄÖÜ][a-zäöüß]+').hasMatch(s) && !RegExp(r'[a-zäöüß]{3,}\s+(sie|wir|ihr|ihre|ihnen|bitte)\b', caseSensitive: false).hasMatch(s)) continue;
     // Tabellenzeilen und Adressen: kaum Kleinbuchstaben-Wörter
     if (RegExp(r'[a-zäöüß]{3,}').allMatches(s).length < 4) continue;
     final l = s.toLowerCase();

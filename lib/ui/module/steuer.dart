@@ -70,7 +70,12 @@ class _SteuerScreenState extends State<SteuerScreen> {
                           : 'Gilt, wenn du eine Erklärung abgeben musst (ohne Steuerberater). Freiwillig geht es bis '
                               '${datumKurz(freiwilligBis(_jahr))} – oft gibt es Geld zurück.',
                       style: const TextStyle(fontSize: 13, height: 1.4)),
-                  const Text('Quelle: § 149 AO (Abgabefrist), § 46 EStG mit § 169 AO (freiwillig 4 Jahre). Keine Steuerberatung.',
+                  const SizedBox(height: 6),
+                  Text(
+                      'Mit Steuerberater oder Lohnsteuerhilfeverein: bis ${datumKurz(abgabefristBerater(_jahr))}. '
+                      'Viele Angestellte müssen gar nicht abgeben – dann ist die Erklärung freiwillig.',
+                      style: const TextStyle(fontSize: 13, height: 1.4)),
+                  const Text('Quelle: § 149 AO (Abgabefristen), § 46 EStG mit § 169 AO (Pflicht bzw. freiwillig 4 Jahre). Keine Steuerberatung.',
                       style: TextStyle(fontSize: 11, color: PT.grau)),
                   if (!frist.isBefore(DateTime.now()))
                     TextButton.icon(

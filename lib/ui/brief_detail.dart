@@ -219,7 +219,7 @@ class BriefDetail extends StatelessWidget {
             ),
           ),
 
-          const Abschnitt('Einfach erklärt'),
+          const Abschnitt('Kurz gesagt'),
           PTKarte(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,8 +266,6 @@ class BriefDetail extends StatelessWidget {
               label: Text('In meiner Sprache erklären (${store.notizen['ansicht:sprache']})'),
             ),
           KiKarte(brief: b),
-          BriefInhaltKarte(inhaltLesen(b.text, briefDatum: b.briefDatum, kopf: briefKopf(b)),
-              kiKurz: b.kiFertig && b.erklaerung.trim().isNotEmpty ? b.erklaerung : null),
 
           if (b.fakten.isNotEmpty) ...[
             const Abschnitt('Das steht drin'),
@@ -489,6 +487,8 @@ class BriefDetail extends StatelessWidget {
               ],
             ),
           ),
+          BriefInhaltKarte(inhaltLesen(b.text, briefDatum: b.briefDatum)),
+
           const Abschnitt('Schriftverkehr'),
           VerlaufKarte(brief: b),
           const SizedBox(height: 12),

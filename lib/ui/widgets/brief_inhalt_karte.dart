@@ -15,38 +15,21 @@ IconData _gruppenSymbol(String g) => switch (g) {
       _ => Icons.info_outline,
     };
 
-/// „Das steht im Brief“: Betreff, wichtigste Aussagen und alle erkannten Angaben.
-/// Antippen einer Angabe kopiert sie (z. B. IBAN oder Aktenzeichen).
+/// „Das steht im Brief“: Betreff, wichtigste Aussagen im Wortlaut und – eingeklappt – alle erkannten Angaben.
+/// Antippen einer Angabe kopiert sie (z. B. IBAN oder Aktenzeichen). Die Kurzfassung steht oben unter „Kurz gesagt“.
 class BriefInhaltKarte extends StatelessWidget {
-  const BriefInhaltKarte(this.inhalt, {super.key, this.kiKurz});
+  const BriefInhaltKarte(this.inhalt, {super.key});
 
   final BriefInhalt inhalt;
 
-  /// Kurzfassung der KI, wenn sie den Brief gelesen hat – hat Vorrang.
-  final String? kiKurz;
-
   @override
   Widget build(BuildContext context) {
-    if (inhalt.leer) return const SizedBox.shrink();
+    if (inhalt.betreff == null && inhalt.kernaussagen.isEmpty && inhalt.punkte.isEmpty) return const SizedBox.shrink();
     final gruppen = inhalt.gruppen;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       const Abschnitt('Das steht im Brief'),
       PTKarte(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if ((kiKurz ?? inhalt.kurz).isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: PT.orangeHell, borderRadius: BorderRadius.circular(12)),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(kiKurz != null ? 'Kurz gesagt – vom Tiger gelesen' : 'Kurz gesagt',
-                    style: const TextStyle(fontWeight: FontWeight.w800, color: PT.orangeDunkel)),
-                const SizedBox(height: 4),
-                Text(kiKurz ?? inhalt.kurz, style: const TextStyle(height: 1.45, color: PT.tinte)),
-              ]),
-            ),
-            const SizedBox(height: 12),
-          ],
           if (inhalt.betreff != null) ...[
             const Text('Betreff', style: TextStyle(color: PT.grau, fontSize: 13)),
             Text(inhalt.betreff!, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: PT.tinte)),
@@ -63,45 +46,59 @@ class BriefInhaltKarte extends StatelessWidget {
                 Expanded(child: Text(s, style: const TextStyle(height: 1.45))),
               ]),
             ),
-          if (gruppen.isNotEmpty) ...[
-            if (inhalt.kernaussagen.isNotEmpty || inhalt.betreff != null) const Divider(height: 24),
-            for (final g in gruppen.entries) ...[
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 2),
-                child: Row(children: [
-                  Icon(_gruppenSymbol(g.key), size: 16, color: PT.orangeDunkel),
-                  const SizedBox(width: 6),
-                  Text(g.key, style: const TextStyle(fontWeight: FontWeight.w700, color: PT.orangeDunkel, fontSize: 13)),
-                ]),
-              ),
-              for (final p in g.value)
-                InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () async {
-                    await Clipboard.setData(ClipboardData(text: p.wert));
-                    if (context.mounted) zeigeHinweis(context, '${p.label} kopiert');
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 5),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Expanded(
-                        flex: 4,
-                        child: Text(p.label, style: const TextStyle(color: PT.grau, fontSize: 13.5)),
+          if (gruppen.isNotEmpty)
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: EdgeInsets.zero,
+                title: Text('Alle Angaben (${inhalt.punkte.length})',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: PT.orangeDunkel)),
+                subtitle: Text(gruppen.keys.join(' · '), style: const TextStyle(color: PT.grau, fontSize: 12.5)),
+                children: [
+                  for (final g in gruppen.entries) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 2),
+                      child: Row(children: [
+                        Icon(_gruppenSymbol(g.key), size: 16, color: PT.orangeDunkel),
+                        const SizedBox(width: 6),
+                        Text(g.key, style: const TextStyle(fontWeight: FontWeight.w700, color: PT.orangeDunkel, fontSize: 13)),
+                      ]),
+                    ),
+                    for (final p in g.value)
+                      InkWell(
+                        borderRadius: BorderRadius.circular(8),
+                        onTap: () async {
+                          await Clipboard.setData(ClipboardData(text: p.wert));
+                          if (context.mounted) zeigeHinweis(context, '${p.label} kopiert');
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Expanded(
+                              flex: 4,
+                              child: Text(p.label, style: const TextStyle(color: PT.grau, fontSize: 13.5)),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              flex: 6,
+                              child: Text(p.wert,
+                                  textAlign: TextAlign.right,
+                                  style: const TextStyle(fontWeight: FontWeight.w700, color: PT.tinte)),
+                            ),
+                          ]),
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        flex: 6,
-                        child: Text(p.wert,
-                            textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, color: PT.tinte)),
-                      ),
-                    ]),
+                  ],
+                  const SizedBox(height: 6),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Antippen kopiert die Angabe. Automatisch erkannt – im Zweifel gilt das Original.',
+                        style: TextStyle(color: PT.grau, fontSize: 12)),
                   ),
-                ),
-            ],
-            const SizedBox(height: 6),
-            const Text('Antippen kopiert die Angabe. Automatisch erkannt – im Zweifel gilt das Original.',
-                style: TextStyle(color: PT.grau, fontSize: 12)),
-          ],
+                ],
+              ),
+            ),
         ]),
       ),
     ]);
