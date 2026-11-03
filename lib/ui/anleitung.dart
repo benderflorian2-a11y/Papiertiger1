@@ -61,8 +61,9 @@ class ErsteSchritteKarte extends StatelessWidget {
                 Icons.alternate_email, store.postfach.konto != null, (c) => _oeffne(c, const PostfachScreen())),
           _Schritt('Verträge und Abos eintragen', 'Der Tiger sagt dir, bis wann du kündigen kannst',
               Icons.description_outlined, store.vertraege.isNotEmpty, (c) => _oeffne(c, const VertraegeScreen())),
-          _Schritt('Daten sichern', 'Damit nichts verloren geht, wenn das Handy kaputtgeht', Icons.cloud_upload_outlined,
-              letzteSicherung(store.notizen) != null, (c) => _oeffne(c, const SicherungScreen())),
+          // „Daten sichern“ erinnert die Startseite schon unter „Heute erledigen“
+          _Schritt('App-Sperre einschalten', 'PIN oder Fingerabdruck – niemand liest deine Post mit', Icons.lock_outline,
+              sperreAn(store), (c) => _oeffne(c, const SicherheitScreen())),
         ];
         final fertig = schritte.where((s) => s.erledigt).length;
         if (fertig == schritte.length) return const SizedBox.shrink();
