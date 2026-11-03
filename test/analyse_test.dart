@@ -230,4 +230,19 @@ Der Antragsteller macht folgende Forderung geltend: 450,00 €
     expect(a.kategorie.key, 'gericht');
     expect(a.typ.key, 'mahnbescheid');
   });
+
+  test('Einladung vom Jobcenter: Termin wird zur Frist und steht in der Erklärung', () {
+    const text = '''
+Jobcenter Musterstadt
+Musterstadt, 27.10.2026
+Einladung
+Sehr geehrter Herr Bender,
+bitte kommen Sie am 12.11.2026 um 09:30 Uhr in das Jobcenter, Zimmer 204.
+Mit freundlichen Grüßen
+''';
+    final a = analysiereBrief(text, heute: heute);
+    expect(a.typ.key, 'einladung');
+    expect(a.frist, DateTime(2026, 11, 12));
+    expect(a.erklaerung, contains('Termin ist am 12.11.2026 um 09:30 Uhr'));
+  });
 }
