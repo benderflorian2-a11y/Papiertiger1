@@ -93,4 +93,50 @@ void main() {
     expect(b.reisen.single.packliste.single.eingepackt, isTrue);
     expect(b.reisen.single.briefIds, ['b1']);
   });
+
+  test('Rezept aus KI-Antwort lesen', () {
+    final r = rezeptLesen('''
+**NAME:** Cremige Tomatenpasta
+PORTIONEN: 2
+ZEIT: 20
+ZUTATEN:
+- 250 g Spaghetti
+- 400 g passierte Tomaten
+- 1 Zwiebel (kaufen)
+- Salz
+ZUBEREITUNG:
+1. Nudeln kochen.
+2. Sauce mit Zwiebel köcheln lassen.
+''', quelle: 'Screenshot')!;
+    expect(r.name, 'Cremige Tomatenpasta');
+    expect(r.portionen, '2');
+    expect(r.zeit, '20');
+    expect(r.zutaten, ['250 g Spaghetti', '400 g passierte Tomaten', '1 Zwiebel', 'Salz']);
+    expect(r.zubereitung, '1. Nudeln kochen.\n2. Sauce mit Zwiebel köcheln lassen.');
+    expect(r.quelle, 'Screenshot');
+  });
+
+  test('Kein Rezept im Screenshot', () {
+    expect(rezeptLesen('KEIN REZEPT'), isNull);
+    expect(rezeptLesen(''), isNull);
+  });
+
+  test('Zutaten auf die Einkaufsliste ohne Doppelte, Grundzutaten erkennen', () {
+    final liste = [Einkauf(text: '1 Zwiebel')];
+    final neu = zutatenAufEinkaufsliste(['1 zwiebel', '250 g Spaghetti', '250 g Spaghetti'], liste);
+    expect(neu.map((e) => e.text), ['250 g Spaghetti']);
+    expect(liste.length, 2);
+    expect(istGrundzutat('Salz'), isTrue);
+    expect(istGrundzutat('2 EL Olivenöl'), isTrue);
+    expect(istGrundzutat('Öl'), isTrue);
+    expect(istGrundzutat('250 g Spaghetti'), isFalse);
+  });
+
+  test('Rezepte überstehen Speichern und Laden', () {
+    final a = Alltag(rezepte: [Rezept(id: '1', name: 'Pasta', zutaten: ['Nudeln'], zubereitung: '1. Kochen.', zeit: '15')]);
+    final b = Alltag.fromJson(jsonDecode(jsonEncode(a.toJson())) as Map<String, dynamic>);
+    expect(b.rezepte.single.name, 'Pasta');
+    expect(b.rezepte.single.zutaten, ['Nudeln']);
+    expect(Alltag.fromJson({}).rezepte, isEmpty);
+  });
 }

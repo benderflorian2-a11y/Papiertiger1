@@ -148,6 +148,97 @@ List<Einkauf> einkaufAusEssensplan(String antwort) {
   return einkaufAusText(rest);
 }
 
+// ---------------------------------------------------------------- Rezepte aus Screenshots
+
+/// Anfrage an die KI: aus dem Text eines Screenshots (TikTok, YouTube, Instagram …) ein Rezept machen.
+String rezeptAusTextAnfrage(String bildtext) => '''
+Unten steht der Text aus einem Screenshot (z. B. von TikTok, YouTube oder Instagram). Mache daraus ein Rezept.
+Erfinde nichts dazu: Nimm nur Zutaten und Schritte, die im Text vorkommen. Wenn kein Rezept erkennbar ist, antworte nur mit: KEIN REZEPT
+Antworte genau in diesem Format:
+NAME: <Name des Gerichts>
+PORTIONEN: <Zahl oder leer>
+ZEIT: <Minuten oder leer>
+ZUTATEN:
+- <eine Zutat pro Zeile, mit Menge>
+ZUBEREITUNG:
+1. <kurzer Schritt>
+Antworte auf Deutsch.
+
+TEXT:
+${bildtext.trim()}
+''';
+
+/// Zutaten, die man meist schon zu Hause hat – werden nicht automatisch auf die Einkaufsliste gesetzt.
+bool istGrundzutat(String zutat) {
+  const grund = {'salz', 'pfeffer', 'wasser', 'öl', 'speiseöl', 'olivenöl', 'rapsöl', 'sonnenblumenöl'};
+  final woerter = zutat.toLowerCase().split(RegExp(r'[^a-zäöüß]+')).where((w) => w.isNotEmpty);
+  return woerter.any(grund.contains);
+}
+
+final _rezeptKopf = RegExp(r'^\W*(name|portionen|zeit|zutaten|zubereitung)\W*:\s*(.*)$', caseSensitive: false);
+
+/// Liest die KI-Antwort in ein Rezept. null, wenn die KI kein Rezept gefunden hat.
+Rezept? rezeptLesen(String antwort, {String quelle = ''}) {
+  final text = antwort.replaceAll('**', '').trim();
+  if (text.isEmpty || text.toUpperCase().contains('KEIN REZEPT')) return null;
+  var name = '', portionen = '', zeit = '';
+  final zutaten = <String>[], schritte = <String>[];
+  var bereich = '';
+  for (final roh in text.split('\n')) {
+    final z = roh.trim();
+    if (z.isEmpty) continue;
+    final m = _rezeptKopf.firstMatch(z);
+    if (m != null) {
+      bereich = m.group(1)!.toLowerCase();
+      final rest = m.group(2)!.trim();
+      if (bereich == 'name') name = rest;
+      if (bereich == 'portionen') portionen = rest;
+      if (bereich == 'zeit') zeit = rest;
+      if (rest.isNotEmpty && bereich == 'zutaten') zutaten.add(rest.replaceFirst(_mengeVorne, ''));
+      continue;
+    }
+    if (bereich == 'zutaten') {
+      final t = z.replaceFirst(_mengeVorne, '').replaceAll(RegExp(r'\s*\(kaufen\)', caseSensitive: false), '').trim();
+      if (t.isNotEmpty && !t.endsWith(':')) zutaten.add(t);
+    } else if (bereich == 'zubereitung') {
+      schritte.add(z.replaceFirst(RegExp(r'^\s*(?:[-•*]|\d+[.)])\s*'), '').trim());
+    }
+  }
+  if (name.isEmpty && zutaten.isEmpty) return null;
+  return Rezept(
+    id: DateTime.now().microsecondsSinceEpoch.toString(),
+    name: name.isEmpty ? 'Rezept' : name,
+    portionen: portionen,
+    zeit: zeit,
+    zutaten: zutaten,
+    zubereitung: [for (var i = 0; i < schritte.length; i++) '${i + 1}. ${schritte[i]}'].join('\n'),
+    quelle: quelle,
+  );
+}
+
+/// Zutaten auf die Einkaufsliste setzen, ohne Doppelte. Gibt die neuen Einträge zurück.
+List<Einkauf> zutatenAufEinkaufsliste(List<String> zutaten, List<Einkauf> liste) {
+  final schon = {for (final e in liste.where((e) => !e.erledigt)) e.text.toLowerCase()};
+  final neu = <Einkauf>[];
+  for (final z in zutaten) {
+    final t = z.trim();
+    if (t.isEmpty || !schon.add(t.toLowerCase())) continue;
+    neu.add(Einkauf(text: t));
+  }
+  liste.addAll(neu);
+  return neu;
+}
+
+String rezeptAlsText(Rezept r) {
+  final b = StringBuffer(r.name);
+  if (r.portionen.isNotEmpty || r.zeit.isNotEmpty) {
+    b.write('\n${[if (r.portionen.isNotEmpty) '${r.portionen} Portionen', if (r.zeit.isNotEmpty) '${r.zeit} Min.'].join(' · ')}');
+  }
+  b.write('\n\nZutaten\n${r.zutaten.map((z) => '- $z').join('\n')}');
+  if (r.zubereitung.isNotEmpty) b.write('\n\nZubereitung\n${r.zubereitung}');
+  return b.toString();
+}
+
 // ---------------------------------------------------------------- Haushaltsaufgaben
 
 DateTime? naechstesMal(Hausaufgabe a) =>

@@ -14,6 +14,7 @@ import '../theme.dart';
 import '../finanzen.dart';
 import '../widgets/common.dart';
 import 'alltag.dart';
+import 'rezepte.dart';
 
 double? _zahl(String s) => double.tryParse(s.replaceAll('.', '').replaceAll(',', '.').replaceAll('€', '').trim());
 String _feld(double? v) => v == null ? '' : v.toStringAsFixed(v == v.roundToDouble() ? 0 : 2).replaceAll('.', ',');
@@ -63,6 +64,9 @@ class HaushaltScreen extends StatelessWidget {
               const EinkaufScreen()),
           kachel(Icons.kitchen_outlined, 'Vorräte',
               bald == 0 ? 'Haltbarkeit im Blick, Rezepte aus Resten' : '$bald laufen bald ab', const VorraeteScreen()),
+          kachel(Icons.menu_book_outlined, 'Rezepte',
+              store.alltag.rezepte.isEmpty ? 'Screenshot aus TikTok oder YouTube einlesen' : '${store.alltag.rezepte.length} gespeichert',
+              const RezepteScreen()),
           kachel(Icons.restaurant_menu, 'Essensplan', 'Woche planen, Zutaten auf die Einkaufsliste', const EssensplanScreen()),
           kachel(Icons.cleaning_services_outlined, 'Aufgaben im Haushalt',
               faellig == 0 ? 'Wer ist dran? Putzplan, Müll, Wäsche' : '$faellig fällig', const HausaufgabenScreen()),

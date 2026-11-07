@@ -222,6 +222,7 @@ Stand: 01.11.2026, Version 1.44
 
 - ✅ Einkaufslisten aus Rezepten, Nachrichten oder Notizen erstellen
 - ✅ Einkaufslisten nach Supermarkt oder Kategorie sortieren
+- ✅ Rezept aus Screenshot (TikTok, YouTube …) speichern, Zutaten automatisch auf die Einkaufsliste
 - ✅ Haushaltsbudget verwalten
 - ✅ Wiederkehrende Einkäufe planen
 - ✅ Vorräte erfassen, wenn der Nutzer sie dokumentiert

@@ -201,6 +201,17 @@ final _themen = <_Thema>[
     ziel: kIsWeb ? null : () => const PostfachScreen(),
   ),
   _Thema(
+    'Rezepte aus Screenshots',
+    Icons.menu_book_outlined,
+    'Du siehst in TikTok, YouTube oder Instagram ein Rezept? Mach einen Screenshot und lies ihn bei „Haushalt › Rezepte“ ein. '
+        'Der Tiger speichert das Rezept und setzt die Zutaten auf deine Einkaufsliste.',
+    tipps: [
+      'Du siehst die Zutaten vorher und kannst abhaken, was du schon hast.',
+      'Steht das Rezept nur in der Videobeschreibung, kopiere sie und nutze „Rezepttext einfügen“.',
+      'Dafür braucht der Tiger die KI auf dem Handy.',
+    ],
+  ),
+  _Thema(
     'Verträge, Abos und Kontoauszug',
     Icons.description_outlined,
     'Trag deine Verträge ein oder lass sie aus dem Kontoauszug finden. Der Tiger zeigt, was dich jeden Monat kostet, '

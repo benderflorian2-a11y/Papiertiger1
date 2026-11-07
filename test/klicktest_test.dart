@@ -25,6 +25,7 @@ import 'package:papiertiger/ui/geschaeft/plantafel.dart';
 import 'package:papiertiger/ui/geschaeft/projekte.dart';
 import 'package:papiertiger/ui/geschaeft/stempeluhr.dart';
 import 'package:papiertiger/ui/haushalt/alltag.dart';
+import 'package:papiertiger/ui/haushalt/rezepte.dart';
 import 'package:papiertiger/ui/haushalt/haushalt.dart';
 import 'package:papiertiger/ui/karriere/karriere.dart';
 import 'package:papiertiger/ui/kontoauszug.dart';
@@ -101,6 +102,7 @@ final _kategorien = <String, Map<String, Widget Function()>>{
     'Einkauf': () => const EinkaufScreen(),
     'Vorräte': () => const VorraeteScreen(),
     'Essensplan': () => const EssensplanScreen(),
+    'Rezepte': () => const RezepteScreen(),
     'Haushaltsaufgaben': () => const HausaufgabenScreen(),
     'Geschenke': () => const GeschenkeScreen(),
     'Reisen': () => const ReisenScreen(),

@@ -29,6 +29,54 @@ class Einkauf {
       );
 }
 
+/// Ein gespeichertes Rezept (z. B. aus einem Screenshot von TikTok oder YouTube).
+class Rezept {
+  Rezept({
+    required this.id,
+    required this.name,
+    this.portionen = '',
+    this.zeit = '',
+    List<String>? zutaten,
+    this.zubereitung = '',
+    this.quelle = '',
+    DateTime? gespeichert,
+  })  : zutaten = zutaten ?? [],
+        gespeichert = gespeichert ?? DateTime.now();
+
+  String id;
+  String name;
+  String portionen;
+  String zeit;
+  List<String> zutaten;
+  String zubereitung;
+
+  /// Woher das Rezept stammt (z. B. „Screenshot“ oder „Text eingefügt“).
+  String quelle;
+  DateTime gespeichert;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'portionen': portionen,
+        'zeit': zeit,
+        'zutaten': zutaten,
+        'zubereitung': zubereitung,
+        'quelle': quelle,
+        'gespeichert': gespeichert.toIso8601String(),
+      };
+
+  factory Rezept.fromJson(Map<String, dynamic> j) => Rezept(
+        id: j['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
+        name: j['name'] as String? ?? '',
+        portionen: j['portionen'] as String? ?? '',
+        zeit: j['zeit'] as String? ?? '',
+        zutaten: (j['zutaten'] as List?)?.whereType<String>().toList() ?? [],
+        zubereitung: j['zubereitung'] as String? ?? '',
+        quelle: j['quelle'] as String? ?? '',
+        gespeichert: _datum(j['gespeichert']),
+      );
+}
+
 class Vorrat {
   Vorrat({required this.name, this.menge = '', this.ablauf, this.ort = 'Vorrat'});
 
@@ -177,12 +225,14 @@ class Alltag {
     List<Hausaufgabe>? hausaufgaben,
     List<Geschenk>? geschenke,
     List<Reise>? reisen,
+    List<Rezept>? rezepte,
   })  : einkauf = einkauf ?? [],
         vorraete = vorraete ?? [],
         essensplan = essensplan ?? {},
         hausaufgaben = hausaufgaben ?? [],
         geschenke = geschenke ?? [],
-        reisen = reisen ?? [];
+        reisen = reisen ?? [],
+        rezepte = rezepte ?? [];
 
   List<Einkauf> einkauf;
   List<Vorrat> vorraete;
@@ -192,6 +242,7 @@ class Alltag {
   List<Hausaufgabe> hausaufgaben;
   List<Geschenk> geschenke;
   List<Reise> reisen;
+  List<Rezept> rezepte;
 
   Map<String, dynamic> toJson() => {
         'einkauf': einkauf.map((e) => e.toJson()).toList(),
@@ -200,6 +251,7 @@ class Alltag {
         'hausaufgaben': hausaufgaben.map((e) => e.toJson()).toList(),
         'geschenke': geschenke.map((e) => e.toJson()).toList(),
         'reisen': reisen.map((e) => e.toJson()).toList(),
+        'rezepte': rezepte.map((e) => e.toJson()).toList(),
       };
 
   factory Alltag.fromJson(Map<String, dynamic> j) => Alltag(
@@ -209,5 +261,6 @@ class Alltag {
         hausaufgaben: _liste(j['hausaufgaben'], Hausaufgabe.fromJson),
         geschenke: _liste(j['geschenke'], Geschenk.fromJson),
         reisen: _liste(j['reisen'], Reise.fromJson),
+        rezepte: _liste(j['rezepte'], Rezept.fromJson),
       );
 }
