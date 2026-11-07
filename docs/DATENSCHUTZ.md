@@ -25,3 +25,6 @@ Alle Daten löschst du in der App oder durch Deinstallation.
 
 ## Deine Rechte
 Auskunft, Berichtigung und Löschung nach DSGVO. Da keine Daten bei uns liegen, wirst du sie meist selbst in der App ausüben können. Kontakt: [E-Mail eintragen]
+
+## Links aus TikTok, YouTube oder Instagram
+Teilst du einen Video-Link mit Papiertiger, ruft die App Titel und Beschreibung des Videos direkt bei der Video-Seite ab. Dabei erfährt diese Seite den Link und deine Internetadresse, wie bei jedem Aufruf im Browser. Mehr wird nicht gesendet. Die Auswertung geschieht auf dem Gerät.

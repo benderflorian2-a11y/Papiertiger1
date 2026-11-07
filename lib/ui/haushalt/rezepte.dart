@@ -6,6 +6,7 @@ import '../../logic/alltag.dart';
 import '../../logic/export.dart';
 import '../../logic/ki.dart';
 import '../../logic/texterkennung.dart';
+import '../../logic/video_link.dart';
 import '../app.dart';
 import '../ki_einrichten.dart';
 import '../theme.dart';
@@ -85,6 +86,19 @@ Future<void> _ausScreenshot(BuildContext context) async {
   }, quelle: 'Screenshot');
 }
 
+/// Geteilter Link aus TikTok, YouTube oder Instagram: Beschreibung holen und zum Rezept machen.
+Future<void> rezeptAusLink(BuildContext context, String link) async {
+  if (!await _kiBereit(context) || !context.mounted) return;
+  await _verarbeiten(context, () async {
+    final text = await videoText(link);
+    if (text.trim().length < 40) {
+      throw 'Zu dem Link habe ich keine Beschreibung gefunden. Oft steht das Rezept nur im Video. '
+          'Mach dann einen Screenshot und lies ihn bei „Rezepte“ ein.';
+    }
+    return text;
+  }, quelle: 'Link');
+}
+
 Future<void> _ausText(BuildContext context) async {
   if (!await _kiBereit(context) || !context.mounted) return;
   final c = TextEditingController();
@@ -141,14 +155,17 @@ Future<void> _verarbeiten(BuildContext context, Future<String> Function() textHo
   }
   nav.pop();
   if (!context.mounted) return;
+  final f = fehler;
   if (rezept == null) {
     await showDialog<void>(
       context: context,
       builder: (d) => AlertDialog(
-        title: Text(fehler == null ? 'Kein Rezept erkannt' : 'Das hat nicht geklappt'),
-        content: Text(fehler ??
-            'Im Bild habe ich kein Rezept mit Zutaten gefunden. Oft steht es in der Videobeschreibung: '
-                'Kopiere sie und füge sie als Text ein.'),
+        title: Text(f == null || f.startsWith('Zu dem Link') ? 'Kein Rezept erkannt' : 'Das hat nicht geklappt'),
+        content: Text(f != null && f.startsWith('Zu dem Link')
+            ? f
+            : f ??
+                'Ich habe kein Rezept mit Zutaten gefunden. Oft steht es in der Videobeschreibung: '
+                    'Kopiere sie und füge sie als Text ein.'),
         actions: [TextButton(onPressed: () => Navigator.pop(d), child: const Text('OK'))],
       ),
     );

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../logic/android_kanal.dart';
 import '../logic/postfach_dienst.dart';
+import '../logic/video_link.dart';
 import 'app.dart';
 import 'archiv.dart';
 import 'fristen.dart';
+import 'haushalt/rezepte.dart';
 import 'home.dart';
 import 'mehr.dart';
 import 'scan.dart';
@@ -53,6 +55,14 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     final teile = await AndroidKanal.abholen();
     if (teile.isEmpty || !mounted) return;
     setState(() => _tab = 0);
+    // Link aus TikTok, YouTube oder Instagram → Rezept
+    if (teile.length == 1 && teile.first.istText) {
+      final link = videoLink('${teile.first.betreff ?? ''} ${teile.first.text ?? ''}');
+      if (link != null) {
+        await rezeptAusLink(context, link);
+        return;
+      }
+    }
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => DateiImportScreen(geteilt: teile)));
   }
 
