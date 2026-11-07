@@ -255,6 +255,14 @@ jobs:
           set -o pipefail
           flutter build apk --release --target-platform android-arm64 2>&1 | tee build.txt
 
+      - name: AAB fuer den Play Store bauen
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          flutter build appbundle --release --target-platform android-arm64 2>&1 | tee build_aab.txt
+          cp build/app/outputs/bundle/release/app-release.aab papiertiger.aab
+          ls -la papiertiger.aab
+
       - name: APK benennen und Schluessel pruefen
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk papiertiger.apk
@@ -308,6 +316,7 @@ jobs:
           body_path: bericht_kurz.md
           files: |
             papiertiger.apk
+            papiertiger.aab
             rundgang.zip
 
       - name: Fehlerbericht veroeffentlichen
