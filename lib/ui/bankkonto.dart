@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:fints/fints.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 
+import '../logic/bankenliste.dart';
 import '../logic/bankzugang.dart';
 import 'app.dart';
 import 'kontoauszug.dart';
@@ -24,7 +26,8 @@ class BankkontoScreen extends StatefulWidget {
 }
 
 class _BankkontoScreenState extends State<BankkontoScreen> {
-  var _vorlage = bankVorlagen.first;
+  Bank? _bank;
+  List<Bank> _banken = const [];
   final _iban = TextEditingController();
   final _url = TextEditingController();
   final _benutzer = TextEditingController();
@@ -36,13 +39,18 @@ class _BankkontoScreenState extends State<BankkontoScreen> {
   @override
   void initState() {
     super.initState();
+    rootBundle.loadString('assets/daten/banken.json').then((t) {
+      if (mounted) setState(() => _banken = bankenLesen(t));
+    }).catchError((Object _) {});
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final roh = StoreScope.of(context).notizen[bankZugangSchluessel];
       if (roh == null) return;
       try {
         final j = jsonDecode(roh) as Map<String, dynamic>;
         setState(() {
-          _vorlage = bankVorlagen.firstWhere((v) => v.name == j['bank'], orElse: () => bankVorlagen.last);
+          final blz = j['blz'] as String?;
+          final url = j['url'] as String? ?? '';
+          _bank = blz == null ? null : Bank(j['bank'] as String? ?? 'Bank', blz, url);
           _iban.text = j['iban'] as String? ?? '';
           _url.text = j['url'] as String? ?? '';
           _benutzer.text = j['benutzer'] as String? ?? '';
@@ -118,11 +126,20 @@ class _BankkontoScreenState extends State<BankkontoScreen> {
     return tan == null || tan.isEmpty ? TanAnswer.cancelled : TanAnswer.tan(tan);
   }
 
+  Future<void> _bankWaehlen() async {
+    final gewaehlt = await showModalBottomSheet<Bank>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _BankSuche(alle: _banken),
+    );
+    if (gewaehlt != null) setState(() => _bank = gewaehlt);
+  }
+
   Future<void> _abrufen() async {
     final store = StoreScope.of(context);
-    final blz = blzAusIban(_iban.text);
-    final url = _vorlage.url.isNotEmpty ? _vorlage.url : _url.text.trim();
-    if (blz == null) return setState(() => _fehler = 'Bitte deine IBAN eingeben (DE…, 22 Stellen).');
+    final blz = _bank?.blz ?? blzAusIban(_iban.text);
+    final url = (_bank != null && _bank!.url.isNotEmpty) ? _bank!.url : _url.text.trim();
+    if (blz == null) return setState(() => _fehler = 'Bitte wähle deine Bank oder gib deine IBAN ein (DE…, 22 Stellen).');
     if (!url.startsWith('https://')) return setState(() => _fehler = 'Bitte die FinTS-Adresse deiner Bank eintragen (beginnt mit https://).');
     if (_benutzer.text.trim().isEmpty || _pin.text.isEmpty) {
       return setState(() => _fehler = 'Bitte Anmeldename und PIN deines Online-Bankings eingeben.');
@@ -145,7 +162,8 @@ class _BankkontoScreenState extends State<BankkontoScreen> {
       _pin.clear();
       _state = r.state;
       store.notizen[bankZugangSchluessel] = jsonEncode({
-        'bank': _vorlage.name,
+        'bank': _bank?.name ?? 'Andere Bank',
+        'blz': blz,
         'iban': _iban.text.replaceAll(' ', '').toUpperCase(),
         'url': url,
         'benutzer': _benutzer.text.trim(),
@@ -227,25 +245,27 @@ class _BankkontoScreenState extends State<BankkontoScreen> {
                   '${stand['stand'] == null ? '' : ' · Kontostand ${euro((stand['stand'] as num).toDouble())}'}'),
             ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<BankVorlage>(
-            value: _vorlage,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'Bank'),
-            items: [for (final v in bankVorlagen) DropdownMenuItem(value: v, child: Text(v.name))],
-            onChanged: (v) => setState(() => _vorlage = v ?? _vorlage),
+          OutlinedButton.icon(
+            onPressed: _bankWaehlen,
+            icon: const Icon(Icons.search),
+            label: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(_bank == null ? 'Bank suchen und auswählen' : _bank!.name, overflow: TextOverflow.ellipsis),
+            ),
           ),
-          if (_vorlage.hinweis.isNotEmpty)
+          if (_bank != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text(_vorlage.hinweis, style: const TextStyle(color: PT.grau, fontSize: 13)),
+              child: Text('Bankleitzahl ${_bank!.blz} · Adresse wird automatisch gesetzt.',
+                  style: const TextStyle(color: PT.grau, fontSize: 13)),
             ),
-          if (_vorlage.url.isEmpty) ...[
+          if (_bank == null) ...[
             const SizedBox(height: 12),
             TextField(
               controller: _url,
               keyboardType: TextInputType.url,
               autocorrect: false,
-              decoration: const InputDecoration(labelText: 'FinTS-Adresse (https://…)'),
+              decoration: const InputDecoration(labelText: 'Oder FinTS-Adresse selbst eintragen (https://…)'),
             ),
           ],
           const SizedBox(height: 12),
@@ -253,7 +273,9 @@ class _BankkontoScreenState extends State<BankkontoScreen> {
             controller: _iban,
             autocorrect: false,
             textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(labelText: 'Deine IBAN', hintText: 'DE12 3456 …'),
+            decoration: InputDecoration(
+                labelText: _bank == null ? 'Deine IBAN' : 'Deine IBAN (freiwillig, falls du mehrere Konten hast)',
+                hintText: 'DE12 3456 …'),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -290,6 +312,47 @@ class _BankkontoScreenState extends State<BankkontoScreen> {
             ),
         ],
       ]),
+    );
+  }
+}
+
+/// Suchfeld mit Trefferliste: Name oder Bankleitzahl eintippen, Bank antippen.
+class _BankSuche extends StatefulWidget {
+  const _BankSuche({required this.alle});
+  final List<Bank> alle;
+
+  @override
+  State<_BankSuche> createState() => _BankSucheState();
+}
+
+class _BankSucheState extends State<_BankSuche> {
+  var _treffer = <Bank>[];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.75,
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: TextField(
+              autofocus: true,
+              decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'z. B. Sparkasse Siegen, DKB, ING'),
+              onChanged: (t) => setState(() => _treffer = bankenSuchen(widget.alle, t)),
+            ),
+          ),
+          Expanded(
+            child: _treffer.isEmpty
+                ? const Center(child: Text('Tippe den Namen deiner Bank.', style: TextStyle(color: PT.grau)))
+                : ListView(children: [
+                    for (final b in _treffer)
+                      ListTile(title: Text(b.name), subtitle: Text('BLZ ${b.blz}'), onTap: () => Navigator.pop(context, b)),
+                  ]),
+          ),
+        ]),
+      ),
     );
   }
 }
