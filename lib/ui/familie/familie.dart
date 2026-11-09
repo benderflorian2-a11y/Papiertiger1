@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../../data/familie.dart';
 import '../../data/models.dart';
 import '../../logic/android_kanal.dart';
+import '../../logic/brief_analyse.dart';
+import '../../logic/datei_import.dart';
+import '../../logic/texterkennung.dart';
 import '../../logic/export.dart';
 import '../../logic/familie.dart';
 import '../../logic/ordnung.dart';
@@ -42,15 +45,7 @@ class KinderScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Kinder')),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final name = await _eingabe(context, 'Name des Kindes');
-          if (name == null || name.isEmpty || !context.mounted) return;
-          final geb = await datumWaehlen(context, start: DateTime(heute.year - 3));
-          final k = Kind(id: neueId(), name: name, geburt: geb);
-          store.familie.kinder.add(k);
-          await store.geaendert();
-          if (context.mounted) Navigator.of(context).push(MaterialPageRoute(builder: (_) => KindDetail(kindId: k.id)));
-        },
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const KindAnlegenScreen())),
         icon: const Icon(Icons.add),
         label: const Text('Kind'),
       ),
@@ -171,7 +166,31 @@ class KindDetail extends StatelessWidget {
             label: const Text('An die nächste Untersuchung erinnern'),
           ),
         ],
-        const Abschnitt('Dokumente'),
+        const Abschnitt('Wichtige Dokumente'),
+        PTKarte(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(children: [
+            for (final art in kindDokumentArten)
+              ListTile(
+                dense: true,
+                leading: Icon(
+                  kindHatDokument([for (final b in doks) titelVon(b)], art, k.name) ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: PT.gruen,
+                ),
+                title: Text(art),
+                subtitle: Text(kindHatDokument([for (final b in doks) titelVon(b)], art, k.name) ? 'abgelegt' : 'tippen zum Hochladen'),
+                onTap: () {
+                  final vorhanden = doks.where((b) => titelVon(b) == kindDokumentTitel(art, k.name)).firstOrNull;
+                  if (vorhanden != null) {
+                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => BriefDetail(briefId: vorhanden.id)));
+                  } else {
+                    kindDokumentHinzufuegen(context, k, art);
+                  }
+                },
+              ),
+          ]),
+        ),
+        const Abschnitt('Alle Dokumente'),
         for (final b in doks)
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -180,11 +199,20 @@ class KindDetail extends StatelessWidget {
             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BriefDetail(briefId: b.id))),
           ),
         TextButton.icon(
+          onPressed: () => kindDokumentHinzufuegen(context, k, null),
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Weiteres Dokument hochladen (Foto, Scan, PDF)'),
+        ),
+        TextButton.icon(
           onPressed: () async {
             final kand = store.briefe.where((b) => !k.briefIds.contains(b.id)).take(60).toList();
+            if (kand.isEmpty) {
+              zeigeHinweis(context, 'Im Archiv ist noch nichts, das du zuordnen könntest. Lade das Dokument stattdessen hoch.');
+              return;
+            }
             final id = await showDialog<String>(
               context: context,
-              builder: (d) => SimpleDialog(title: const Text('Dokument zuordnen'), children: [
+              builder: (d) => SimpleDialog(title: const Text('Aus dem Archiv zuordnen'), children: [
                 for (final b in kand) SimpleDialogOption(onPressed: () => Navigator.pop(d, b.id), child: Text(titelVon(b))),
               ]),
             );
@@ -195,7 +223,7 @@ class KindDetail extends StatelessWidget {
             await store.geaendert();
           },
           icon: const Icon(Icons.attach_file),
-          label: const Text('Geburtsurkunde, Impfpass, Zeugnis … zuordnen'),
+          label: const Text('Bereits gespeichertes Dokument zuordnen'),
         ),
         const Text('Die U-Untersuchungen bezahlt die Krankenkasse. Zeiträume laut Kinder-Untersuchungsheft – '
             'im Zweifel fragt die Kinderarztpraxis.',
@@ -326,4 +354,156 @@ class VorsorgeScreen extends StatelessWidget {
       ]),
     );
   }
+}
+
+// ---------------------------------------------------------------- Kind anlegen und Dokumente hochladen
+
+/// Ein Formular für alles: Name (Pflicht), Geburtstag und Kita/Schule (freiwillig).
+class KindAnlegenScreen extends StatefulWidget {
+  const KindAnlegenScreen({super.key});
+
+  @override
+  State<KindAnlegenScreen> createState() => _KindAnlegenState();
+}
+
+class _KindAnlegenState extends State<KindAnlegenScreen> {
+  final _name = TextEditingController();
+  final _einrichtung = TextEditingController();
+  DateTime? _geburt;
+  String? _fehler;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _einrichtung.dispose();
+    super.dispose();
+  }
+
+  Future<void> _speichern() async {
+    final name = _name.text.trim();
+    if (name.isEmpty) {
+      setState(() => _fehler = 'Bitte gib den Namen des Kindes ein.');
+      return;
+    }
+    final store = StoreScope.of(context);
+    final k = Kind(id: neueId(), name: name, geburt: _geburt, einrichtung: _einrichtung.text.trim());
+    store.familie.kinder.add(k);
+    await store.geaendert();
+    if (!mounted) return;
+    await Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => KindDetail(kindId: k.id)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Kind hinzufügen')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        TextField(
+          controller: _name,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: feld(labelText: 'Name des Kindes'),
+          onChanged: (_) => setState(() => _fehler = null),
+        ),
+        const SizedBox(height: 12),
+        PTKarte(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: ListTile(
+            title: const Text('Geburtstag'),
+            subtitle: Text(_geburt == null ? 'freiwillig – für Vorsorge-Erinnerungen' : datumLang(_geburt!)),
+            trailing: const Icon(Icons.edit_calendar_outlined),
+            onTap: () async {
+              final d = await datumWaehlen(context, start: _geburt ?? DateTime(DateTime.now().year - 3));
+              if (d != null) setState(() => _geburt = d);
+            },
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(controller: _einrichtung, decoration: feld(labelText: 'Kita / Schule (freiwillig)')),
+        if (_fehler != null) ...[
+          const SizedBox(height: 10),
+          Text(_fehler!, style: const TextStyle(color: PT.rot, fontWeight: FontWeight.w600)),
+        ],
+        const SizedBox(height: 16),
+        FilledButton(onPressed: _speichern, child: const Text('Kind speichern')),
+        const SizedBox(height: 8),
+        const Text('Danach kannst du Geburtsurkunde, Impfpass und weitere Dokumente direkt hochladen.',
+            style: TextStyle(color: PT.grau, fontSize: 12)),
+      ]),
+    );
+  }
+}
+
+/// Dokument für ein Kind hochladen: Scan, Foto aus der Galerie oder PDF. Es wird immer gespeichert,
+/// auch wenn kein Text erkannt wird (z. B. bei einer Geburtsurkunde mit wenig Schrift).
+Future<void> kindDokumentHinzufuegen(BuildContext context, Kind k, String? art) async {
+  final store = StoreScope.of(context);
+  final quelle = await showModalBottomSheet<String>(
+    context: context,
+    builder: (d) => SafeArea(
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        ListTile(leading: const Icon(Icons.document_scanner_outlined), title: const Text('Mit der Kamera scannen'), onTap: () => Navigator.pop(d, 'scan')),
+        ListTile(leading: const Icon(Icons.photo_library_outlined), title: const Text('Foto aus der Galerie'), onTap: () => Navigator.pop(d, 'galerie')),
+        ListTile(leading: const Icon(Icons.picture_as_pdf_outlined), title: const Text('PDF-Datei auswählen'), onTap: () => Navigator.pop(d, 'pdf')),
+      ]),
+    ),
+  );
+  if (quelle == null || !context.mounted) return;
+  var bilder = <String>[];
+  var text = '';
+  String? pdfPfad;
+  try {
+    if (quelle == 'scan') {
+      var s = await Texterkennung.scannen();
+      if (s == null) {
+        final p = await Texterkennung.bildHolen(kamera: true);
+        s = p == null ? <String>[] : [p];
+      }
+      bilder = s;
+    } else if (quelle == 'galerie') {
+      final p = await Texterkennung.bildHolen(kamera: false);
+      if (p != null) bilder = [p];
+    } else {
+      final d = await DateiImport.waehlen();
+      if (d != null) {
+        final e = await DateiImport.lesen([d]);
+        text = e.text;
+        bilder = e.bilder;
+        pdfPfad = e.pdfPfad;
+      }
+    }
+    if (bilder.isEmpty && pdfPfad == null) return; // abgebrochen
+    if (quelle != 'pdf') text = await Texterkennung.textErkennen(bilder).catchError((Object _) => '');
+  } catch (e) {
+    if (context.mounted) zeigeHinweis(context, 'Das Dokument konnte nicht gelesen werden: $e');
+    return;
+  }
+  if (!context.mounted) return;
+  var gewaehlt = art;
+  gewaehlt ??= await showDialog<String>(
+    context: context,
+    builder: (d) => SimpleDialog(title: const Text('Was ist das für ein Dokument?'), children: [
+      for (final a in [...kindDokumentArten, 'Sonstiges']) SimpleDialogOption(onPressed: () => Navigator.pop(d, a), child: Text(a)),
+    ]),
+  );
+  if (gewaehlt == null || !context.mounted) return;
+  final a = analysiereBrief(text.trim().length < 20 ? gewaehlt : text);
+  final brief = Brief(
+    id: neueId(),
+    erstellt: DateTime.now(),
+    kategorie: a.kategorie.key,
+    typ: a.typ.key,
+    absenderName: a.absenderName,
+    text: text,
+    erklaerung: 'Dokument von ${k.name}: $gewaehlt',
+    bilder: bilder,
+    titel: kindDokumentTitel(gewaehlt, k.name),
+    person: k.name,
+    pdfPfad: pdfPfad,
+    erledigt: true, // Ablage, keine Frist und keine Aufgabe
+  );
+  await store.briefHinzufuegen(brief);
+  k.briefIds.add(brief.id);
+  await store.geaendert();
+  if (context.mounted) zeigeHinweis(context, '$gewaehlt für ${k.name} gespeichert.');
 }

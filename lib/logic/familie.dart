@@ -118,3 +118,21 @@ String notfallblattText(Vorsorge v, Profil p) {
   if (v.hinweise.isNotEmpty) z.write('\nWeitere Hinweise:\n${v.hinweise}\n');
   return z.toString();
 }
+
+/// Wichtige Dokumente, die zu jedem Kind gehören – als Checkliste mit „Hochladen“.
+const kindDokumentArten = [
+  'Geburtsurkunde',
+  'Impfpass',
+  'U-Untersuchungsheft',
+  'Kindergeld-Bescheid',
+  'Krankenversichertenkarte',
+  'Kita-Vertrag / Schulbescheinigung',
+  'Zeugnis',
+];
+
+/// Titel, unter dem ein Kind-Dokument gespeichert wird.
+String kindDokumentTitel(String art, String kindName) => '$art – $kindName';
+
+/// Ist das Dokument dieser Art für das Kind schon abgelegt?
+bool kindHatDokument(List<String> titelDerDokumente, String art, String kindName) =>
+    titelDerDokumente.contains(kindDokumentTitel(art, kindName));

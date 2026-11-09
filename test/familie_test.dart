@@ -42,4 +42,12 @@ void main() {
     expect(f.vorsorge.kontakte.single.beziehung, 'Tochter');
     expect(Familie.fromJson({}).kinder, isEmpty);
   });
+
+  test('Kind-Dokumente: Titel und „schon abgelegt“', () {
+    final titel = [kindDokumentTitel('Geburtsurkunde', 'Lea'), 'Anderes'];
+    expect(kindHatDokument(titel, 'Geburtsurkunde', 'Lea'), isTrue);
+    expect(kindHatDokument(titel, 'Impfpass', 'Lea'), isFalse);
+    expect(kindHatDokument(titel, 'Geburtsurkunde', 'Max'), isFalse);
+    expect(kindDokumentArten, contains('Geburtsurkunde'));
+  });
 }
