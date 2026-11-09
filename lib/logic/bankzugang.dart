@@ -7,7 +7,7 @@ import 'package:fints/fints.dart';
 
 /// Registrierungsnummer der Deutschen Kreditwirtschaft (kostenlos, fints.org).
 /// Ohne sie lassen deutsche Banken die App nicht herein. Wird nach der Registrierung eingetragen.
-const fintsProduktId = '';
+const fintsProduktId = 'BD5D1A3CC525F07F2FECB58EA';
 
 bool get bankzugangFreigeschaltet => fintsProduktId.isNotEmpty;
 
