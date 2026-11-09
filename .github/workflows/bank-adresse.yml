@@ -1,16 +1,31 @@
 name: Bank-Adresse suchen
 
-# Hilfsablauf: schaut sich die Datenquelle der Bank-Adressen an.
+# Hilfsablauf: exportiert die Bankenliste (Bankleitzahl, Name, FinTS-Adresse) als JSON-Datei.
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   suchen:
     runs-on: ubuntu-latest
     steps:
-      - name: fints-url Daten ansehen
+      - name: Bankenliste exportieren
         run: |
           pip install fints-url 2>&1 | tail -1
-          d=$(python3 -c "import fints_url,os;print(os.path.dirname(fints_url.__file__))")
-          echo "== Dateien"; ls -la $d $d/* | head -40
-          echo "== Quelle"; sed -n 1,60p $d/__init__.py
+          python3 - <<'PY'
+          import fints_url, json
+          info = fints_url.__bank_info__
+          print("Eintraege:", len(info))
+          k = next(iter(info)); print("Beispiel:", k, info[k])
+          print("Siegen:", info.get("46050001"))
+          json.dump(info, open("bank_roh.json", "w"), ensure_ascii=False, default=str)
+          PY
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: bankdaten-${{ github.run_number }}
+          name: Bankdaten ${{ github.run_number }}
+          prerelease: true
+          make_latest: false
+          files: bank_roh.json
