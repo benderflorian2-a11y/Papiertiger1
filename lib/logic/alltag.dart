@@ -3,6 +3,7 @@
 library;
 
 import '../data/alltag.dart';
+import 'zeitplan.dart';
 
 /// Reihenfolge wie in einem typischen Supermarkt.
 const einkaufsKategorien = [
@@ -252,6 +253,44 @@ String? werIstDran(Hausaufgabe a) =>
 void hausaufgabeErledigt(Hausaufgabe a, DateTime am) {
   if (a.personen.isNotEmpty && a.zuletzt != null) a.zuletztVon = (a.zuletztVon + 1) % a.personen.length;
   a.zuletzt = am;
+}
+
+/// Wann ist [person] (Platz in der Reihenfolge) das nächste Mal dran? Beim Abwechseln folgt jede Person
+/// einen Zeitraum nach der vorherigen.
+DateTime aufgabeStartFuer(Hausaufgabe a, int person, {required DateTime heute}) {
+  final h = DateTime(heute.year, heute.month, heute.day);
+  final basis = naechstesMal(a);
+  final start = basis == null || basis.isBefore(h) ? h : basis;
+  final n = a.personen.length;
+  if (n <= 1) return start;
+  final dran = a.zuletzt == null ? 0 : (a.zuletztVon + 1) % n;
+  final abstand = (person - dran + n) % n;
+  return DateTime(start.year, start.month, start.day + abstand * a.alleTage);
+}
+
+/// Kalender-Einladung für eine Person: Termin mit Erinnerung um 9 Uhr, bei Wiederholung alle
+/// (Tage × Personen) Tage. Die Person öffnet die Datei, und der Termin steht in ihrem Kalender.
+String aufgabeAlsIcs(Hausaufgabe a, int person, {required DateTime heute}) {
+  final n = a.personen.isEmpty ? 1 : a.personen.length;
+  final name = a.personen.isEmpty ? null : a.personen[person];
+  return icsErstellen(
+    name == null ? 'Haushalt: ${a.text}' : 'Haushalt: ${a.text} ($name)',
+    aufgabeStartFuer(a, person, heute: heute),
+    beschreibung: name == null ? a.text : '$name ist dran mit: ${a.text}',
+    wiederholungTage: a.alleTage > 0 && a.alleTage * n > 0 ? a.alleTage * n : 0,
+    erinnerungUhr: 9,
+  );
+}
+
+/// Nachricht dazu, die mitgeschickt wird.
+String aufgabeNachricht(Hausaufgabe a, int person, {required DateTime heute}) {
+  final name = a.personen.isEmpty ? '' : ' ${a.personen[person]}';
+  final start = aufgabeStartFuer(a, person, heute: heute);
+  final tag = '${start.day.toString().padLeft(2, '0')}.${start.month.toString().padLeft(2, '0')}.${start.year}';
+  final n = a.personen.isEmpty ? 1 : a.personen.length;
+  final wdh = a.alleTage * n;
+  return 'Hallo$name, du bist dran mit: ${a.text} (ab $tag${wdh > 0 ? ', danach alle $wdh Tage' : ''}).\n\n'
+      'Tippe auf die angehängte Datei, dann steht es in deinem Kalender und du wirst um 9 Uhr erinnert.';
 }
 
 bool hausaufgabeFaellig(Hausaufgabe a, {required DateTime heute}) {

@@ -139,4 +139,24 @@ ZUBEREITUNG:
     expect(b.rezepte.single.zutaten, ['Nudeln']);
     expect(Alltag.fromJson({}).rezepte, isEmpty);
   });
+
+  test('Aufgabe als Kalender-Einladung: Reihenfolge, Wiederholung, Erinnerung', () {
+    final heute = DateTime(2026, 11, 9);
+    final a = Hausaufgabe(text: 'Bad putzen', personen: ['Mia', 'Tom'], alleTage: 7);
+    // Noch nie gemacht: Mia ist heute dran, Tom eine Woche später
+    expect(aufgabeStartFuer(a, 0, heute: heute), DateTime(2026, 11, 9));
+    expect(aufgabeStartFuer(a, 1, heute: heute), DateTime(2026, 11, 16));
+    final ics = aufgabeAlsIcs(a, 1, heute: heute);
+    expect(ics, contains('BEGIN:VEVENT'));
+    expect(ics, contains('DTSTART;VALUE=DATE:20261116'));
+    expect(ics, contains('RRULE:FREQ=DAILY;INTERVAL=14')); // jede Person alle 2 Wochen
+    expect(ics, contains('TRIGGER:PT9H'));
+    expect(ics, contains('SUMMARY:Haushalt: Bad putzen (Tom)'));
+    final nachricht = aufgabeNachricht(a, 1, heute: heute);
+    expect(nachricht, contains('Hallo Tom'));
+    expect(nachricht, contains('16.11.2026'));
+    // Ohne Namen: einfach wöchentlich wiederholt
+    final solo = Hausaufgabe(text: 'Müll', alleTage: 3);
+    expect(aufgabeAlsIcs(solo, 0, heute: heute), contains('RRULE:FREQ=DAILY;INTERVAL=3'));
+  });
 }

@@ -221,7 +221,16 @@ String _escape(String s) =>
 
 /// Kalendereintrag zum Teilen in jede Kalender-App. Ohne Uhrzeit = ganztägig.
 String icsErstellen(String titel, DateTime start,
-    {bool ganztags = true, String beschreibung = '', int erinnerungTage = 1, DateTime? jetzt}) {
+    {bool ganztags = true,
+    String beschreibung = '',
+    int erinnerungTage = 1,
+    DateTime? jetzt,
+
+    /// Wiederholt den Termin alle so viele Tage (0 = einmalig).
+    int wiederholungTage = 0,
+
+    /// Ganztägig: Erinnerung am Tag selbst um diese Uhrzeit statt [erinnerungTage] vorher.
+    int? erinnerungUhr}) {
   final stempel = (jetzt ?? DateTime.now()).toUtc();
   final z = StringBuffer()
     ..write('BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Papiertiger//DE\r\nBEGIN:VEVENT\r\n')
@@ -236,11 +245,14 @@ String icsErstellen(String titel, DateTime start,
       ..write('DTSTART:${_icsZeit(start)}\r\n')
       ..write('DTEND:${_icsZeit(start.add(const Duration(hours: 1)))}\r\n');
   }
+  if (wiederholungTage > 0) z.write('RRULE:FREQ=DAILY;INTERVAL=$wiederholungTage\r\n');
   z
     ..write('SUMMARY:${_escape(titel)}\r\n')
     ..write('DESCRIPTION:${_escape(beschreibung)}\r\n')
     ..write('BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:${_escape(titel)}\r\n')
-    ..write('TRIGGER:-P${erinnerungTage}D\r\nEND:VALARM\r\n')
+    ..write(erinnerungUhr != null && ganztags
+        ? 'TRIGGER:PT${erinnerungUhr}H\r\nEND:VALARM\r\n'
+        : 'TRIGGER:-P${erinnerungTage}D\r\nEND:VALARM\r\n')
     ..write('END:VEVENT\r\nEND:VCALENDAR\r\n');
   return z.toString();
 }

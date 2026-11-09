@@ -5,6 +5,7 @@ import '../../data/models.dart';
 import '../../logic/alltag.dart';
 import '../../logic/export.dart';
 import '../../logic/ordnung.dart';
+import '../../logic/zeitplan.dart' show stabileId;
 import '../app.dart';
 import '../brief_detail.dart';
 import '../ki_text.dart';
@@ -383,6 +384,11 @@ class HausaufgabenScreen extends StatelessWidget {
                   ]),
                 ),
                 IconButton(
+                  tooltip: 'Aufgabe senden',
+                  icon: const Icon(Icons.send_outlined, color: PT.orangeDunkel),
+                  onPressed: () => _senden(context, a),
+                ),
+                IconButton(
                   tooltip: 'Erledigt',
                   icon: const Icon(Icons.check_circle_outline, color: PT.gruen),
                   onPressed: () {
@@ -395,6 +401,30 @@ class HausaufgabenScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Aufgabe als Kalender-Einladung an eine Person schicken (WhatsApp, SMS, E-Mail …).
+  Future<void> _senden(BuildContext context, Hausaufgabe a) async {
+    var person = 0;
+    if (a.personen.length > 1) {
+      final wahl = await showDialog<int>(
+        context: context,
+        builder: (d) => SimpleDialog(title: const Text('Wem schickst du die Aufgabe?'), children: [
+          for (var i = 0; i < a.personen.length; i++)
+            SimpleDialogOption(onPressed: () => Navigator.pop(d, i), child: Text(a.personen[i])),
+        ]),
+      );
+      if (wahl == null) return;
+      person = wahl;
+    }
+    final heute = DateTime.now();
+    try {
+      final ics = aufgabeAlsIcs(a, person, heute: heute);
+      final datei = await textDatei('aufgabe_${stabileId('${a.text}$person')}.ics', ics);
+      await dateiTeilen(datei.path, mimeType: 'text/calendar', text: aufgabeNachricht(a, person, heute: heute));
+    } catch (e) {
+      if (context.mounted) zeigeHinweis(context, 'Die Aufgabe konnte nicht verschickt werden: $e');
+    }
   }
 
   Future<void> _bearbeiten(BuildContext context, Hausaufgabe? a) async {
