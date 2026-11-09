@@ -1,18 +1,16 @@
 name: Bank-Adresse suchen
 
-# Hilfsablauf: sucht die FinTS-Adresse einer Bank (Bankleitzahl) und schreibt sie in den Bericht.
+# Hilfsablauf: schaut sich die Datenquelle der Bank-Adressen an.
 on:
   workflow_dispatch:
-    inputs:
-      blz:
-        description: Bankleitzahl
-        default: '46050001'
 
 jobs:
   suchen:
     runs-on: ubuntu-latest
     steps:
-      - name: fints-url und Quellen abfragen
+      - name: fints-url Daten ansehen
         run: |
-          pip install fints-url 2>&1 | tail -2 || true
-          echo "== fints-url"; fints-url -b "${{ inputs.blz }}" 2>&1 | head -20 || true
+          pip install fints-url 2>&1 | tail -1
+          d=$(python3 -c "import fints_url,os;print(os.path.dirname(fints_url.__file__))")
+          echo "== Dateien"; ls -la $d $d/* | head -40
+          echo "== Quelle"; sed -n 1,60p $d/__init__.py
