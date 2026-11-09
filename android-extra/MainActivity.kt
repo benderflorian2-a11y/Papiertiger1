@@ -58,6 +58,29 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
                 "mailFertig" -> result.success(true)
+                "kalenderErlaubnis" -> kalenderErlaubnis(result)
+                "kalenderEintragen" -> try {
+                    result.success(
+                        Kalender.eintragen(
+                            applicationContext,
+                            call.argument<String>("titel") ?: "",
+                            call.argument<String>("text") ?: "",
+                            (call.argument<Number>("start") ?: 0).toLong(),
+                            call.argument<Boolean>("ganztags") == true,
+                            call.argument<List<Int>>("erinnerung") ?: emptyList(),
+                            (call.argument<Number>("id") ?: 0).toLong(),
+                        )
+                    )
+                } catch (e: SecurityException) {
+                    result.success(-3L)
+                } catch (e: Exception) {
+                    result.error("kalender", e.toString(), null)
+                }
+                "kalenderLoeschen" -> try {
+                    result.success(Kalender.loeschen(applicationContext, (call.argument<Number>("id") ?: 0).toLong()))
+                } catch (e: Exception) {
+                    result.success(false)
+                }
                 "geraetGesichert" -> result.success(
                     (getSystemService(KEYGUARD_SERVICE) as android.app.KeyguardManager).isDeviceSecure
                 )
@@ -257,6 +280,27 @@ class MainActivity : FlutterActivity() {
     }
 
     private var entsperrErgebnis: MethodChannel.Result? = null
+    private var kalenderErgebnis: MethodChannel.Result? = null
+
+    /** Fragt einmal nach der Erlaubnis, Termine in den Kalender zu schreiben. */
+    private fun kalenderErlaubnis(result: MethodChannel.Result) {
+        val rechte = arrayOf(android.Manifest.permission.READ_CALENDAR, android.Manifest.permission.WRITE_CALENDAR)
+        if (rechte.all { checkSelfPermission(it) == android.content.pm.PackageManager.PERMISSION_GRANTED }) {
+            result.success(true)
+            return
+        }
+        kalenderErgebnis?.success(false)
+        kalenderErgebnis = result
+        requestPermissions(rechte, KALENDER)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == KALENDER) {
+            kalenderErgebnis?.success(grantResults.isNotEmpty() && grantResults.all { it == android.content.pm.PackageManager.PERMISSION_GRANTED })
+            kalenderErgebnis = null
+        }
+    }
 
     /** Entsperren mit der Displaysperre des Handys (PIN, Muster, Fingerabdruck). */
     private fun geraetEntsperren(result: MethodChannel.Result) {
@@ -312,5 +356,6 @@ class MainActivity : FlutterActivity() {
     companion object {
         private const val DIKTAT = 4711
         private const val ENTSPERREN = 4712
+        private const val KALENDER = 4713
     }
 }

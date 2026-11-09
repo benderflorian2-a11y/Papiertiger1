@@ -69,7 +69,7 @@ jobs:
           if 'xmlns:tools' not in x:
               x = x.replace('<manifest xmlns:android="http://schemas.android.com/apk/res/android"', '<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"', 1)
           rechte = ''.join('<uses-permission android:name="android.permission.%s"/>\n    ' % r for r in [
-              'ACCESS_NETWORK_STATE', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_DATA_SYNC', 'WAKE_LOCK', 'POST_NOTIFICATIONS'])
+              'ACCESS_NETWORK_STATE', 'READ_CALENDAR', 'WRITE_CALENDAR', 'FOREGROUND_SERVICE', 'FOREGROUND_SERVICE_DATA_SYNC', 'WAKE_LOCK', 'POST_NOTIFICATIONS'])
           x = x.replace('<application', rechte + '<application', 1)
           # Banking-App fuer die Freigabe oeffnen duerfen (Android 11+: Paket-Sichtbarkeit)
           x = x.replace('<application', '''<queries>
@@ -163,6 +163,7 @@ jobs:
           cp android-extra/MainActivity.kt "$ziel"
           cp android-extra/PapiertigerWidget.kt "$(dirname "$ziel")/PapiertigerWidget.kt"
           cp android-extra/Hintergrund.kt "$(dirname "$ziel")/Hintergrund.kt"
+          cp android-extra/Kalender.kt "$(dirname "$ziel")/Kalender.kt"
           echo "MainActivity ersetzt: $ziel"
           grep -n "intent.action.SEND\|VIEW" android/app/src/main/AndroidManifest.xml
           grep -n "Desugaring\|desugar" android/app/build.gradle.kts

@@ -15,6 +15,7 @@ import 'arbeitszeit.dart';
 import 'finanzen.dart';
 import 'widget_text.dart';
 import 'format.dart';
+import 'handykalender.dart';
 
 /// Plant Push-Erinnerungen auf dem Handy, offline und ohne Server.
 class Benachrichtigungen {
@@ -159,6 +160,7 @@ class Benachrichtigungen {
         }
       }
       await _widget(store);
+      await Handykalender.abgleichen(store);
       final e = store.erinnerungen;
       if (!e.aktiv) return;
       final jetzt = DateTime.now();
@@ -180,20 +182,22 @@ class Benachrichtigungen {
         );
       }
       if (e.wochenueberblick) {
-        // Jeden Montag zur gewählten Uhrzeit.
+        // Nächster Montag zur gewählten Uhrzeit – nur, wenn dann wirklich etwas ansteht.
         var montag = DateTime(jetzt.year, jetzt.month, jetzt.day, e.stunde);
         while (montag.weekday != DateTime.monday || !montag.isAfter(jetzt)) {
           montag = montag.add(const Duration(days: 1));
         }
-        await _plugin.zonedSchedule(
-          id: wochenId,
-          scheduledDate: tz.TZDateTime.from(montag, tz.local),
-          notificationDetails: _details,
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-          title: 'Dein Papierkram diese Woche',
-          body: wochenText(f, heute: montag),
-          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
-        );
+        final text = wochenText(f, heute: montag);
+        if (wochePassiert(f, heute: montag)) {
+          await _plugin.zonedSchedule(
+            id: wochenId,
+            scheduledDate: tz.TZDateTime.from(montag, tz.local),
+            notificationDetails: _details,
+            androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+            title: 'Dein Papierkram diese Woche',
+            body: text,
+          );
+        }
       }
     } catch (_) {
       // Erinnerungen dürfen die App nie stören.

@@ -497,21 +497,31 @@ class ErinnerungsEinstellungen {
     List<int>? tageVorher,
     this.stunde = 9,
     this.wochenueberblick = true,
-  }) : tageVorher = tageVorher ?? [7, 3, 1, 0];
+    this.kalenderSync = false,
+  }) : tageVorher = tageVorher ?? [3, 0];
 
   bool aktiv;
   List<int> tageVorher;
   int stunde;
   bool wochenueberblick;
 
-  Map<String, dynamic> toJson() =>
-      {'aktiv': aktiv, 'tageVorher': tageVorher, 'stunde': stunde, 'wochenueberblick': wochenueberblick};
+  /// Fristen und Termine automatisch in den Handykalender eintragen.
+  bool kalenderSync;
+
+  Map<String, dynamic> toJson() => {
+        'aktiv': aktiv,
+        'tageVorher': tageVorher,
+        'stunde': stunde,
+        'wochenueberblick': wochenueberblick,
+        'kalenderSync': kalenderSync,
+      };
 
   factory ErinnerungsEinstellungen.fromJson(Map<String, dynamic> j) => ErinnerungsEinstellungen(
         aktiv: j['aktiv'] != false,
         tageVorher: (j['tageVorher'] as List?)?.whereType<num>().map((n) => n.toInt()).toList(),
         stunde: (j['stunde'] as num?)?.toInt() ?? 9,
         wochenueberblick: j['wochenueberblick'] != false,
+        kalenderSync: j['kalenderSync'] == true,
       );
 }
 

@@ -161,6 +161,12 @@ List<Erinnerung> erinnerungenPlanen(List<Faelligkeit> f, ErinnerungsEinstellunge
   return out.take(max).toList();
 }
 
+/// Steht in den 7 Tagen ab [heute] etwas an? Nur dann lohnt sich eine Meldung.
+bool wochePassiert(List<Faelligkeit> f, {required DateTime heute}) {
+  final ende = nurTag(heute).add(const Duration(days: 7));
+  return f.any((x) => !x.datum.isAfter(ende));
+}
+
 /// Kurzer Text für den Wochenüberblick.
 String wochenText(List<Faelligkeit> f, {required DateTime heute}) {
   final ende = nurTag(heute).add(const Duration(days: 7));

@@ -10,6 +10,7 @@ import 'package:papiertiger/data/store.dart';
 import 'package:papiertiger/logic/android_kanal.dart';
 import 'package:papiertiger/logic/benachrichtigungen.dart';
 import 'package:papiertiger/logic/inhalte.dart';
+import 'package:papiertiger/logic/handykalender.dart';
 import 'package:papiertiger/logic/ki.dart';
 import 'package:papiertiger/ui/anleitung.dart';
 import 'package:papiertiger/ui/app.dart';
@@ -237,6 +238,7 @@ Future<void> _kategoriePruefen(WidgetTester t, String kategorie, Map<String, Wid
 
 void main() {
   Ki.deaktiviert = true;
+  Handykalender.deaktiviert = true;
   Benachrichtigungen.deaktiviert = true;
   sicherheitNativAus = true;
 
