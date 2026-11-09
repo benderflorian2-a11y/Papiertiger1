@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../logic/android_kanal.dart';
 import '../../logic/behoerden.dart';
 import '../app.dart';
 import '../theme.dart';
@@ -75,6 +76,30 @@ class BehoerdenChecklisteScreen extends StatelessWidget {
                   Text('Quelle: ${c.quelle}', style: const TextStyle(color: PT.grau, fontSize: 13)),
               ]),
             ),
+          if ((behoerdenWarum[c.key] ?? '').isNotEmpty)
+            PTKarte(child: Text(behoerdenWarum[c.key]!, style: const TextStyle(height: 1.4))),
+          const Abschnitt('Direkt erledigen'),
+          PTKarte(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (final (text, url) in behoerdenLinks[c.key] ?? const <(String, String)>[])
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await AndroidKanal.oeffnen(Uri.parse(url));
+                    if (!ok && context.mounted) zeigeHinweis(context, 'Die Seite konnte nicht geöffnet werden: $url');
+                  },
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(text),
+                ),
+              OutlinedButton.icon(
+                onPressed: () => AndroidKanal.oeffnen(Uri.parse('tel:115')),
+                icon: const Icon(Icons.phone_outlined, size: 18),
+                label: const Text('Behördennummer 115 anrufen'),
+              ),
+              const SizedBox(height: 4),
+              const Text('Die 115 nennt dir die zuständige Stelle und die Öffnungszeiten (Mo–Fr, meist 8–18 Uhr). Kostet nur die normale Verbindung.',
+                  style: TextStyle(color: PT.grau, fontSize: 12)),
+            ]),
+          ),
           const Abschnitt('Das brauchst du'),
           for (var i = 0; i < u; i++) punkt(i, c.unterlagen[i]),
           const Abschnitt('Schritte'),

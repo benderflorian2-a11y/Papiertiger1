@@ -221,7 +221,86 @@ const behoerdenChecklisten = [
         'Kennzeichen behalten oder neue nehmen (je nach Ort möglich)',
         'Versicherung über neue Adresse informieren',
       ]),
+  BehoerdenCheckliste('arbeitslos', 'Arbeitslos oder arbeitsuchend melden', 'Bei Kündigung oder Ende des Arbeitsvertrags',
+      frist: 'Arbeitsuchend melden: spätestens 3 Monate vor dem Ende des Jobs, bei kurzfristiger Kündigung innerhalb von 3 Tagen nach Kenntnis. '
+          'Arbeitslos melden: am ersten Tag ohne Arbeit',
+      quelle: '§ 38 SGB III',
+      unterlagen: [
+        'Personalausweis oder Reisepass',
+        'Kündigung bzw. Aufhebungsvertrag und Arbeitsvertrag',
+        'Arbeitsbescheinigung vom Arbeitgeber (bekommst du am Ende des Jobs)',
+        'Lebenslauf und Zeugnisse',
+        'Bankverbindung und Steuer-Identifikationsnummer',
+        'Nachweis der Krankenversicherung',
+      ],
+      schritte: [
+        'Sofort online oder telefonisch bei der Agentur für Arbeit arbeitsuchend melden',
+        'Persönlichen Termin vereinbaren',
+        'Arbeitslosengeld beantragen (online mit eServices oder per Formular)',
+        'Eigene Bewerbungen sammeln und nachweisen',
+        'Krankenkasse über die Änderung informieren',
+        'Fristen für Anträge im Papiertiger eintragen und Bescheide scannen',
+      ]),
+  BehoerdenCheckliste('geburt', 'Geburt des Kindes anmelden', 'Standesamt, Krankenkasse, Kindergeld und Elterngeld',
+      frist: 'Die Geburt wird innerhalb einer Woche dem Standesamt angezeigt (meist übernimmt das die Klinik)',
+      quelle: '§ 18 Personenstandsgesetz',
+      unterlagen: [
+        'Geburtsbescheinigung der Klinik bzw. der Hebamme',
+        'Personalausweise der Eltern',
+        'Heiratsurkunde bzw. Vaterschaftsanerkennung, wenn die Eltern nicht verheiratet sind',
+        'Krankenversicherungsnachweise der Eltern',
+      ],
+      schritte: [
+        'Geburtsurkunde beim Standesamt beantragen (mehrere Exemplare für Kindergeld, Elterngeld, Krankenkasse)',
+        'Kind bei der Krankenkasse anmelden',
+        'Kindergeld bei der Familienkasse beantragen',
+        'Elterngeld beantragen (rückwirkend gibt es höchstens 3 Monate)',
+        'Elternzeit schriftlich beim Arbeitgeber anmelden (7 Wochen vor Beginn)',
+        'Kind im Papiertiger anlegen und Geburtsurkunde hochladen',
+      ]),
+  BehoerdenCheckliste('heirat', 'Heiraten', 'Anmeldung beim Standesamt und danach alles ändern',
+      frist: '',
+      unterlagen: [
+        'Personalausweise oder Reisepässe beider Partner',
+        'Beglaubigte Abschrift aus dem Geburtenregister (Geburtsurkunde)',
+        'Aktuelle Meldebescheinigung',
+        'Bei früherer Ehe: Nachweis über die Auflösung',
+      ],
+      schritte: [
+        'Termin beim Standesamt zur Anmeldung der Eheschließung (gilt meist 6 Monate)',
+        'Namensführung festlegen',
+        'Steuerklasse beim Finanzamt ändern lassen',
+        'Neue Namen bei Arbeitgeber, Krankenkasse, Bank, Versicherungen und Ausweisstelle mitteilen',
+        'Verträge und Vollmachten überprüfen (Testament, Vorsorgevollmacht)',
+      ]),
 ];
+
+/// Direkt zur Online-Stelle (Beschriftung, Adresse), je Checkliste.
+const behoerdenLinks = <String, List<(String, String)>>{
+  'ummelden': [('Online-Dienste und Behördenfinder', 'https://service.bund.de'), ('Verwaltungsportal des Bundes', 'https://verwaltung.bund.de')],
+  'abmelden': [('Online-Dienste und Behördenfinder', 'https://service.bund.de')],
+  'gewerbe': [
+    ('Online-Dienste und Behördenfinder', 'https://service.bund.de'),
+    ('Fragebogen zur steuerlichen Erfassung (ELSTER)', 'https://www.elster.de'),
+    ('Industrie- und Handelskammer', 'https://www.ihk.de'),
+  ],
+  'aufenthalt': [('Informationen des Bundesamts für Migration', 'https://www.bamf.de'), ('Behördenfinder', 'https://service.bund.de')],
+  'ausweis': [('Personalausweisportal des Bundes', 'https://www.personalausweisportal.de'), ('Behördenfinder', 'https://service.bund.de')],
+  'auto': [('Fahrzeug online zulassen (i-Kfz)', 'https://www.i-kfz.de')],
+  'arbeitslos': [('Agentur für Arbeit: Arbeitslosengeld', 'https://www.arbeitsagentur.de/arbeitslos-arbeit-finden/arbeitslosengeld')],
+  'geburt': [('Familienportal des Bundes', 'https://www.familienportal.de'), ('Behördenfinder: Standesamt', 'https://service.bund.de')],
+  'heirat': [('Behördenfinder: Standesamt', 'https://service.bund.de'), ('Steuer: ELSTER', 'https://www.elster.de')],
+};
+
+/// Kurz erklärt: Warum musst du das tun, und was passiert, wenn nicht?
+const behoerdenWarum = <String, String>{
+  'ummelden': 'Wer umzieht, muss sich anmelden. Ohne Anmeldung kann ein Bußgeld drohen, und viele Behörden schicken Post an die alte Adresse.',
+  'gewerbe': 'Wer dauerhaft Gewinn erzielen will, braucht in der Regel ein Gewerbe. Ohne Anmeldung drohen Bußgelder, und das Finanzamt erfährt es meist trotzdem.',
+  'aufenthalt': 'Läuft dein Aufenthaltstitel ab, ohne dass du einen Antrag gestellt hast, kann dein Aufenthalt unerlaubt werden. Stell den Antrag deshalb rechtzeitig.',
+  'arbeitslos': 'Wer sich zu spät arbeitsuchend meldet, kann eine Sperrzeit beim Arbeitslosengeld bekommen. Melde dich deshalb sofort.',
+  'geburt': 'Die Geburt eines Kindes muss beim Standesamt angezeigt werden. Mit der Geburtsurkunde beantragst du danach Kindergeld, Elterngeld und die Krankenversicherung.',
+  'heirat': 'Nach der Hochzeit ändern sich Name, Steuerklasse und Versicherungen. Plane die Meldungen gleich mit ein.',
+};
 
 const behoerdenHinweis =
     'Allgemeine Information, keine Rechtsberatung. Unterlagen und Gebühren unterscheiden sich je nach Stadt – '

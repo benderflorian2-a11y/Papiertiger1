@@ -73,6 +73,10 @@ const leistungsFragen = [
   Frage('pflege', 'Pflegst du einen Angehörigen oder bist du selbst pflegebedürftig?'),
   Frage('behinderung', 'Hast du eine Behinderung oder eine chronische Erkrankung?'),
   Frage('arbeitnehmer', 'Bist du angestellt?'),
+  Frage('schwanger', 'Bist du schwanger?'),
+  Frage('krank', 'Bist du längere Zeit krank oder in laufender Behandlung?'),
+  Frage('selbststaendig', 'Bist du selbstständig oder planst du es?'),
+  Frage('weiterbildung', 'Möchtest du dich beruflich weiterbilden oder umschulen?'),
 ];
 
 class Leistung {
@@ -138,6 +142,29 @@ final leistungen = <Leistung>[
   Leistung('Steuererklärung', 'Viele Angestellte bekommen mit einer Steuererklärung Geld zurück.',
       'Finanzamt (z. B. über ELSTER)', (a) => _ja(a, 'arbeitnehmer') || _ja(a, 'ausbildung'),
       link: 'https://www.elster.de'),
+  Leistung('Mutterschaftsgeld', 'Geld während der Mutterschutzfristen: sechs Wochen vor bis acht Wochen nach der Geburt.',
+      'Krankenkasse (gesetzlich Versicherte) oder Bundesamt für Soziale Sicherung', (a) => _ja(a, 'schwanger'),
+      link: 'https://www.bundesamtsozialesicherung.de'),
+  Leistung('Elternzeit', 'Freistellung von der Arbeit bis zum dritten Geburtstag des Kindes. Sie muss schriftlich beim Arbeitgeber beantragt werden.',
+      'Dein Arbeitgeber (schriftlich, 7 Wochen vor Beginn bei Kindern bis 3 Jahre)',
+      (a) => (_ja(a, 'baby') || _ja(a, 'schwanger')) && _ja(a, 'arbeitnehmer'), link: _fp),
+  Leistung('Kinderkrankentage', 'Bezahlte Freistellung, wenn dein Kind krank ist und du es betreuen musst. Der Umfang wird vom Gesetzgeber festgelegt – prüf den aktuellen Stand.',
+      'Krankenkasse (Kinderkrankengeld) und Arbeitgeber', (a) => _ja(a, 'kinder') && _ja(a, 'arbeitnehmer')),
+  Leistung('Krankengeld', 'Wenn du länger als sechs Wochen krank bist, zahlt die Krankenkasse Krankengeld statt Gehalt (rund 70 % vom Brutto).',
+      'Krankenkasse – melde dich rechtzeitig, bevor die Lohnfortzahlung endet', (a) => _ja(a, 'krank') && _ja(a, 'arbeitnehmer')),
+  Leistung('Befreiung von Zuzahlungen', 'Zuzahlungen für Medikamente und Behandlungen sind auf 2 % deines Bruttoeinkommens begrenzt (bei chronischer Krankheit 1 %).',
+      'Krankenkasse – Zuzahlungsbelege sammeln', (a) => _ja(a, 'krank') || _ja(a, 'behinderung') || _ja(a, 'pflege')),
+  Leistung('Erwerbsminderungsrente', 'Wenn du aus gesundheitlichen Gründen nicht mehr arbeiten kannst, kann eine Rente von der Rentenversicherung möglich sein.',
+      'Deutsche Rentenversicherung', (a) => _ja(a, 'krank') && !_ja(a, 'rente'), link: 'https://www.deutsche-rentenversicherung.de'),
+  Leistung('Gründungszuschuss', 'Unterstützung beim Start in die Selbstständigkeit, wenn du noch Anspruch auf Arbeitslosengeld hast.',
+      'Agentur für Arbeit – vor der Gründung beantragen', (a) => _ja(a, 'selbststaendig') && _ja(a, 'arbeitslos'),
+      link: '$_aa/arbeitslos-arbeit-finden/gruendungszuschuss'),
+  Leistung('Förderung für Weiterbildung', 'Die Agentur für Arbeit kann Kurse und Umschulungen bezahlen (Bildungsgutschein).',
+      'Agentur für Arbeit – vor Kursbeginn beantragen', (a) => _ja(a, 'weiterbildung'), link: '$_aa/bildung-weiterbildung'),
+  Leistung('Bildungsurlaub', 'In den meisten Bundesländern hast du Anspruch auf mehrere bezahlte Tage im Jahr für Weiterbildung.',
+      'Dein Arbeitgeber – früh genug schriftlich beantragen', (a) => _ja(a, 'weiterbildung') && _ja(a, 'arbeitnehmer')),
+  Leistung('Beratungshilfe für Rechtsfragen', 'Günstige anwaltliche Beratung bei kleinem Einkommen: Du zahlst höchstens 15 Euro.',
+      'Amtsgericht (Beratungshilfeschein)', (a) => _ja(a, 'miete')),
 ];
 
 class AntragsHelfer {

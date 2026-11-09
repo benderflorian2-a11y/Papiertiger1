@@ -276,6 +276,27 @@ class VorsorgeScreen extends StatelessWidget {
                 'Teile das Notfallblatt (oben rechts) mit einer Vertrauensperson.'),
           ]),
         ),
+        const Abschnitt('Wichtige Notrufnummern'),
+        PTKarte(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(children: [
+            for (final (nummer, text) in const [
+              ('112', 'Notruf: Feuerwehr und Rettungsdienst'),
+              ('110', 'Polizei'),
+              ('116117', 'Ärztlicher Bereitschaftsdienst (nachts, am Wochenende)'),
+              ('116116', 'Sperr-Notruf: Bankkarte, Handy, Ausweis sperren'),
+            ])
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.phone_in_talk_outlined, color: PT.orangeDunkel),
+                title: Text(nummer.length == 6 ? '${nummer.substring(0, 3)} ${nummer.substring(3)}' : nummer,
+                    style: const TextStyle(fontWeight: FontWeight.w800)),
+                subtitle: Text(text),
+                trailing: const Icon(Icons.call_outlined),
+                onTap: () => AndroidKanal.oeffnen(Uri.parse('tel:$nummer')),
+              ),
+          ]),
+        ),
         const Abschnitt('Im Notfall anrufen'),
         for (final k in v.kontakte)
           ListTile(
@@ -340,6 +361,19 @@ class VorsorgeScreen extends StatelessWidget {
             onTap: () => feldSetzen(d, v.ablage[d] ?? '', (t) => t.isEmpty ? v.ablage.remove(d) : v.ablage[d] = t,
                 zeilen: 2),
           ),
+        const Abschnitt('Dokumente in der Mappe'),
+        for (final b in store.briefe.where((b) => v.briefIds.contains(b.id)))
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.description_outlined, color: PT.orangeDunkel),
+            title: Text(titelVon(b)),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BriefDetail(briefId: b.id))),
+          ),
+        TextButton.icon(
+          onPressed: () => vorsorgeDokumentHinzufuegen(context, null),
+          icon: const Icon(Icons.upload_file),
+          label: const Text('Dokument hochladen (Foto, Scan, PDF)'),
+        ),
         ListTile(
           contentPadding: EdgeInsets.zero,
           title: const Text('Weitere Hinweise für Angehörige'),
@@ -434,9 +468,17 @@ class _KindAnlegenState extends State<KindAnlegenScreen> {
   }
 }
 
-/// Dokument für ein Kind hochladen: Scan, Foto aus der Galerie oder PDF. Es wird immer gespeichert,
+/// Dokument hochladen: Scan, Foto aus der Galerie oder PDF. Es wird immer gespeichert,
 /// auch wenn kein Text erkannt wird (z. B. bei einer Geburtsurkunde mit wenig Schrift).
-Future<void> kindDokumentHinzufuegen(BuildContext context, Kind k, String? art) async {
+/// [art] vorgegeben oder per Auswahl aus [arten]. Gibt den gespeicherten Brief zurück, null bei Abbruch.
+Future<Brief?> dokumentHochladen(
+  BuildContext context, {
+  String? art,
+  required List<String> arten,
+  required String Function(String art) titel,
+  required String Function(String art) erklaerung,
+  String? person,
+}) async {
   final store = StoreScope.of(context);
   final quelle = await showModalBottomSheet<String>(
     context: context,
@@ -448,7 +490,7 @@ Future<void> kindDokumentHinzufuegen(BuildContext context, Kind k, String? art) 
       ]),
     ),
   );
-  if (quelle == null || !context.mounted) return;
+  if (quelle == null || !context.mounted) return null;
   var bilder = <String>[];
   var text = '';
   String? pdfPfad;
@@ -472,21 +514,21 @@ Future<void> kindDokumentHinzufuegen(BuildContext context, Kind k, String? art) 
         pdfPfad = e.pdfPfad;
       }
     }
-    if (bilder.isEmpty && pdfPfad == null) return; // abgebrochen
+    if (bilder.isEmpty && pdfPfad == null) return null; // abgebrochen
     if (quelle != 'pdf') text = await Texterkennung.textErkennen(bilder).catchError((Object _) => '');
   } catch (e) {
     if (context.mounted) zeigeHinweis(context, 'Das Dokument konnte nicht gelesen werden: $e');
-    return;
+    return null;
   }
-  if (!context.mounted) return;
+  if (!context.mounted) return null;
   var gewaehlt = art;
   gewaehlt ??= await showDialog<String>(
     context: context,
     builder: (d) => SimpleDialog(title: const Text('Was ist das für ein Dokument?'), children: [
-      for (final a in [...kindDokumentArten, 'Sonstiges']) SimpleDialogOption(onPressed: () => Navigator.pop(d, a), child: Text(a)),
+      for (final a in [...arten, 'Sonstiges']) SimpleDialogOption(onPressed: () => Navigator.pop(d, a), child: Text(a)),
     ]),
   );
-  if (gewaehlt == null || !context.mounted) return;
+  if (gewaehlt == null || !context.mounted) return null;
   final a = analysiereBrief(text.trim().length < 20 ? gewaehlt : text);
   final brief = Brief(
     id: neueId(),
@@ -495,15 +537,49 @@ Future<void> kindDokumentHinzufuegen(BuildContext context, Kind k, String? art) 
     typ: a.typ.key,
     absenderName: a.absenderName,
     text: text,
-    erklaerung: 'Dokument von ${k.name}: $gewaehlt',
+    erklaerung: erklaerung(gewaehlt),
     bilder: bilder,
-    titel: kindDokumentTitel(gewaehlt, k.name),
-    person: k.name,
+    titel: titel(gewaehlt),
+    person: person,
     pdfPfad: pdfPfad,
     erledigt: true, // Ablage, keine Frist und keine Aufgabe
   );
   await store.briefHinzufuegen(brief);
-  k.briefIds.add(brief.id);
+  return brief;
+}
+
+/// Dokument für ein Kind hochladen (Geburtsurkunde, Impfpass …).
+Future<void> kindDokumentHinzufuegen(BuildContext context, Kind k, String? art) async {
+  final store = StoreScope.of(context);
+  final b = await dokumentHochladen(
+    context,
+    art: art,
+    arten: kindDokumentArten,
+    titel: (a) => kindDokumentTitel(a, k.name),
+    erklaerung: (a) => 'Dokument von ${k.name}: $a',
+    person: k.name,
+  );
+  if (b == null) return;
+  k.briefIds.add(b.id);
   await store.geaendert();
-  if (context.mounted) zeigeHinweis(context, '$gewaehlt für ${k.name} gespeichert.');
+  if (context.mounted) zeigeHinweis(context, '${titelVon(b)} gespeichert.');
+}
+
+/// Dokument in die Vorsorgemappe legen (Patientenverfügung, Vollmacht, Testament …).
+Future<void> vorsorgeDokumentHinzufuegen(BuildContext context, String? art) async {
+  final store = StoreScope.of(context);
+  final b = await dokumentHochladen(
+    context,
+    art: art,
+    arten: vorsorgeDokumente,
+    titel: (a) => 'Vorsorgemappe: $a',
+    erklaerung: (a) => 'Dokument für die Vorsorgemappe: $a',
+  );
+  if (b == null) return;
+  final v = store.familie.vorsorge;
+  v.briefIds.add(b.id);
+  final art2 = vorsorgeDokumente.where((d) => titelVon(b) == 'Vorsorgemappe: $d').firstOrNull;
+  if (art2 != null && (v.ablage[art2] ?? '').isEmpty) v.ablage[art2] = 'Im Papiertiger gespeichert';
+  await store.geaendert();
+  if (context.mounted) zeigeHinweis(context, '${titelVon(b)} gespeichert.');
 }

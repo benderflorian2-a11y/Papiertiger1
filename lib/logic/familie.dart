@@ -84,6 +84,10 @@ const vorsorgeDokumente = [
   'Rentenunterlagen',
   'Versicherungen',
   'Mietvertrag bzw. Grundbuch',
+  'Bestattungswünsche und Vorsorge',
+  'Digitale Zugänge (Passwort-Manager, Handy-PIN)',
+  'Fahrzeugpapiere',
+  'Impfausweis und Gesundheitsunterlagen',
 ];
 
 /// Wie vollständig die Mappe ist (0 … 1).

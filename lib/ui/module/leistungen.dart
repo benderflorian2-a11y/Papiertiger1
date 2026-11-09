@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../logic/android_kanal.dart';
 import '../../logic/inhalte.dart';
+import '../../logic/leistungen_hilfe.dart';
+import '../vorlage_screen.dart';
 import '../app.dart';
 import 'antraege.dart';
 import '../theme.dart';
@@ -80,6 +82,14 @@ class LeistungenScreen extends StatelessWidget {
                       ],
                     ),
                     Wrap(spacing: 4, children: [
+                      TextButton.icon(
+                        onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => VorlageScreen(
+                                titel: 'Antrag auf ${l.titel}',
+                                text: leistungsSchreiben(l, store.profil, antworten, heute: DateTime.now())))),
+                        icon: const Icon(Icons.edit_note, size: 20),
+                        label: const Text('Schreiben aufsetzen'),
+                      ),
                       if (l.antrag != null && antragMitKey(l.antrag!) != null)
                         TextButton.icon(
                           onPressed: () => Navigator.of(context).push(MaterialPageRoute(
@@ -97,6 +107,19 @@ class LeistungenScreen extends StatelessWidget {
                   ],
                 ),
               ),
+          const Abschnitt('So gehst du vor'),
+          PTKarte(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (var i = 0; i < leistungsSchritte.length; i++)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Text('${i + 1}. ${leistungsSchritte[i]}', style: const TextStyle(height: 1.4)),
+                ),
+              if (leistungsAngabenFehlen(store.profil).isNotEmpty)
+                Text('Für das Schreiben fehlt im Profil noch: ${leistungsAngabenFehlen(store.profil).join(', ')} (Mehr › Mein Profil).',
+                    style: const TextStyle(color: PT.rot, fontSize: 13)),
+            ]),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Nur eine erste Orientierung, keine Garantie. Ob du einen Anspruch hast, entscheidet die zuständige Stelle. '

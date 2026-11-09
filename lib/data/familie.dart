@@ -65,8 +65,10 @@ class Vorsorge {
     this.medikamente = '',
     this.allergien = '',
     this.hinweise = '',
+    List<String>? briefIds,
   })  : kontakte = kontakte ?? [],
-        ablage = ablage ?? {};
+        ablage = ablage ?? {},
+        briefIds = briefIds ?? [];
 
   List<Notfallkontakt> kontakte;
 
@@ -79,6 +81,9 @@ class Vorsorge {
   /// Weitere Hinweise für Angehörige (Schlüssel, Haustiere, Passwörter-Ort …).
   String hinweise;
 
+  /// Hochgeladene Dokumente der Mappe (Verweise auf das Archiv).
+  List<String> briefIds;
+
   Map<String, dynamic> toJson() => {
         'kontakte': kontakte.map((k) => k.toJson()).toList(),
         'ablage': ablage,
@@ -86,6 +91,7 @@ class Vorsorge {
         'medikamente': medikamente,
         'allergien': allergien,
         'hinweise': hinweise,
+        'briefIds': briefIds,
       };
 
   factory Vorsorge.fromJson(Map<String, dynamic> j) => Vorsorge(
@@ -95,6 +101,7 @@ class Vorsorge {
         medikamente: j['medikamente'] as String? ?? '',
         allergien: j['allergien'] as String? ?? '',
         hinweise: j['hinweise'] as String? ?? '',
+        briefIds: _texte(j['briefIds']),
       );
 }
 
