@@ -16,8 +16,3 @@ jobs:
         run: |
           pip install fints-url 2>&1 | tail -2 || true
           echo "== fints-url"; fints-url -b "${{ inputs.blz }}" 2>&1 | head -20 || true
-          echo "== fints-url Python"
-          python3 - <<'PY' || true
-          import fints_url
-          print(fints_url.find("${{ inputs.blz }}"))
-          PY

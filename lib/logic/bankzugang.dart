@@ -23,7 +23,9 @@ class BankVorlage {
 
 /// Bekannte FinTS-Adressen. Die vollständige Liste gibt es mit der Registrierung.
 const bankVorlagen = <BankVorlage>[
-  BankVorlage('Sparkasse', '',
+  BankVorlage('Sparkasse Siegen', 'https://banking-wl3.s-fints-pt-wl.de/fints30',
+      hinweis: 'Adresse für die Sparkasse Siegen (Bankleitzahl 460 500 01).'),
+  BankVorlage('Andere Sparkasse', '',
       hinweis: 'Die FinTS-Adresse steht auf der Internetseite deiner Sparkasse (Suche nach „FinTS“). '
           'Sie sieht etwa so aus: https://banking-….s-fints-pt-….de/fints30'),
   BankVorlage('Volksbank / Raiffeisenbank', 'https://fints1.atruvia.de/cgi-bin/hbciservlet'),
