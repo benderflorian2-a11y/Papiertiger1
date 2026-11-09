@@ -201,4 +201,17 @@ void main() {
     expect(t, 'Neu im Postfach: Rechnung');
     expect(x, 'Rechnung von Telekom · 49,99 € · bis 15.11.');
   });
+
+  test('Anbieter-Anleitungen haben Direktlinks (https) und Schritte', () {
+    expect(anbieterHilfen.map((h) => h.name), containsAll(['Gmail', 'GMX', 'WEB.DE', 'iCloud', 'Yahoo']));
+    for (final h in anbieterHilfen) {
+      expect(h.schritte, isNotEmpty, reason: h.name);
+      for (final (_, url) in h.links) {
+        expect(url.startsWith('https://'), isTrue, reason: '${h.name}: $url');
+      }
+    }
+    expect(anbieterHilfen.firstWhere((h) => h.name.startsWith('Outlook')).moeglich, isFalse);
+    expect(anbieterHilfen.firstWhere((h) => h.name == 'Gmail').links.map((l) => l.$2),
+        contains('https://myaccount.google.com/apppasswords'));
+  });
 }

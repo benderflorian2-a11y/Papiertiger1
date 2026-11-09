@@ -62,6 +62,76 @@ const mailAnbieter = <String, MailServer>{
   'live.com': MailServer('outlook.office365.com', name: 'Outlook', moeglich: false),
 };
 
+/// Schritt-für-Schritt-Hilfe zu einem Anbieter mit Direktlinks.
+class AnbieterHilfe {
+  const AnbieterHilfe(this.name, this.domain, this.schritte, this.links, {this.moeglich = true});
+
+  final String name;
+
+  /// Beispiel-Endung der Adresse (für die Vorauswahl).
+  final String domain;
+  final List<String> schritte;
+
+  /// (Beschriftung, Adresse) – öffnet die passende Seite direkt.
+  final List<(String, String)> links;
+  final bool moeglich;
+}
+
+const anbieterHilfen = <AnbieterHilfe>[
+  AnbieterHilfe('Gmail', 'gmail.com', [
+    'Tippe unten auf „Zwei-Schritt-Bestätigung“ und schalte sie ein (falls noch nicht geschehen).',
+    'Tippe auf „App-Passwort erstellen“, gib einen Namen wie „Papiertiger“ ein und kopiere das 16-stellige Passwort.',
+    'Komm hierher zurück, tippe bei „Passwort“ auf das Einfügen-Symbol und dann auf Verknüpfen.',
+  ], [
+    ('Zwei-Schritt-Bestätigung einschalten', 'https://myaccount.google.com/signinoptions/twosv'),
+    ('App-Passwort erstellen', 'https://myaccount.google.com/apppasswords'),
+  ]),
+  AnbieterHilfe('GMX', 'gmx.de', [
+    'Melde dich bei GMX an und erlaube unter E-Mail › Einstellungen › POP3/IMAP Abruf den Zugriff über IMAP.',
+    'Hast du die Zwei-Faktor-Anmeldung an, erstelle dort ein „anwendungsspezifisches Passwort“. Sonst genügt dein normales Passwort.',
+    'Komm zurück, trag Adresse und Passwort ein und tippe auf Verknüpfen.',
+  ], [
+    ('GMX öffnen', 'https://www.gmx.net'),
+    ('Anleitung von GMX: IMAP einschalten', 'https://hilfe.gmx.net/pop-imap/einschalten.html'),
+  ]),
+  AnbieterHilfe('WEB.DE', 'web.de', [
+    'Melde dich bei WEB.DE an und erlaube unter E-Mail › Einstellungen › POP3/IMAP Abruf den Zugriff über IMAP.',
+    'Hast du die Zwei-Faktor-Anmeldung an, erstelle dort ein „anwendungsspezifisches Passwort“. Sonst genügt dein normales Passwort.',
+    'Komm zurück, trag Adresse und Passwort ein und tippe auf Verknüpfen.',
+  ], [
+    ('WEB.DE öffnen', 'https://web.de'),
+    ('Anleitung von WEB.DE: IMAP einschalten', 'https://hilfe.web.de/pop-imap/einschalten.html'),
+  ]),
+  AnbieterHilfe('Telekom / T-Online', 't-online.de', [
+    'Öffne das E-Mail-Center der Telekom und melde dich an.',
+    'Lege im Kundencenter ein eigenes „E-Mail-Passwort“ fest. Das normale Login-Passwort funktioniert hier nicht.',
+    'Komm zurück, trag Adresse und dieses E-Mail-Passwort ein und tippe auf Verknüpfen.',
+  ], [
+    ('E-Mail-Center öffnen', 'https://email.t-online.de'),
+  ]),
+  AnbieterHilfe('iCloud', 'icloud.com', [
+    'Melde dich bei deinem Apple-Konto an und öffne „Anmelden und Sicherheit“ › „App-spezifische Passwörter“.',
+    'Erstelle ein Passwort mit dem Namen „Papiertiger“ und kopiere es.',
+    'Komm zurück, füge es bei „Passwort“ ein und tippe auf Verknüpfen.',
+  ], [
+    ('Apple-Konto öffnen', 'https://account.apple.com/account/manage'),
+  ]),
+  AnbieterHilfe('Yahoo', 'yahoo.de', [
+    'Öffne die Kontosicherheit bei Yahoo und wähle „App-Passwort generieren“.',
+    'Kopiere das Passwort, komm zurück und füge es ein.',
+  ], [
+    ('Yahoo-Kontosicherheit öffnen', 'https://login.yahoo.com/account/security'),
+  ]),
+  AnbieterHilfe('Outlook / Hotmail', 'outlook.de', [
+    'Microsoft erlaubt fremden Apps keinen Zugriff mit Passwort. Das kann Papiertiger noch nicht.',
+    'So geht es trotzdem: Öffne eine wichtige E-Mail in Outlook, tippe auf Teilen und wähle Papiertiger.',
+  ], [], moeglich: false),
+  AnbieterHilfe('Anderer Anbieter', '', [
+    'Such in der Hilfe deines Anbieters nach „IMAP“ und „App-Passwort“.',
+    'Trag dann unten Adresse und Passwort ein. Den Server schlägt Papiertiger vor, du kannst ihn ändern.',
+  ], []),
+];
+
 const outlookHinweis = 'Microsoft lässt fremde Apps nur noch mit Microsoft-Anmeldung ins Postfach, nicht mit Passwort. '
     'Das kann Papiertiger noch nicht. Bis dahin: E-Mail in Outlook öffnen → Teilen → Papiertiger.';
 

@@ -1,10 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../data/postfach.dart';
-import '../logic/android_kanal.dart' show Geteilt;
+import '../logic/android_kanal.dart' show AndroidKanal, Geteilt;
 import '../logic/benachrichtigungen.dart';
 import '../logic/postfach_dienst.dart';
 import '../logic/postfach_pruefung.dart';
@@ -281,6 +282,7 @@ class _EinrichtenState extends State<_Einrichten> {
   final _server = TextEditingController();
   final _port = TextEditingController(text: '993');
   final _benutzer = TextEditingController();
+  AnbieterHilfe? _hilfe;
   bool _serverGeaendert = false;
   bool _laeuft = false;
   bool _zeigen = false;
@@ -301,7 +303,27 @@ class _EinrichtenState extends State<_Einrichten> {
       _server.text = _anbieter.server;
       _port.text = '${_anbieter.port}';
     }
+    // Bekannten Anbieter erkennen und die passende Anleitung zeigen
+    final n = _anbieter.name.toLowerCase();
+    if (_hilfe == null && n.isNotEmpty) {
+      final treffer = anbieterHilfen.where((h) => h.name.toLowerCase().startsWith(n)).firstOrNull;
+      if (treffer != null) _hilfe = treffer;
+    }
     setState(() => _fehler = null);
+  }
+
+  Future<void> _waehleAnbieter(AnbieterHilfe h) async {
+    setState(() => _hilfe = h);
+  }
+
+  Future<void> _einfuegen() async {
+    final d = await Clipboard.getData(Clipboard.kTextPlain);
+    final t = (d?.text ?? '').replaceAll(RegExp(r'\s'), '');
+    if (t.isEmpty) {
+      if (mounted) zeigeHinweis(context, 'In der Zwischenablage ist nichts. Kopiere erst das Passwort.');
+      return;
+    }
+    setState(() => _passwort.text = t);
   }
 
   Future<void> _verknuepfen() async {
@@ -358,6 +380,41 @@ class _EinrichtenState extends State<_Einrichten> {
               style: TextStyle(color: PT.grau, fontSize: 13)),
         ]),
       ),
+      const SizedBox(height: 12),
+      const Text('1. Dein E-Mail-Anbieter', style: TextStyle(fontWeight: FontWeight.w700)),
+      const SizedBox(height: 6),
+      Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final h in anbieterHilfen)
+          ChoiceChip(label: Text(h.name), selected: _hilfe == h, onSelected: (_) => _waehleAnbieter(h)),
+      ]),
+      if (_hilfe != null)
+        PTKarte(
+          farbe: _hilfe!.moeglich ? PT.orangeHell : PT.rotHell,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            for (var i = 0; i < _hilfe!.schritte.length; i++)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Text('${i + 1}. ${_hilfe!.schritte[i]}', style: const TextStyle(height: 1.4)),
+              ),
+            for (final (text, url) in _hilfe!.links)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final ok = await AndroidKanal.oeffnen(Uri.parse(url));
+                    if (!ok && mounted) zeigeHinweis(context, 'Die Seite konnte nicht geöffnet werden: $url');
+                  },
+                  icon: const Icon(Icons.open_in_new, size: 18),
+                  label: Text(text),
+                ),
+              ),
+            const SizedBox(height: 4),
+            const Text('Die Adressen der Anbieter können sich ändern. Findest du eine Seite nicht, such in der Hilfe deines Anbieters nach „App-Passwort“.',
+                style: TextStyle(color: PT.grau, fontSize: 12)),
+          ]),
+        ),
+      const SizedBox(height: 12),
+      const Text('2. Adresse und Passwort', style: TextStyle(fontWeight: FontWeight.w700)),
       const SizedBox(height: 8),
       TextField(
         controller: _adresse,
@@ -375,11 +432,14 @@ class _EinrichtenState extends State<_Einrichten> {
         decoration: InputDecoration(
           labelText: 'Passwort',
           prefixIcon: const Icon(Icons.key_outlined),
-          suffixIcon: IconButton(
-            tooltip: _zeigen ? 'Verbergen' : 'Anzeigen',
-            icon: Icon(_zeigen ? Icons.visibility_off : Icons.visibility),
-            onPressed: () => setState(() => _zeigen = !_zeigen),
-          ),
+          suffixIcon: Row(mainAxisSize: MainAxisSize.min, children: [
+            IconButton(tooltip: 'Aus der Zwischenablage einfügen', icon: const Icon(Icons.content_paste), onPressed: _einfuegen),
+            IconButton(
+              tooltip: _zeigen ? 'Verbergen' : 'Anzeigen',
+              icon: Icon(_zeigen ? Icons.visibility_off : Icons.visibility),
+              onPressed: () => setState(() => _zeigen = !_zeigen),
+            ),
+          ]),
         ),
       ),
       if (_adresse.text.contains('@')) ...[
