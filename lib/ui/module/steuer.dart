@@ -6,17 +6,15 @@ import '../../logic/steuer.dart';
 import '../app.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import 'steuer_berater.dart';
 
 /// Werbungskosten aus gespeicherten Angaben und markierten Posten.
 Werbungskosten werbungskostenFuer(int jahr, Map<String, String> notizen, List<SteuerPosten> posten) {
-  int zahl(String k) => int.tryParse(notizen['steuer:$jahr:$k'] ?? '') ?? 0;
-  return Werbungskosten(
-    fahrt: entfernungspauschale(km: zahl('km'), tage: zahl('arbeitstage'), jahr: jahr),
-    homeoffice: homeofficePauschale(zahl('homeoffice')),
-    weitere: posten
-        .where((p) => p.kategorie == 'Arbeitsmittel' || p.kategorie == 'Fortbildung' || p.kategorie == 'Fahrtkosten')
-        .fold(0.0, (s, p) => s + (p.betrag ?? 0)),
-  );
+  final eingaben = {
+    for (final k in const ['km', 'arbeitstage', 'homeoffice'])
+      if (notizen.containsKey('steuer:$jahr:$k')) k: notizen['steuer:$jahr:$k']!,
+  };
+  return werbungskostenAus(jahr, eingaben, posten);
 }
 
 class SteuerScreen extends StatefulWidget {
@@ -98,6 +96,27 @@ class _SteuerScreenState extends State<SteuerScreen> {
                 ],
               ),
             ),
+          PTKarte(
+            farbe: PT.gruenHell,
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => SteuerBeraterScreen(jahr: _jahr))),
+            child: const Row(
+              children: [
+                IconKachel(Icons.lightbulb_outline),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Steuer-Berater', style: TextStyle(fontWeight: FontWeight.w700)),
+                      Text('Was kann ich absetzen? Was spare ich? Für Angestellte und Selbstständige',
+                          style: TextStyle(color: PT.grau, fontSize: 13)),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: PT.grau),
+              ],
+            ),
+          ),
           PTKarte(
             onTap: () => Navigator.of(context)
                 .push(MaterialPageRoute(builder: (_) => WerbungskostenScreen(jahr: _jahr))),
@@ -276,7 +295,7 @@ class _WerbungskostenScreenState extends State<WerbungskostenScreen> {
           padding: const EdgeInsets.only(bottom: 12),
           child: TextField(
             controller: _c[k],
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: feld(labelText: label, suffixText: suffix, hintText: hint),
             onChanged: (_) => _setze(k),
           ),
@@ -295,7 +314,7 @@ class _WerbungskostenScreenState extends State<WerbungskostenScreen> {
               ListTile(title: const Text('Fahrten zur Arbeit'), trailing: Text(euro(w.fahrt))),
               ListTile(title: const Text('Homeoffice-Pauschale'), trailing: Text(euro(w.homeoffice))),
               ListTile(
-                  title: const Text('Arbeitsmittel, Fortbildung, Fahrtkosten'),
+                  title: const Text('Arbeitsmittel und Fortbildung'),
                   subtitle: const Text('aus deinen markierten Belegen und Briefen'),
                   trailing: Text(euro(w.weitere))),
               const Divider(height: 1),

@@ -5,6 +5,7 @@ library;
 import '../data/models.dart';
 import 'behoerden.dart';
 import 'brief_analyse.dart';
+import 'steuer_hilfe.dart' show zahlAusText;
 
 // ---------------------------------------------------------------- Kategorie-Vorschlag
 
@@ -40,11 +41,13 @@ const arbeitnehmerPauschbetrag = 1230.0;
 
 /// Entfernungspauschale: ab 2026 38 Cent ab dem ersten Kilometer,
 /// 2022–2025 30 Cent für die ersten 20 km und 38 Cent ab dem 21. km.
-double entfernungspauschale({required int km, required int tage, required int jahr}) {
+double entfernungspauschale({required double km, required int tage, required int jahr}) {
   if (km <= 0 || tage <= 0) return 0;
+  // Die Entfernung zählt in vollen Kilometern (angefangene Kilometer nicht).
+  final k = km.floorToDouble();
   final proTag = jahr >= 2026
-      ? km * 0.38
-      : (km <= 20 ? km * 0.30 : 20 * 0.30 + (km - 20) * (jahr >= 2022 ? 0.38 : 0.35));
+      ? k * 0.38
+      : (k <= 20 ? k * 0.30 : 20 * 0.30 + (k - 20) * (jahr >= 2022 ? 0.38 : 0.35));
   return (proTag * tage * 100).round() / 100;
 }
 
@@ -65,6 +68,23 @@ class Werbungskosten {
   /// Lohnt es sich, die Werbungskosten einzeln anzugeben?
   bool get ueberPauschale => summe > arbeitnehmerPauschbetrag;
   double get mehrAlsPauschale => summe - arbeitnehmerPauschbetrag;
+}
+
+/// Werbungskosten aus den gespeicherten Eingaben ([eingaben]: km, arbeitstage, homeoffice) und den
+/// markierten Posten. Fehlt „arbeitstage“, gilt der Standardwert 220 – genau das, was das Eingabefeld anzeigt.
+Werbungskosten werbungskostenAus(int jahr, Map<String, String> eingaben, List<SteuerPosten> posten) {
+  double zahl(String k, {double standard = 0}) => zahlAusText(eingaben[k] ?? '') ?? (eingaben.containsKey(k) && (eingaben[k] ?? '').trim().isEmpty ? 0 : standard);
+  final km = zahl('km');
+  final tage = zahl('arbeitstage', standard: 220).round();
+  final homeoffice = zahl('homeoffice').round();
+  return Werbungskosten(
+    fahrt: entfernungspauschale(km: km, tage: tage, jahr: jahr),
+    homeoffice: homeofficePauschale(homeoffice),
+    // Fahrten zur Arbeit sind schon durch die Entfernungspauschale abgegolten – nicht doppelt zählen.
+    weitere: posten
+        .where((p) => p.kategorie == 'Arbeitsmittel' || p.kategorie == 'Fortbildung')
+        .fold(0.0, (s, p) => s + (p.betrag ?? 0)),
+  );
 }
 
 /// Abgabefrist ohne Steuerberater für ein Steuerjahr: 31. Juli des Folgejahres
