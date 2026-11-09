@@ -1,0 +1,23 @@
+name: Bank-Adresse suchen
+
+# Hilfsablauf: sucht die FinTS-Adresse einer Bank (Bankleitzahl) und schreibt sie in den Bericht.
+on:
+  workflow_dispatch:
+    inputs:
+      blz:
+        description: Bankleitzahl
+        default: '46050001'
+
+jobs:
+  suchen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fints-url und Quellen abfragen
+        run: |
+          pip install fints-url 2>&1 | tail -2 || true
+          echo "== fints-url"; fints-url -b "${{ inputs.blz }}" 2>&1 | head -20 || true
+          echo "== fints-url Python"
+          python3 - <<'PY' || true
+          import fints_url
+          print(fints_url.find("${{ inputs.blz }}"))
+          PY
